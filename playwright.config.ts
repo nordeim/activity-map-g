@@ -1,11 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// E2E layer (v2.3): boots the PRODUCTION standalone server on an isolated
-// port with its own scratch database (db/e2e.db, schema-pushed + seeded by
-// the global setup), then drives the real UI in Chromium.
+// E2E layer: boots the production Next.js server on an isolated port with
+// its own scratch database (db/e2e.db, schema-pushed + seeded by the
+// global setup), then drives the real UI in Chromium.
 //
-// Prerequisites: `bun run build` (the standalone server must exist).
-// Run with: `bun run test:e2e`.
+// Prerequisites: `npm run build`.
+// Run with: `npm run test:e2e`.
 //
 // Auth strategy: the "setup" project signs the demo user in ONCE and saves
 // the session cookie to tests/e2e/.auth/user.json; every spec in the main
@@ -53,10 +53,10 @@ export default defineConfig({
   ],
   globalSetup: "./tests/e2e/global-setup.ts",
   webServer: {
-    command: "bun .next/standalone/server.js",
+    command: `npx next start -p ${PORT}`,
     url: `${BASE_URL}/api/health`,
     timeout: 60_000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     env: {
       ...process.env,
       PORT: String(PORT),

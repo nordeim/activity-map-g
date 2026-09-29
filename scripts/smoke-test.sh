@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ROAM (Augsburg City Guide) end-to-end API smoke test.
-# Boots the production standalone server, exercises auth + places +
+# Boots the production Next.js server, exercises auth + places +
 # favourites + bookings, prints PASS/FAIL per step, cleans up, exits
 # non-zero on any failure.
 set -u
@@ -16,7 +16,7 @@ ok()  { PASS=$((PASS+1)); say "PASS: $*"; }
 bad() { FAIL=$((FAIL+1)); say "FAIL: $*"; }
 
 # ---- 0. clean slate: kill any server holding port 3000 ----
-pkill -f "standalone/server.js" 2>/dev/null
+pkill -f "next start" 2>/dev/null || true
 sleep 1
 rm -f "$CJ" /tmp/smoke-*.json
 
@@ -24,7 +24,7 @@ rm -f "$CJ" /tmp/smoke-*.json
 # DATABASE_URL is pinned explicitly so a stray parent-directory .env can
 # never hijack the resolution (the repo's own .env default is the same).
 DATABASE_URL="file:../db/custom.db" AUTH_SECRET="smoke-test-secret" \
-  bun .next/standalone/server.js > /tmp/smoke-server.log 2>&1 < /dev/null &
+  npx next start -p 3000 > /tmp/smoke-server.log 2>&1 < /dev/null &
 SRV=$!
 disown $SRV 2>/dev/null || true
 

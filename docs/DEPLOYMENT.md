@@ -1,32 +1,33 @@
 # Deployment Guide
 
-ROAM (Augsburg City Guide) ships as a single Next.js **standalone** build with a SQLite file
+ROAM (Augsburg City Guide) ships as a single Next.js app with a SQLite file
 database — one process, zero external services. This guide covers the
 supported production paths and the environment contract.
 
 ## 1. Build
 
 ```bash
-bun install
-bun run build          # next build + standalone assembly (.next/standalone)
+npm install
+npm run build          # next build
 ```
 
-The build compiles the page shell and the 8 API route handlers, then copies
-`.next/static` and `public/` into `.next/standalone/` (see the `build`
-script in `package.json`). `next.config.ts` pins `outputFileTracingRoot` to
-the repo root — keep it; the standalone trace depends on it.
+The build compiles the page shell and the API route handlers. Prisma's
+SQLite engine is kept external via `serverExternalPackages` in
+`next.config.ts` so the query binary is not bundled away.
 
 ## 2. Run
 
 ```bash
-bun run start          # NODE_ENV=production bun .next/standalone/server.js
+npm run start          # NODE_ENV=production next start
 ```
 
 The server listens on port 3000 by default (`PORT` overrides). Always start
-it from the repo root via the npm/bun script — the scripts guarantee the
-working directory that the SQLite path resolution and the standalone trace
-rely on. Behind a reverse proxy, forward `X-Forwarded-Proto` so cookie
-attributes derive the right scheme.
+it from the repo root via the npm script — the SQLite path resolution
+(`file:../db/custom.db` → `<repo>/db/custom.db`) depends on the schema
+anchor at `prisma/schema.prisma`. Behind a reverse proxy, forward
+`X-Forwarded-Proto` so cookie attributes derive the right scheme. Session
+cookies only get the `Secure` flag when `NEXT_PUBLIC_SITE_URL` is `https://`
+(so HTTP previews and localhost keep working under `NODE_ENV=production`).
 
 ## 3. Environment variables
 

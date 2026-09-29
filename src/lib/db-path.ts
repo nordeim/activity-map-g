@@ -188,5 +188,13 @@ function moduleDir(): string | null {
 
 /** Resolve DATABASE_URL for the running process (used by src/lib/db.ts). */
 export function runtimeDatabaseUrl(): string {
-  return resolveDatabaseUrl(process.env.DATABASE_URL, candidateRoots());
+  const env = process.env.DATABASE_URL;
+  // This app is SQLite-backed at <repo>/db/custom.db. A workspace that
+  // injects a PostgreSQL DATABASE_URL (common in the Next.js+Postgres
+  // sandbox) must not hijack Prisma onto a dialect the schema is not
+  // compiled for.
+  if (!env || /^\s*$/.test(env) || env.trim().startsWith("postgres")) {
+    return resolveDatabaseUrl("file:../db/custom.db", candidateRoots());
+  }
+  return resolveDatabaseUrl(env, candidateRoots());
 }

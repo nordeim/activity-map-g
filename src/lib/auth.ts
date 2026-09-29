@@ -72,11 +72,26 @@ export function verifySessionToken(token: string | undefined): SessionPayload | 
 
 export const SESSION_COOKIE = COOKIE_NAME;
 
+/**
+ * Secure cookies require HTTPS. An HTTP preview (localhost, sandbox
+ * `next start`) must keep the flag off even when NODE_ENV=production,
+ * otherwise the session cookie is silently dropped and login never sticks.
+ */
+export function cookieSecureFlag(
+  nodeEnv = process.env.NODE_ENV,
+  siteUrl = process.env.NEXT_PUBLIC_SITE_URL,
+): boolean {
+  const origin = (siteUrl ?? "").trim();
+  if (origin.startsWith("https://")) return true;
+  if (origin.startsWith("http://")) return false;
+  return nodeEnv === "production";
+}
+
 export function sessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecureFlag(),
     path: "/",
     maxAge: SESSION_TTL_MS / 1000,
   };

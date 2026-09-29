@@ -1,6 +1,24 @@
 # Worklog — activity-map (ROAM) sessions
 
 ---
+Task ID: 34
+Agent: coding specialist
+Task: Session 34 — clone into the npm/Next.js sandbox, pin SQLite at db/custom.db, fix HTTP production cookies, add Vitest/Playwright configs, capture screenshots, align docs.
+
+Work Log:
+- Cloned nordeim/activity-map; overlaid the app onto the sandbox (Prisma/SQLite, Tailwind v4, App Router).
+- DATABASE_URL="file:../db/custom.db" with db/custom.db at the repo root; runtimeDatabaseUrl() pins SQLite even if a workspace injects Postgres.
+- cookieSecureFlag() keeps the session cookie off Secure on HTTP origins so `next start` previews can log in.
+- npm scripts: test (vitest), test:e2e (playwright + next start :3100), db:push/seed/generate.
+- TDD: 48 unit tests green (db-path, filters, planner, auth). Health probes Prisma `SELECT 1`.
+- Dropped Bun standalone; next.config uses serverExternalPackages for Prisma.
+- Captured session34-* screenshots (desktop home/eat/map, mobile home/eat-nav, login) from production next start.
+- Mobile nav verified: one-line 390px tab-bar, Eat active-state, no overlap (Tailwind v4 failure classes A–E still pinned).
+
+Stage Summary:
+- App runs on npm + Next.js 16.2.6 + Prisma 6.19.3 + SQLite. Demo login sepnetflix2023@outlook.com / $Abcd1234.
+
+---
 Task ID: 2
 Agent: Super Z (main agent)
 Task: Session 2 — refresh workspace, validate session-1 state, achieve parity with the redesigned live app, remediate, re-document, and push.

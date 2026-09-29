@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from "node:
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { resolveDatabaseUrl, standaloneRepoRoot } from "@/lib/db-path";
+import { resolveDatabaseUrl, runtimeDatabaseUrl, standaloneRepoRoot } from "@/lib/db-path";
 
 // The db-path contract (docs/parity-remediation-v2.3.md WS-1):
 // a RELATIVE `file:` URL resolves against the first "anchor" directory that
@@ -150,6 +150,34 @@ describe("standaloneRepoRoot (the Next standalone chdir trap)", () => {
     // with this order it must land in <repo>/db.
     const out = resolveDatabaseUrl("file:../db/custom.db", [repo, standalone]);
     expect(toPosix(out)).toBe(`file:${toPosix(path.join(repo, "db", "custom.db"))}`);
+  });
+});
+
+describe("runtimeDatabaseUrl", () => {
+  it("pins SQLite at db/custom.db even when DATABASE_URL is Postgres", () => {
+    const prev = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/app_db";
+    try {
+      const out = runtimeDatabaseUrl();
+      expect(out.startsWith("file:")).toBe(true);
+      expect(toPosix(out)).toMatch(/\/db\/custom\.db$/);
+    } finally {
+      if (prev === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = prev;
+    }
+  });
+
+  it("honours an explicit file: DATABASE_URL", () => {
+    const prev = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = "file:../db/custom.db";
+    try {
+      const out = runtimeDatabaseUrl();
+      expect(out.startsWith("file:")).toBe(true);
+      expect(toPosix(out)).toMatch(/\/db\/custom\.db$/);
+    } finally {
+      if (prev === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = prev;
+    }
   });
 });
 

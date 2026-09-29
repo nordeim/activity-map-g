@@ -17,7 +17,7 @@ The reference app is an Augsburg city guide: a photographic hero with a frosted 
 |---|---|
 | ![Home — hero, trip planner, category cards](docs/screenshots/01-home-highlights.png) | ![Mobile Eat view](docs/screenshots/10-mobile-eat.png) |
 
-Sixty-six production captures live in [`docs/screenshots/`](docs/screenshots/): home, the four home sections (route, restaurants, stays, sights), Eat, Stay, Do, map, place detail, favourites, profile, two mobile views, the session-23 footer set (desktop glass pill, mobile footer, the sights-pill→footer hand-off), the session-24 filter-shell set (the desktop + mobile map command center, the mobile browse planner/chips), the session-25 set (the desktop category cards, the login card, the two legal pages, the favourites empty state), the session-26 set (the mobile route-trap heading, the mobile stacking restaurant deck, the mobile stay insets, the mobile category track), the session-27 set (the desktop + mobile route-stop chrome, the mobile login fields), the session-28 set (the desktop + mobile date-picker popover, the stay-card pills, the booking-form labels), the session-29 set (the band heading + card states, the map list card + grid, the detail rating pill, the mobile map card), the session-30 set (the two 404 designs, the circular zoom pair + 12px pins, the hover-revealed pin labels, the pin-click navigation, the mobile map pins), the session-31 set (the vh-model hero at 1280×900 + 1280×800, the mobile hero at 390 + the capped 38px h1 at 640, the centered vibe heading, the stay parallax zoom, the sights oversize crop, the hydration-clean generic 404), the session-32 set (the shrink-wrapped mobile nav at 390 + 640, the grown 646×118 desktop footer pill, the unchanged mobile footer for the record), and the session-33 set (the compact 506×96 offscreen-model pill, the mid-growth interpolation at the footer's half-visibility, the grown 646×118 pill, the violet link hover, the mobile footer with the soft shadow).
+Sixty-six production captures live in [`docs/screenshots/`](docs/screenshots/): home, the four home sections (route, restaurants, stays, sights), Eat, Stay, Do, map, place detail, favourites, profile, two mobile views, the session-23 footer set (desktop glass pill, mobile footer, the sights-pill→footer hand-off), the session-24 filter-shell set (the desktop + mobile map command center, the mobile browse planner/chips), the session-25 set (the desktop category cards, the login card, the two legal pages, the favourites empty state), the session-26 set (the mobile route-trap heading, the mobile stacking restaurant deck, the mobile stay insets, the mobile category track), the session-27 set (the desktop + mobile route-stop chrome, the mobile login fields), the session-28 set (the desktop + mobile date-picker popover, the stay-card pills, the booking-form labels), the session-29 set (the band heading + card states, the map list card + grid, the detail rating pill, the mobile map card), the session-30 set (the two 404 designs, the circular zoom pair + 12px pins, the hover-revealed pin labels, the pin-click navigation, the mobile map pins), the session-31 set (the vh-model hero at 1280×900 + 1280×800, the mobile hero at 390 + the capped 38px h1 at 640, the centered vibe heading, the stay parallax zoom, the sights oversize crop, the hydration-clean generic 404), the session-32 set (the shrink-wrapped mobile nav at 390 + 640, the grown 646×118 desktop footer pill, the unchanged mobile footer for the record), and the session-33 set (the compact 506×96 offscreen-model pill, the mid-growth interpolation at the footer's half-visibility, the grown 646×118 pill, the violet link hover, the mobile footer with the soft shadow). Session 34 added production-server captures in `docs/screenshots/session34-*.png` (desktop home/eat/map, mobile home + Eat-active nav, login card) taken from `next start` after the npm/SQLite sandbox port.
 
 ## Key Features
 
@@ -42,7 +42,7 @@ Sixty-six production captures live in [`docs/screenshots/`](docs/screenshots/): 
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| Web framework | Next.js (App Router, standalone output) | 16 | Pages, API route handlers, server components |
+| Web framework | Next.js (App Router) | 16 | Pages, API route handlers, server components |
 | UI runtime | React | 19 | Server components by default; 18 client components |
 | Language | TypeScript | 5 (strict, `noImplicitAny` off) | Type-safe app + typed API DTOs |
 | Styling | Tailwind CSS | 4 (CSS-first, no config file) | `@theme` tokens + `@utility` primitives |
@@ -50,9 +50,9 @@ Sixty-six production captures live in [`docs/screenshots/`](docs/screenshots/): 
 | Map | Leaflet + react-leaflet | 1.9 / 5 | Map view, `ssr:false` dynamic mount |
 | ORM | Prisma | 6 | Schema, client, seed |
 | Database | SQLite (PostgreSQL switchable) | — | Zero-config local store |
-| Unit tests | Vitest | 5 | 42 checks on the pure seams |
-| E2E tests | Playwright | 1.63 | 52 checks against the production build |
-| Runtime | Bun (npm-compatible) | ≥1.4 | Install, dev, seed, server |
+| Unit tests | Vitest | 5 | 48 checks on the pure seams (db-path, filters, planner, auth cookies) |
+| E2E tests | Playwright | 1.63 | Production `next start` on :3100 with its own seeded SQLite file |
+| Runtime | npm / Node.js | ≥20 | Install, dev, seed, server |
 
 ```mermaid
 flowchart TB
@@ -96,29 +96,31 @@ flowchart TB
 
 ## Quick Start
 
-Requires Bun ≥1.4 (or npm/node ≥20) .
+Requires Node.js ≥20 and npm.
 
 1. Clone and install:
 
-   ```bash
-   git clone https://github.com/nordeim/activity-map.git
-   cd activity-map
-   bun install
-   ```
+    ```bash
+    git clone https://github.com/nordeim/activity-map.git
+    cd activity-map
+    npm install
+    ```
 
-2. Configure and seed the database:
+2. Configure and seed the database. The SQLite file lives at `db/custom.db`
+   (repo root). `DATABASE_URL="file:../db/custom.db"` is resolved against
+   `prisma/schema.prisma`:
 
-   ```bash
-   cp .env.example .env
-   bun run db:push     # apply the schema (db/e2e-agnostic, no migrations folder)
-   bun run db:seed     # 78 places (42 published + 27 home-only + 9 map-demo) + the demo user
-   ```
+    ```bash
+    cp .env.example .env
+    npm run db:push     # apply the schema (no migrations folder)
+    npm run db:seed     # 78 places (42 published + 27 home-only + 9 map-demo) + the demo user
+    ```
 
 3. Start the dev server:
 
-   ```bash
-   bun run dev
-   ```
+    ```bash
+    npm run dev
+    ```
 
 **Verify setup:** open `http://localhost:3000` → you land on the login card; sign in with `sepnetflix2023@outlook.com` / `$Abcd1234` → the Highlights page renders the traveller-photo hero, the glass planner (pick dates in the popover, then Search → `/eat?people=…&start_date=…`), the glass category cards, and the full home showcase (sticky route, restaurants, stays, sights).
 
@@ -134,9 +136,9 @@ Requires Bun ≥1.4 (or npm/node ≥20) .
 
 | Layer | Command | Checks | Notes |
 |-------|---------|--------|-------|
-| Unit | `bun run test` | 42 | Vitest — db-path resolution contract, filter semantics, and planner param/date-label helpers |
-| E2E | `bun run build && bun run test:e2e` | 76 | Playwright drives the production standalone server on :3100 with its own seeded DB |
-| Smoke | `bun run build && ./scripts/smoke-test.sh` | 27 | Boots a fresh production server and exercises the whole API surface |
+| Unit | `npm test` | 48 | Vitest — db-path (including Postgres-URL pin to SQLite), filter semantics, planner helpers, cookie Secure flag, password hashing |
+| E2E | `npm run build && npm run test:e2e` | 76+ | Playwright drives `next start` on :3100 with its own seeded SQLite file (`db/e2e.db`) |
+| Smoke | `npm run build && ./scripts/smoke-test.sh` | 27 | Boots a fresh production server and exercises the whole API surface |
 
 The full pre-push gate is `lint → typecheck → test → build → smoke → e2e` (see `AGENTS.md`).
 

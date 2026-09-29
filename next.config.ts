@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // The repo's build script + smoke tests boot the standalone server:
-  //   bun .next/standalone/server.js
-  output: "standalone",
+  // Production `next start` (npm run start / Playwright webServer). Prisma's
+  // SQLite engine must stay external so the query binary is not bundled away.
+  serverExternalPackages: ["@prisma/client", "prisma"],
   reactStrictMode: true,
   poweredByHeader: false,
   // Remote place imagery is served by the reference app's media CDN.
