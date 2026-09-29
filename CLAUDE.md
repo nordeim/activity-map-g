@@ -10,7 +10,7 @@ A production-grade, self-hosted clone of `activity-map.base44.app`: an authentic
 
 ## Core Identity & Purpose
 
-ROAM solves one problem: the reference trip-planning app is locked behind a hosted platform. This repo reproduces it — every view, the measured filter semantics, the visual design tokens, and the 42 seeded places captured from the live app plus its 27 home-only showcase rows (route, sights, restaurants) and 9 map-demo rows — as a single Next.js application with cookie-session auth and a SQLite store, so it runs anywhere with `bun install && bun run db:push && bun run db:seed`.
+ROAM solves one problem: the reference trip-planning app is locked behind a hosted platform. This repo reproduces it — every view, the measured filter semantics, the visual design tokens, and the 42 seeded places captured from the live app plus its 27 home-only showcase rows (route, sights, restaurants) and 9 map-demo rows — as a single Next.js application with cookie-session auth and a SQLite store, so it runs anywhere with `npm install && npm run db:push && npm run db:seed`.
 
 ## Foundational Principles
 
@@ -62,11 +62,11 @@ ROAM solves one problem: the reference trip-planning app is locked behind a host
 ### Environment Setup
 
 ```bash
-bun install
+npm install
 cp .env.example .env
-bun run db:push     # apply schema (db push — no migrations folder)
-bun run db:seed     # 78 places (42 published + 27 home-only + 9 map-demo) + demo user (wipes domain tables)
-bun run dev         # http://localhost:3000
+npm run db:push     # apply schema (db push — no migrations folder)
+npm run db:seed     # 78 places (42 published + 27 home-only + 9 map-demo) + demo user (wipes domain tables)
+npm run dev         # http://localhost:3000
 ```
 
 Demo login: `sepnetflix2023@outlook.com` / `$Abcd1234` (seeds as name "sepnetflix2023" — the live account's identity, session-14).
@@ -75,21 +75,21 @@ Demo login: `sepnetflix2023@outlook.com` / `$Abcd1234` (seeds as name "sepnetfli
 
 | Command | Purpose |
 |---------|---------|
-| `bun run dev` | Development server (port 3000, pinned `DATABASE_URL`) |
-| `bun run build` | Production build + standalone assembly |
-| `bun run start` | Production standalone server |
-| `bun run lint` | ESLint (next core-web-vitals + typescript) |
-| `bun run typecheck` | `tsc --noEmit` |
-| `bun run test` | Vitest unit suite (42 checks) |
-| `bun run test:e2e` | Playwright E2E (76 checks; requires a build) |
-| `bun run db:push` / `db:generate` / `db:seed` | Prisma schema / client / seed |
+| `npm run dev` | Development server (port 3000, pinned `DATABASE_URL`) |
+| `npm run build` | Production build (Turbopack) |
+| `npm run start` | Production server (`next start`, pinned `DATABASE_URL`) |
+| `npm run lint` | ESLint (next core-web-vitals + typescript) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test` | Vitest unit suite (48 checks) |
+| `npm run test:e2e` | Playwright E2E (76 checks; requires a build) |
+| `npm run db:push` / `db:generate` / `db:seed` | Prisma schema / client / seed |
 
 ### Database (Prisma)
 
 ```bash
-bunx prisma generate    # regenerate client after schema edits
-bun run db:push         # schema → SQLite (no migrations folder by design)
-bun run db:seed         # idempotent: wipes + reseeds domain tables
+npx prisma generate     # regenerate client after schema edits
+npm run db:push         # schema → SQLite (no migrations folder by design)
+npm run db:seed         # idempotent: wipes + reseeds domain tables
 ```
 
 Schema changes go through `db push`, never `prisma migrate` — `prisma/migrations/` intentionally does not exist.
@@ -98,16 +98,16 @@ Schema changes go through `db push`, never `prisma migrate` — `prisma/migratio
 
 ### Test Pyramid
 
-- **Unit (Vitest, 42 checks)**: pure seams — `tests/db-path.test.ts` (17: SQLite URL resolution contract, quote-stripping, standalone anchors), `tests/filters.test.ts` (15: chip AND-composition, special chips, search haystack), and `tests/planner.test.ts` (10: planner query params, browse-target routing, date-range label formatting).
+- **Unit (Vitest, 48 checks)**: pure seams — `tests/db-path.test.ts` (19: SQLite URL resolution contract, quote-stripping, standalone anchors, the Postgres-pin runtime guard), `tests/filters.test.ts` (15: chip AND-composition, special chips, search haystack), `tests/planner.test.ts` (10: planner query params, browse-target routing, date-range label formatting), and `tests/auth.test.ts` (4: the cookie Secure-flag contract + the scrypt password round-trip).
 - **E2E (Playwright, 76 checks)**: boots the PRODUCTION standalone server on :3100 against its own `db/e2e.db` (schema-pushed + seeded by the global setup). Suites: `auth.spec.ts` (logged-out surface + login flow + the session-10 shadcn login chrome (session-25: the 14px `text-sm` inputs + the one-button "Need an account? Sign up" row; session-27: the RESPONSIVE fields — `text-base md:text-sm` 16px inputs + the 44px button below sm, pinned at 390/640/1280) + the session-12 white body + the session-25 LEGAL-PAGES contract — the `/privacy-policy` + `/accessibility-statement` routes (the legacy paths redirect), the ← Back home link 14px #8A8780, the 48px Libre Baskerville h1, the 14px/28px #5F5C56 paras, no nav/footer, the live's verbatim texts; navigations use `domcontentloaded` — the CDN `load` flake), `browse.spec.ts` (unified browse planner + auto-forward params + the session-12 compact 38px/12px chips + the session-14/18 heading geometry (h1 y≈168, 14px #3A3A3A subtitle, the 18px graph-paper overlay wrapping planner + chips) + browse cards + the session-24 filter-shell contracts (the 600-weight hairline chips with the violet active fill + 44px mobile targets, the floating card shell r-28/24 + hairline + 18/44 shadow + the 36px heart disc, the mobile heading pt-112 contract h1 y 112/188, the 36px Back pill, the map's sticky command center), detail booking-request round-trip + rating pill/photo overlays + the session-10 max-w-6xl rounded-36 card + the session-18 SPLIT layout (the card ends after the photo, About below, the gap-6/1.2fr–0.8fr grid, the rounded-28 aside with 16px fields) + h1 y≈225, favourites round-trip + the session-12 grid overlay + 14px #3A3A3A subtitle + the session-14 scoped overlay/h1 y≈244 + the session-25 max-w-xl empty card (576 centered @1280), map pills/stats + the session-24 sticky shell (r-34 glass, white/70 hairline, 0 8 22 /0.10, pills 600, top-96 md / top-10 phones) + the session-16 FOUR-row list cards (eyebrow+price row, neighborhood, sub-category eyebrows, the live's interleaved order) + the session-18 heading overlay, profile chrome-less contract (no navbar/footer at any breakpoint, the full-page fixed grid overlay, h1 y≈203/167, centered-mobile identity, the Go back button) + the session-12 two-card layout with the session-14 USERNAME h1 + email line), `home.spec.ts` (white planner card, the session-10 hero content positions + the session-31 VH-MODEL photo framing (the absolute backdrop `top: calc(-80px+0.25vh)` / `height: calc(100%+72px)` with the ROUNDED bottom corners 32/32/60%60%/32/32/80/80 at md+ and 42%/48px on phones — 1010px @1280×800 / 1038 @1280×900 / 919 @768×900; the h1 y=267/290/319 at 720/800/900 viewports, CAPPED at 38px on phones, the 16px pill gap) + the zero-console-errors 404 hydration contract + the session-31 CENTERED vibe heading (px-18 + max-w-94vw, symmetric extents) + the showcase 1.16 zoom/parallax contracts + the session-14 px-6 hero content, desktop floating-pill navbar (with the session-22 +0.01em link tracking), the session-10 category-card internals + mobile snap carousel + the session-12 compacted height + the session-25 desktop internals (32×32 cells, 24px header, gap ≤16, cards 205–235, the pill's top ≤10px above the card bottom), text route cards + the session-18 mobile route visual (full-viewport svg, no mobile chip, rounded-28 cards) + the session-20 route re-measure (the 20px/600 h3 place names at `tracking-[-0.02em]`, the 13px #72706A meta lines, the 13px Learn More, the max-w-md 448px desktop link card, the 50/50 desktop split with the y≈237 card slot, and the CONTINUOUS scroll-linked swap choreography — intermediate opacities mid-crossfade + card 0 exiting upward; deterministic `window.scrollTo` probes because `scrollIntoViewIfNeeded` on the 420vh trap is non-deterministic and late-loading images shift the layout — re-align before measuring) + the session-27 stop-card chrome (the time pill's `0 8px 22px /0.06` shadow + the 1px /0.1 hairline + the PER-STOP category icons — Coffee/Utensils/Palette/Martini/Leaf — + the #3A3A3A text, the lh-1.1 serif stop titles with mb-2, the link card's 1px /0.08 hairline, the map-pin meta row), blue restaurants carousel + the session-18 band overlap (700–900px) + the session-26 mobile STICKY STACKING deck (six cards `sticky top-[88px]`, 130px flow gaps/620px advances — a card pins at y=88 and the next slides over; the deck pads px-[18px]/pt-14) + the session-26 mobile route-heading contract (the h2 pinned INSIDE the trap at viewport y=68 with the clamp(38px,11vw,48px) font, the 220vh trap, exactly one h2 below lg) + the session-26 showcase insets (the mobile stay cards 354 @x=18 / the sights 358 @x=16) + the session-26 category-track chrome (the 12px gap + the y≈578 cards) + the session-26 footer legal-row chrome (the hairline + pt + the sm: switch + the max-w-390 640 window), letter-reveal spans + the session-31 CENTERED full-width heading (the live changed it from left-aligned; the exact live line breaks at x=123/136/263), the session-12 stay-showcase ORDER + the session-14 column-major visual arrangement (row 1 = Courtyard | Maison | Velvet, 381px cards), the session-14 sights grid (1120px, 360px cards), 24px mobile titles, dark More-Things pill, square stay/sight cards, footer, home-place detail resolution, browse purity, the session-23+32+33 footer re-measure (the glass pill: the scroll-linked growth from the compact 506×96 offscreen model to the grown 646×118 at md (r-34 + pad 12/16 + gap 12 + the 92×92 r-24 links carrying 24px icons over 12px/600 labels, one row of six), with the compact-at-load + the half-visibility interpolation midpoint (gap 10) + the transition lists + the soft pill shadow + the violet link hover (matrix(1.1, 0, 0, 1.1, 0, -12) over #571AFF) + the icons' stroke-width 2.1 + the labels' −0.01em tracking pinned; below md r-28 + pad 8/10 + the 104×78 links, `transition-none` (never grows), footer pt-64/pb-56 → pt-32/pb-24 mobile, inner max-w-5xl, the justify-between legal row with #8A8780 text) + the session-23 page-bottom spacing contracts (home card→pill 32 + pill→footer 0 desktop/22 mobile; the browse 96px last-card→footer)), `browse.spec.ts` footer-on-every-page checks, `mobile-navigation.spec.ts` (the five v4 failure classes + the session-22 tab-bar glass contract (blur(24px) saturate(1.5) + the 0.62 tint) + the −0.01em mobile link tracking + the session-23 tab-bar 52px border-box contract + the session-32 shrink-wrapped link positions (121/192/222/259 at 390; 246/317/347/384 at 640) + the session-32 press-shrink contract (the class + the 0.18s cubic-bezier(0.22,1,0.36,1) transition) + tap navigation at 390 / 640 / 1280).
 - **Smoke (bash, 27 checks)**: `./scripts/smoke-test.sh` against a fresh production server — health, auth, rate limiting, places, favourites, bookings, 404s.
 
 ### Test Commands
 
 ```bash
-bun run test        # 42 unit checks
-bun run build && bun run test:e2e   # 76 E2E checks
-bun run build && ./scripts/smoke-test.sh   # 27 smoke checks
+npm run test        # 48 unit checks
+npm run build && npm run test:e2e   # 76 E2E checks
+npm run build && ./scripts/smoke-test.sh   # 27 smoke checks
 ```
 
 ### Testing Rules
@@ -121,7 +121,7 @@ bun run build && ./scripts/smoke-test.sh   # 27 smoke checks
 ### Linting & Formatting
 
 ```bash
-bun run lint && bun run typecheck
+npm run lint && npm run typecheck
 ```
 
 `eslint.config.mjs` extends `next/core-web-vitals` + `next/typescript` with several `@typescript-eslint` rules relaxed (scaffold default — match the existing style rather than re-tightening mid-feature). ESLint and tsconfig exclude `skills/`.

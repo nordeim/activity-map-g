@@ -879,3 +879,26 @@ Work Log:
 Stage Summary:
 - Commit 4f0fc97 (18 files: 2 source + 1 spec + 8 docs + 5 screenshots + 2 scripts + the plan) pushed to main and verified on the remote.
 - No secrets in the tree; key material destroyed post-push.
+
+---
+Task ID: 35
+Agent: Super Z (main agent, session 35)
+Task: Session 35 — audit + remediate the operator commits (the grok npm-runtime port + the image cleanup), re-verify parity + the full gate, re-capture screenshots, align docs, push to main.
+
+Work Log:
+- Baseline gate on the untouched tree: lint ✓ (2 pre-existing warnings) · typecheck ✓ · 48 unit ✓ · build ✓ · 27/27 smoke ✓ · E2E 75/76 once (the mobile-nav position font-timing race — Highlights 115 vs 121, the Inter webfont not yet loaded at measurement), then 76/76 + green in isolation.
+- Audit findings A1–A15 written into docs/remediation-plan-session-35.md and validated against the codebase before execution (insertion points, dependency usage, script modes, env var references).
+- R0/R1 TDD: the hostile-env probe RED (the unpinned db:push/db:seed wrote the DB one level above the repo under the sandbox's exported absolute DATABASE_URL + the stray parent .env) → GREEN after restoring the inline pinning on dev/start/db:push/db:seed (the fully-seeded 118784-byte <repo>/db/custom.db under the hostile env).
+- R2: the parity toolchain restored via npm (tailwindcss 4.3.3, @tailwindcss/postcss 4.3.3, next 16.3.7, react/react-dom 19.3.0; @playwright/test + vitest + @types/leaflet back to devDependencies; tsx kept in deps for the deployment's db:seed; package-lock.json regenerated — never hand-edited).
+- R3: the mobile-navigation specs (the 390 + 640 shrink-wrap + the desktop pill) await document.fonts.ready before measuring; 76/76 E2E across THREE consecutive full-suite runs since.
+- R4: drizzle.config.json, src/db/, bun.lock, and the drizzle-orm/drizzle-kit/pg/@types/pg/dotenv deps removed (zero src imports verified first).
+- R5/R6/R7/R8: the script exec bits restored; install_packages.sh re-aligned to package.json; .env/.env.example matched to the code (DATABASE_URL="file:../db/custom.db" with the npm story; NEXT_PUBLIC_SITE_URL documented as load-bearing for cookieSecureFlag; the dead SITE_URL dropped); the vitest.config.ts header comment fixed to the real seams.
+- A15 en-route (fixed): the smoke script orphaned the renamed next-server worker (pkill -f "next start" misses it; kill $SRV only kills the npx wrapper) — a spent-limiter orphan on :3000 failed the next run 13/27 with phantom 429/401s; now killed by PORT (ss-based kill_port; lsof blind in this sandbox) at the clean-slate AND the shutdown; verified 27/27 ×2 back-to-back with the port free after each.
+- R9: 16 dev-server screenshots captured into docs/screenshots/ via scripts/capture-screens-session35.mjs (+part2) against npm run dev; the README's screenshot narrative + image links rewritten to the new set (the cleanup commit had deleted all 66 old captures while the README still referenced them). En-route lesson encoded in the script: a Playwright fill on a not-yet-hydrated React form is silently reset by hydration — go straight to /login, settle, and VERIFY the input values before submitting (the observed empty-fields 400).
+- R10: README (the session-34/35 rows, 21 client components, npm commands, screenshots), AGENTS.md (npm-first commands + gate order + the next-start note), CLAUDE.md (npm setup + the 48-check pyramid incl. the auth seam), PAD v2.13, activity-map_SKILL.md v1.21.0, docs/DEPLOYMENT.md, the plan's execution record, docs/session_42.md, this worklog.
+- Final gate on the push tree: lint ✓ · typecheck ✓ · 48 unit ✓ · build ✓ · 27/27 smoke ✓ ×2 · 76/76 E2E ✓ ×3.
+
+Stage Summary:
+- The operator commits audited (15 findings: 3 HIGH — the removed DB pinning (hijack reproduced), the toolchain downgrades, the deleted screenshots; the good npm-port changes kept); everything remediated to the documented baseline with evidence.
+- Parity re-verified on both sites (the mirror all green running the session-33 code; the live unchanged at every swept signature); the mobile navigation menu confirmed working exactly as expected at 390/640/1280.
+- Gates: 48 unit + 27 smoke ×2 + 76 E2E ×3 — all green; 16 screenshots; 9 docs aligned; single conventional commit + SSH-wrapper push to main.

@@ -16,6 +16,18 @@ ok()  { PASS=$((PASS+1)); say "PASS: $*"; }
 bad() { FAIL=$((FAIL+1)); say "FAIL: $*"; }
 
 # ---- 0. clean slate: kill any server holding port 3000 ----
+# `next start` renames its worker process to `next-server (vX.Y.Z)`, so the
+# plain "next start" pkill pattern MISSES it — an orphan holding :3000 with
+# a spent in-memory rate limiter then fails the next run with phantom
+# 429/401s (the session-6 stale-server lesson, npm-runtime edition). Kill
+# by PORT via ss instead (lsof is blind in some sandboxes); precise, and it
+# catches both process names.
+kill_port() {
+  ss -tlnp 2>/dev/null | awk -v p=":$1" 'index($4, p"\t") > 0 || $4 ~ p"$"' \
+    | grep -oP 'pid=\K[0-9]+' | sort -u | xargs -r -n1 kill 2>/dev/null
+  return 0
+}
+kill_port 3000
 pkill -f "next start" 2>/dev/null || true
 sleep 1
 rm -f "$CJ" /tmp/smoke-*.json
@@ -34,7 +46,7 @@ for i in $(seq 1 30); do
   sleep 1
 done
 if [ "$ready" != "1" ]; then
-  bad "server did not become ready"; kill $SRV 2>/dev/null; exit 1
+  bad "server did not become ready"; kill_port 3000; kill $SRV 2>/dev/null; exit 1
 fi
 ok "server ready (health check)"
 
@@ -141,7 +153,10 @@ else
 fi
 
 # ---- shutdown ----
+# Kill the npx wrapper AND the next-server child holding :3000 (killing
+# $SRV alone orphans the renamed worker — see the clean-slate note above).
 kill $SRV 2>/dev/null
+kill_port 3000
 say ""
 say "RESULT: $PASS passed, $FAIL failed"
 [ "$FAIL" = "0" ]

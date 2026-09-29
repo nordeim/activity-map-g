@@ -62,13 +62,13 @@ cookies only get the `Secure` flag when `NEXT_PUBLIC_SITE_URL` is `https://`
 
 3. **PostgreSQL.** Switch `provider = "postgresql"` in
    `prisma/schema.prisma`, set a `postgresql://` URL, then
-   `bun run db:push && bun run db:seed`.
+   `npm run db:push && npm run db:seed`.
 
 Initialize (or reset) the database with:
 
 ```bash
-bun run db:push        # apply schema (db push — no migrations folder)
-bun run db:seed        # idempotent demo guide (wipes domain tables)
+npm run db:push        # apply schema (db push — no migrations folder)
+npm run db:seed        # idempotent demo guide (wipes domain tables)
 ```
 
 `db/*.db` is gitignored; every fresh clone recreates it from the two
@@ -78,10 +78,10 @@ commands above.
 
 ```bash
 git pull
-bun install
-bunx prisma generate   # after schema changes
-bun run db:push
-bun run build
+npm install
+npx prisma generate    # after schema changes
+npm run db:push
+npm run build
 # restart the server process
 ```
 
@@ -89,15 +89,15 @@ bun run build
 
 ```bash
 curl -s https://your-host/api/health          # {"status":"ok",...}
-bun run lint && bun run typecheck && bun run test
+npm run lint && npm run typecheck && npm run test
 ./scripts/smoke-test.sh                       # 27 E2E checks (local)
-bun run test:e2e                              # Playwright suite (local)
+npm run test:e2e                              # Playwright suite (local)
 ```
 
 ## 7. Common production issues
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `Error code 14: Unable to open the database file` | Server started from a directory that has no `prisma/schema.prisma` and no absolute `DATABASE_URL` | Start via `bun run start`, or set an absolute `file:` URL (§4) |
+| `Error code 14: Unable to open the database file` | Server started from a directory that has no `prisma/schema.prisma` and no absolute `DATABASE_URL` | Start via `npm run start`, or set an absolute `file:` URL (§4) |
 | Logins loop back to `/login` | `AUTH_SECRET` changed between restarts | Keep the secret stable across restarts |
 | Rate-limited logins (429) | 10 attempts/IP/15 min fixed window | Wait for `Retry-After`, or restart to clear the in-memory buckets (single-node) |

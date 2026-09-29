@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // Mobile navigation (390×844 — the live app's session-6 chrome):
 // a FIXED top tab-bar (cream glass #F8F7F4/62, blur, border-b) capped at
@@ -17,6 +17,16 @@ import { expect, test } from "@playwright/test";
 // switching browsers — locator.tap needs hasTouch).
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
+// Inter loads from Google Fonts via <link> (src/app/layout.tsx). Under
+// full-suite network contention the fallback font can still be active when
+// geometry is measured — its wider metrics shift the shrink-wrapped link
+// positions ~6px left (Highlights x=115 vs the 121±2 contract; observed
+// session 35, 75/76). Every position-sensitive spec waits for the fonts
+// first; the fontless assertions (heights, colors, blur) are insensitive.
+async function awaitWebfonts(page: Page) {
+  await page.evaluate(() => document.fonts.ready.then(() => true));
+}
+
 test.describe("mobile navigation", () => {
   test.beforeEach(async ({ page }) => {
     // domcontentloaded: the home page pulls ~35 card images from the
@@ -24,6 +34,7 @@ test.describe("mobile navigation", () => {
     // 45s timeouts under network contention. The nav assertions below
     // auto-wait for hydration anyway.
     await page.goto("/", { waitUntil: "domcontentloaded" });
+    await awaitWebfonts(page);
   });
 
   test("the full-width top bar renders every element on one line", async ({ page }) => {
@@ -257,7 +268,8 @@ test.describe("middle state (640) navigation", () => {
     // geometry: the header caps at 430 centered (x=105) → the nav inner
     // starts at 121; 398 inner − (84 + 154 + 8 + 70) = 82 → two 41px
     // justify-between gaps put the group at 121+84+41 = 246.
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await awaitWebfonts(page);
     const nav = page.getByRole("navigation", { name: "Primary" });
     const labels = ["Highlights", "Eat", "Stay", "Do"];
     const textXs: number[] = [];
@@ -282,7 +294,8 @@ test.describe("desktop (1280) navigation", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test("the floating white pill renders the chrome with the avatar chip", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await awaitWebfonts(page);
     const nav = page.getByRole("navigation", { name: "Primary" });
     await expect(nav).toBeVisible();
     for (const label of ["Highlights", "Eat", "Stay", "Do", "Map", "Favourites", "Profile"]) {
