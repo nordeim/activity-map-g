@@ -1,4 +1,5 @@
 $ grep -v '^#' .env
+
 DATABASE_URL="file:../db/custom.db"
 NEXT_PUBLIC_SITE_URL=https://activity-map.jesspete.shop
 SITE_URL=https://activity-map.jesspete.shop
@@ -6,84 +7,67 @@ AUTH_SECRET="e77406c188557954e0a2342a51e9a7b660c17505809ec6539f31fff63f4f74c5"
 
 $ rm -rf .next/ db/
 
-$ bun install
-[0.06ms] ".env"
-bun install v1.3.14 (0d9b296a)
-
-Checked 490 installs across 582 packages (no changes) [18.00ms]
-
-$ bun run db:push
-$ DATABASE_URL=file:../db/custom.db prisma db push --accept-data-loss
+$ npm run db:push
+npm notice run db:push
+npm notice run prisma db push --accept-data-loss
 Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
 Datasource "db": SQLite database "custom.db" at "file:../db/custom.db"
 
 SQLite database custom.db created at file:../db/custom.db
 
-🚀  Your database is now in sync with your Prisma schema. Done in 1.50s
+🚀  Your database is now in sync with your Prisma schema. Done in 1.89s
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 288ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 273ms
 
-$ bun run db:seed
-$ DATABASE_URL=file:../db/custom.db bun prisma/seed.ts
+
+$ ls -l db/
+total 68
+-rw-r--r-- 1 pete pete 65536 Sep 29 22:45 custom.db
+
+$ npm run db:seed
+npm notice run db:seed
+npm notice run tsx prisma/seed.ts
 seeded user: sepnetflix2023@outlook.com
 seeded 42 places (eat/stay/do) → file:../db/custom.db
 seeded 27 home-only places (route/sights/restaurants, status "home")
 seeded 9 map demo places (status "map")
 
 $ ls -l db/custom.db 
--rw-r--r-- 1 pete pete 118784 Sep 28 06:25 db/custom.db
+-rw-r--r-- 1 pete pete 118784 Sep 29 22:46 db/custom.db
 
-$ bun run build
-$ next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
-▲ Next.js 16.3.6 (Turbopack)
+$ npm run build
+npm notice run build
+npm notice run next build
+▲ Next.js 16.2.6 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 145ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 28.9s
-✓ Finished TypeScript in 14.4s    
-✓ Collecting page data using 3 workers in 2.0s    
-✓ Generating static pages using 3 workers (14/14) in 709ms
-Turbopack build encountered 1 warning:
-./src/lib/db-path.ts:159:16
-Warning: Dynamic filesystem access causes tracing of the whole project
-  157 |   const here = moduleDir();
-  158 |   if (here && !insideStandalone(here)) {
-> 159 |     roots.push(path.resolve(here, "..", ".."));
-      |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  160 |   }
-  161 |
-  162 |   const repo = standaloneRepoRoot(process.cwd());
-
-Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
-This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
-This can slow down deployments or lead to failures when size limits are exceeded.
+Turbopack build encountered 1 warnings:
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
 To resolve this, you can
-- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- remove them if possible, or
 - only use them in development, or
-- opt out by adding an ignore comment to the highlighted call: path.resolve(/*turbopackIgnore: true*/ ...), or
-- remove them.
+- make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
 
-Import traces:
-  #1 [App Route]:
+Import trace:
+  App Route:
+    ./next.config.ts
     ./src/lib/db-path.ts
     ./src/lib/db.ts
     ./src/app/api/bookings/route.ts
 
-  #2 [Server Component]:
-    ./src/lib/db-path.ts
-    ./src/lib/db.ts
-    ./src/app/(bare)/profile/page.tsx
 
-  #3 [App Route]:
-    ./src/lib/db-path.ts
-    ./src/lib/db-path.ts
-    ./src/lib/db.ts
-    ./src/app/api/auth/login/route.ts
-
-
-✓ Finalizing page optimization in 6.0s    
+✓ Compiled successfully in 2.1min
+✓ Finished TypeScript in 7.0s    
+✓ Collecting page data using 3 workers in 565ms    
+✓ Generating static pages using 3 workers (14/14) in 291ms
+✓ Finalizing page optimization in 16ms    
 
 Route (app)
 ┌ ƒ /
@@ -113,11 +97,11 @@ Route (app)
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
 
-$ bun run start
-$ NODE_ENV=production DATABASE_URL=file:../db/custom.db bun .next/standalone/server.js 2>&1 | tee server.log
-▲ Next.js 16.3.6
-- Local:         http://localhost:3000
-- Network:       http://0.0.0.0:3000
-✓ Ready in 0ms
-✓ Running next.config took 45ms
+$ npm run start -- --port 3010
+npm notice run start
+npm notice run next start --port 3010
+▲ Next.js 16.2.6
+- Local:         http://localhost:3010
+- Network:       http://192.168.1.2:3010
+✓ Ready in 158ms
 
