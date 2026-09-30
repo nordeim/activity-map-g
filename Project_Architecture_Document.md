@@ -3,12 +3,15 @@
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 **Companion Documents:** `README.md` (user-facing), `AGENTS.md` (compact operator file), `CLAUDE.md` (agent conventions), `docs/DEPLOYMENT.md` (production runbook), `docs/Tailwind-V4-Validation-Report.md` (v4 findings)
-**Last Updated:** 2026-09-30 (v2.14)
+**Last Updated:** 2026-10-01 (v2.17)
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
 #### Revision Block — v1.0 (Tracked Changes)
 
+- `[v2.17]` Origin-agnostic bootstrap redirect (the live-deploy regression: behind a reverse proxy forwarding `Host: localhost:3000` + `X-Forwarded-Proto: https`, `req.nextUrl.origin` computed as `https://localhost:3000` and the bootstrap's ABSOLUTE 303 Location bounced `https://activity-map.jesspete.shop` visitors onto the origin box's localhost — the layout gates' relative 307 worked fine through the same proxy). ADR-008 amended: the 303 now emits a RELATIVE `Location` (an RFC 9110 §10.2.2 URI-reference) built from `sanitizeNextPath` output only — the CLIENT resolves it against whichever origin it is browsing, so the redirect can never leave the host on any deployment (localhost dev, preview, production domain) with zero configuration; `NextResponse.redirect()` demands an absolute URL, hence the hand-rolled `seeOther()` helper (§3.2, §6.4, ADR-008). docs/DEPLOYMENT.md: reverse-proxy guidance (`Host`/`X-Forwarded-Host` forwarding), the `NEXT_PUBLIC_SITE_URL` row corrected (it IS load-bearing — the cookie Secure flag), and the localhost-bounce row added to its §7 common issues. Tests: +4 unit origin-agnostic Location checks (`tests/guest.test.ts` 20→24; the existing absolute-Location assertions flipped to relative) / +1 smoke raw relative-Location check (29→30) / the E2E open-redirect assertion tightened to the exact `/` (81 unchanged). §7.1/§7.3: 68→**72 unit** · 29→**30 smoke** · 81 E2E; §11 line counts refreshed. Verified in this revision: lint 0 errors (2 pre-existing warnings), typecheck clean, 72/72 unit green, the 81-test census re-listed; build/smoke/E2E left to the repo's own full local gate (no server boot in this environment).
+- `[v2.16]` Login-free guest bootstrap (the change request: "disable login for a fresh user initial visit; create and use a guest account with the necessary seed data"). ADR-008 added (the shared `guest@roam.local` account + the `GET /api/auth/guest` bootstrap route handler); the `(app)`/`(bare)` layout gates and `/profile`'s own gate now redirect session-less visitors to the bootstrap instead of `/login` (§2, §3.2, §6.1, §6.3); `prisma/seed.ts` seeds the guest user (password = a discarded random 32-byte secret — never signable) and `src/lib/guest.ts` re-ensures it at runtime (§4.3, ADR-007); sign-out now returns to `/` and re-bootstraps a guest session (the login wall never resurfaces; `/login` remains for the demo account — ADR-003). §3.3 Pattern 2 companion note; §6.2 `ensureGuestUser`/`hashGuestPassword`/`sanitizeNextPath` utilities; §6.4 open-redirect threat row; §7.1/§7.3 test distribution 48→**68 unit** (new `tests/guest.test.ts`, 20 checks) / 76→**81 E2E** (new `tests/e2e/guest.spec.ts`, 5 checks) / 27→**29 smoke** (the fresh-visit + guest-auth/me checks + the Location-accurate signed-out redirect check); §11 adds the four new files + refreshed line counts; §12 adds the Guest bootstrap term. Verified in this revision: lint 0 errors (2 pre-existing warnings), typecheck clean, 68/68 unit green; build/smoke/E2E left to the repo's own full local gate (no server boot in this environment).
+- `[v2.15]` Independent doc-to-code alignment audit — every claim in `docs/findings_to_validate_and_update.md` re-validated against the tree at `1a8b0fe` (fresh clone; the gate counts re-verified authoritatively via `playwright test --list` → **76 tests in 6 files**: auth 5 / browse 32 / home 19 / mobile-nav 16 / not-found 3 + the 1-check setup project; 48 unit = 19+15+10+4; 27 smoke = 15 static + two 6-iteration loops). The stale sections brought to the code in this revision: §1.2 npm runtime + Vitest ^5.0.2, ADR-003/§6.2 sliding-window limiter, ADR-004 19 checks, ADR-005 md breakpoint + 16 mobile-nav checks + hero-shade removal, ADR-006 the 12px-ink-dot no-popup pin model, ADR-007 five (not four) seed files, §2 layer table + topology labels, §3.2 directory tree (the (bare) group, 21 client components, LetterReveal/useParallax/BrowsePlanner/place-404, the refreshed E2E distribution, 16 screenshots), §3.3 Pattern 5 shrink-wrapped sample, §5.1–§5.4 design-system refresh, §7.1 test-distribution table (48/76/27), §11 line counts, §12 seam glossary. One code-side remediation shipped with it: `/api/health`'s unhealthy path now returns `{ ok: false, error: "unhealthy" }` per the envelope contract (was `data`-shaped; zero consumers of the old shape verified).
 - `[v2.14]` Session 36 the dependency-hygiene + npm-audit remediation on a fully-verified parity baseline (`docs/remediation-plan-session-36.md`, findings B1–B6) — the workspace re-cloned at `ae20598` (the owner's post-session-35 start-server-log commit: the npm `allowScripts` block — GOOD, kept — + `docs/session_43.md` + the log refresh; no code changes); the baseline gate green on the untouched tree with **76/76 E2E on the FIRST run** (the session-35 font-ready fix holding) and every session-35 remediation verified INTACT (the pinning, the toolchain, the 16 screenshots, the exec bits, no Drizzle, the smoke orphan fix); the dual-site browser audit: the live source UNCHANGED at every swept signature (desktop nav 433/559/639/727/805 · mobile tab-bar 121/192/222/259 @390 + 246/317/347/384 @640 + the 52px glass · footer compact 506×96 → grown 646×118 r-34/links 92×92/gap 12 · hero h1 y=319 @1280×900) and the deployed mirror matching EXACTLY (the footer `--footer-p`=0.9422 → 638×117 mid-growth signature; zero console errors on 7 pages; the mobile nav end-to-end — geometry EXACT, taps + the 700/ink active state; the favourites round-trip through the empty state; the booking round-trip “Request sent” → Profile · My bookings — NO bugs, the mobile navigation menu works exactly as expected, no Tailwind v4 regression); remediated: the 3 unused scaffold deps PRUNED (`zustand` — contradicting the documented no-Zustand state architecture — + `tailwindcss-animate` + `class-variance-authority`; zero src imports verified before the npm remove; `clsx`/`tailwind-merge`/`tw-animate-css` verified used and kept; the PAD §10 hygiene row closed); `npm audit` cleared **3 high → 0 vulnerabilities** via the npm `overrides` deepmerge-ts ^8.0.2 pin (GHSA-ggr8-5vv4-36mx stack-exhaustion in the prisma→@prisma/config CLI chain — dev-CLI-time only, but flagged on every install; the `audit fix --force` prisma-6.12.0 DOWNGRADE rejected; 8.0.2 verified dual-package with the same `deepmerge` export and @prisma/config loads it via dynamic import — the full CLI path re-exercised: prisma generate + db:push + db:seed re-wrote the 118784-byte DB); the `.env` PostgreSQL-section `bun run` leftover fixed (npm-accurate everywhere now); `install_packages.sh` re-aligned; the stale bun/standalone command blocks in THIS PAD + CLAUDE.md's tech-stack line corrected (the npm `next start` runtime — ADR-004 retitled, §7.3–7.4 the 48/76 counts, §8.1/§8.3/§9.1 the npm commands, the architecture-diagram subgraph); the SKILL's toolchain table corrected (npm runtime; the scaffold-leftovers note marked pruned); 16 screenshots re-captured on the remediated tree via `scripts/capture-screens-session36.mjs`. Gates: 48 unit + 27/27 smoke ×2 + **76/76 E2E ×2**.
 - `[v2.13]` Session 35 the operator-commit audit + remediation — the workspace re-cloned at `3fc7e4f`; the two operator commits audited (`e35202e` the image/docs cleanup + `3690531` the npm-runtime port, `docs/remediation-plan-session-35.md` findings A1–A15); the mirror verified running the session-33 code ALL GREEN (zero console errors on 10 pages, the mobile nav end-to-end at 390 — geometry EXACT 121/192/222/259 + the icon taps, the favourites + booking round-trips, the footer `--footer-p` growth live at p=0.9441) and the live source re-verified UNCHANGED (the desktop nav 433/559/639/727, the mobile tab-bar + 52px glass, the footer compact 506×96 → grown 646×118); remediated to the documented baseline: the inline `DATABASE_URL=file:../db/custom.db` pinning RESTORED on `dev`/`start`/`db:push`/`db:seed` (the documented hijack REPRODUCED first — a stray parent-directory `.env` + an exported absolute `DATABASE_URL` sent the seed's Prisma client one directory above the repo until the pinning was restored; pinned by a hostile-env probe: push+seed under the exported var writes the fully-seeded 118784-byte `<repo>/db/custom.db`); the parity toolchain restored (tailwindcss 4.3.3 + @tailwindcss/postcss 4.3.3 + next 16.3.x + react 19.3 — the operator commit had downgraded to 4.1.17/16.2.6/19.2.6); the unused Drizzle/Postgres sandbox scaffolding removed (drizzle.config.json, src/db/, drizzle-orm/drizzle-kit/pg/@types/pg/dotenv deps, the stale bun.lock — one lockfile now: package-lock.json); the smoke script's server cleanup fixed for the npm runtime (`next start` renames its worker to `next-server (vX.Y.Z)` which the `pkill -f "next start"` pattern misses — an orphan holding :3000 with a spent in-memory rate limiter failed the NEXT run with phantom 429/401s; now killed by PORT via ss, and the final shutdown kills the port too); the E2E mobile-nav position specs await `document.fonts.ready` before measuring (Inter loads from the Google Fonts CDN and the fallback font's wider metrics shifted the shrink-wrapped links ~6px left under full-suite network contention — Highlights x=115 vs the 121±2 contract, observed once at 75/76); the script exec bits restored (smoke-test.sh + the capture/par probes — the cleanup commit had stripped 100755→100644); `scripts/install_packages.sh` re-aligned to the real dependency set; 16 dev-server screenshots re-captured into docs/screenshots/ (the cleanup commit had deleted all 66 while the README still referenced them) via `scripts/capture-screens-session35.mjs` (the capture login goes STRAIGHT to /login and verifies the input values before submitting — a fill landing before React hydration gets reset to "" and the submit 400s); docs aligned (README, AGENTS, CLAUDE, this PAD, the SKILL, the plan, the worklog, docs/session_42.md). En-route lessons: an exported absolute `DATABASE_URL` beats every .env file (the inline script pinning is the only reliable defense — the npm scripts' env prefix wins over the exported shell var); `next start`'s worker process RENAMES itself (kill by port, not by command pattern); a Playwright `fill` on a not-yet-hydrated React form silently resets (verify input values before clicking submit). Gates: 48 unit + 27/27 smoke (×2, clean port handoff) + **76/76 E2E ×3** (the font-ready wait holds across three consecutive full-suite runs).
 - `[v2.12]` Session 33 the footer's scroll-linked growth + the link hover parity — the deployed mirror (running the SESSION-32 code, verified by DOM signature: the 646×118 desktop pill with the 92×92 tiles + 24px icons, the shrink-wrapped mobile nav 121/192/222/259, the press-shrink on every link) audited ALL GREEN (zero console errors swept across 11 pages; the mobile navbar end-to-end at 390; the favourites + booking round-trips; NO bugs found) and the live source re-measured with FOUR FINDINGS remediated to EXACT parity (findings F1–F4, `docs/remediation-plan-session-33.md`): **the desktop footer pill's growth is SCROLL-LINKED and CONTINUOUS** — the live's pill renders the COMPACT model while the footer is offscreen (506×96, gap 8, r-28, pad 8/10, links 74×78 r-18, icons 20px, labels 11px) and interpolates LINEARLY with the footer's visible fraction p (fit to ±0.02 across 10 sampled scroll positions at 1280×900: gap 8+4p, pad (8+4p)/(10+6p), radius 28+6p, links 74+18p × 78+14p with radius 18+6p, icons 20+4p, labels 11+1p) reaching the GROWN model when the footer is fully visible (646×118, gap 12, r-34, pad 12px 16px, links 92×92 **r-24**, icons 24px, labels 12px) and compacting back when it leaves — the per-frame updates smoothed by 120ms linear transitions (the pill: gap/padding/border-radius; the link: width/height/border-radius composed with the 300ms hover transform/background/color/box-shadow list); below md the pill NEVER grows (the static 3-col model, `transition: none`); replicated via the `--footer-p` CSS var written by SiteFooter's rAF-throttled passive scroll listener (a client component now — SSR renders p=0, the live's own initial compact state) + the md+ arbitrary-value calc classes + the `footer-pill-transition`/`footer-link-transition` globals.css utilities (the link's md override sits UNLAYERED, the press-shrink mechanism); **the links' VIOLET hover at both breakpoints** — `transform: translateY(-12px) scale(1.1)` composed into ONE matrix (`matrix(1.1, 0, 0, 1.1, 0, -12)`) over the #571AFF fill with white text + the `0 16px 34px rgba(87,26,255,0.28)` glow, the svg carrying its own hover `scale: 1.1` with `transition-transform duration-300` — written as the unguarded `footer-link-hover` utility (NOT v4's separate translate/scale utilities, which would escape the transform transition entry and read differently in the computed style; NOT v4's media-wrapped group-hover, which would not apply on touch-capable probes where the live's own unguarded classes do); **the pill's soft `0 2px 12px rgba(14,14,14,0.08)` shadow** at both breakpoints; the icons' **stroke-width 2.1** (was 1.8) + the labels' **tracking-[-0.01em]** + the grown link radius **24px** (was 18). En-route lessons: an offscreen element can render a DIFFERENT model than the visible one — sweep scroll-POSITIONS, not just breakpoints (the first live read of the footer at page-top read 506×96 and looked like a reversion; the in-view read shows the growth — the live's pill was caught MID-INTERPOLATION at 537px, exposing the continuous driver); Chrome's computed `transition` shorthand serializes in SECONDS (`0.12s`, not `120ms`); Chrome's INITIAL transition value is `all` — an element with no transition rule reads "all", so the live's explicit mobile `transition: none` needs the clone's explicit `transition-none`; a lingering E2E hover's 1.1 scale inflates later mid-transition measurements (move the pointer off + settle first). Non-gaps re-verified: every session-24→32 surface (the hero vh-model at both breakpoints, the vibe, the parallax, the planner, the band, the category cards, the browse/detail/map/404s, the legal row, the MOBILE pill static + exact). Gates: 42 unit + 27 smoke + **76 E2E** (the rewritten footer contract: the compact-at-load + the transition lists + the shadow + the stroke/tracking + the grown + the link-radius-24 + the hover matrix + the half-visibility interpolation midpoint gap 10 + the mobile static model) — all green; 66 screenshots incl. the session-33 set (the compact pill, the mid-growth interpolation, the grown pill, the violet hover, the mobile footer with the shadow).
@@ -72,9 +75,9 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 | Map | Leaflet + react-leaflet | ^1.9.4 / ^5.0.0 | Open, keyless, matches the reference's dot-marker map |
 | ORM | Prisma | ^6.19.3 | Schema + client + seed; switchable SQLite→PostgreSQL without app changes |
 | Database | SQLite (default) | — | Zero-config local story; absolute-path form for production |
-| Unit tests | Vitest | ^5.0.1 | Fast node-env tests for the pure seams |
+| Unit tests | Vitest | ^5.0.2 | Fast node-env tests for the pure seams |
 | E2E tests | Playwright | ^1.63.0 | Drives the real production build in Chromium |
-| Runtime/PM | Bun (npm-compatible) | ≥1.4 | Install, dev server, seed runner, production server |
+| Runtime/PM | npm (`next start`) | — | Install, dev server, seed runner (`tsx`), production server — the npm runtime since the session-34/35 port (bun also works for install) |
 
 ### 1.3 Architecture Decision Records (ADRs)
 
@@ -97,7 +100,7 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 **ADR-003: Hand-rolled scrypt + HMAC cookie auth, not a library**
 
 - **Context:** The reference app is email/password behind a session. The clone must authenticate without OAuth providers or external identity services.
-- **Decision:** `src/lib/auth.ts` — scrypt password hashing (16-byte salt, 64-byte key) + stateless HMAC-SHA256-signed cookies (`roam_session`, 7-day TTL) + a per-process fixed-window rate limiter on login.
+- **Decision:** `src/lib/auth.ts` — scrypt password hashing (16-byte salt, 64-byte key) + stateless HMAC-SHA256-signed cookies (`roam_session`, 7-day TTL) + a per-process sliding-window rate limiter on login.
 - **Rationale:** Two crypto primitives from `node:crypto` cover the whole requirement with ~90 auditable lines; Auth.js/NextAuth would add provider abstraction, callback routes, and JWT machinery for a single local credential flow. The reference's own session model is a signed cookie.
 - **Consequences:** No password reset / MFA / OAuth (reference parity — not in scope). Sessions are stateless: logout is cookie clearing; revocation requires rotating `AUTH_SECRET`. The limiter is in-memory → single-node only.
 - **Alternatives Rejected:** Auth.js v5 (provider machinery unused); JWTs in localStorage (XSS-exposed, no httpOnly benefit).
@@ -106,33 +109,41 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 
 - **Context:** The production contract is one process (`npm run start` → `next start` with `serverExternalPackages: ["@prisma/client", "prisma"]`) + one SQLite file. The standalone history remains load-bearing: Next's tracer **copies `prisma/schema.prisma` into `.next/standalone`** during a build, and the resolver must never anchor against build output — a naive CWD-based path rule would resolve the database against the wrong tree.
 - **Decision:** `src/lib/db-path.ts` resolves relative `file:` URLs against the first "anchor" directory that contains `prisma/schema.prisma` (mirroring the Prisma CLI's own rule), with candidates: chunk-derived root (skipped inside `.next/standalone` subtrees) → detected in-repo standalone root → CWD. Plus two hardening rules: quote-stripping (some `.env` loaders pass `KEY="value"` through) and single-exit function forms (the Turbopack production minifier demonstrably dropped a `return repo` from a multi-return variant of `standaloneRepoRoot`).
-- **Rationale:** Verified by three real incidents during the build (§7, §10) and pinned by 17 unit checks.
+- **Rationale:** Verified by three real incidents during the build (§7, §10) and pinned by 19 unit checks.
 - **Consequences:** `db-path.ts` is load-bearing infra — changes must extend `tests/db-path.test.ts`. Deployed copies outside the repo should use an absolute `DATABASE_URL`.
 - **Alternatives Rejected:** Absolute-path-only URLs (worse DX for local dev); `prisma migrate` + migrations folder (unnecessary for a seeded clone — `db push` + idempotent seed is the workflow).
 
 **ADR-005: Tailwind CSS v4, CSS-first, with a measured mobile-navigation strategy**
 
 - **Context:** The scaffold's `docs/Tailwind-V4-Validation-Report.md` documents v4's failure modes around mobile navigation (the five failure classes: no-nav / invisible / clipped / under-layer / breakpoint mismatch), and the user flagged this as the key quality risk.
-- **Decision:** All design tokens as `@theme` variables in `src/app/globals.css` (no `tailwind.config.*` anywhere); custom primitives as `@utility` (`bg-grid`, `no-scrollbar`, `hero-shade`); the Navbar renders text-only links below `sm` with a `no-scrollbar` horizontal overflow as a safety valve; the five failure classes are regression-pinned by `tests/e2e/mobile-navigation.spec.ts` (8 checks incl. a bounding-box overlap detector for failure class D).
+- **Decision:** All design tokens as `@theme` variables in `src/app/globals.css` (no `tailwind.config.*` anywhere); custom primitives as `@utility` (`bg-grid`, `no-scrollbar` — the `hero-shade` gradient was removed in session-31); the Navbar renders text-only links below `md` with a `no-scrollbar` horizontal overflow as a safety valve; the five failure classes are regression-pinned by `tests/e2e/mobile-navigation.spec.ts` (16 checks incl. a bounding-box overlap detector for failure class D).
 - **Rationale:** CSS-first is v4's native configuration mode and eliminates the config/JS split-brain that caused the documented bugs; the safety valve guarantees links can never slide under the right icon cluster at 390px.
 - **Consequences:** Theme changes happen in CSS, not a config file; the E2E suite is the guardrail for any navbar refactor.
 - **Alternatives Rejected:** Keeping a `tailwind.config.ts` for compat (v4 tolerates it but reintroduces the split-brain); a hamburger drawer (the reference uses a compact top bar — fidelity wins).
 
 **ADR-006: Leaflet + CARTO basemap, keyless**
 
-- **Context:** The reference map view shows 9 hardcoded demo places (the live bundle's array — the 42 browse entities carry no coordinates) as dot markers over a light basemap with popups.
-- **Decision:** `react-leaflet` 5 + Leaflet 1.9, CARTO Positron raster tiles, custom `.roam-marker` CSS (16px black dot, white ring; 22px violet when active), mounted through `next/dynamic` with `ssr: false`. The 9 demo places are seeded as `status: "map"` rows (real lat/lng from the bundle array) and the map page queries them via `listMapPlaces()`.
+- **Context:** The reference map view shows 9 hardcoded demo places (the live bundle's array — the 42 browse entities carry no coordinates) as dot markers over a light basemap; the live has no popup layer — a hover reveals a name-label pill and a click navigates (session-30 re-measure).
+- **Decision:** `react-leaflet` 5 + Leaflet 1.9, CARTO Positron raster tiles, custom `.roam-marker` CSS (12px ink dot with a 2px white ring, hover `scale(1.32)` + the hover-reveal `.roam-marker-label` pill; no violet active state — retired session-30), mounted through `next/dynamic` with `ssr: false`. The 9 demo places are seeded as `status: "map"` rows (real lat/lng from the bundle array) and the map page queries them via `listMapPlaces()`.
 - **Rationale:** Matches the reference's visual language and its data reality exactly (a demo array, not an entity-fed map); needs no API key or billing account; the `ssr: false` boundary is mandatory because Leaflet touches `window` at import time.
 - **Consequences:** One client-only component boundary to respect; tile availability depends on the CARTO CDN; browse entities stay coordinate-less (live parity).
-- **Alternatives Rejected:** Feeding the map from the 42 published places (contradicts the measured live behavior); MapBox GL (key + bundle weight); Google Maps (key + licensing); SVG-only static map (loses pan/zoom/popups).
+- **Alternatives Rejected:** Feeding the map from the 42 published places (contradicts the measured live behavior); MapBox GL (key + bundle weight); Google Maps (key + licensing); SVG-only static map (loses pan/zoom).
 
 **ADR-007: Seed data reverse-engineered from the live entity API and page DOM**
 
 - **Context:** The clone's content must match the reference app — the 42 places, their tags, prices, and descriptions, plus the home showcase and the map's demo pins.
-- **Decision:** The live app's entity endpoints were captured into `prisma/data/{eat,stay,do}.json` (12 / 12 / 18 records); the home page's showcase rows into `prisma/data/home.json` (27 `status: "home"` rows: 5 route stops, 6 sights, 16 restaurants); the live map's hardcoded array into `prisma/data/map.json` (9 `status: "map"` rows, real lat/lng). `prisma/seed.ts` maps all four 1:1 into `Place` rows, generating browse-row coordinates deterministically per neighborhood, and creates the demo user (`sepnetflix2023@outlook.com`, the reference account).
+- **Decision:** The live app's entity endpoints were captured into `prisma/data/{eat,stay,do}.json` (12 / 12 / 18 records); the home page's showcase rows into `prisma/data/home.json` (27 `status: "home"` rows: 5 route stops, 6 sights, 16 restaurants); the live map's hardcoded array into `prisma/data/map.json` (9 `status: "map"` rows, real lat/lng). `prisma/seed.ts` maps all five files 1:1 into `Place` rows, generating browse-row coordinates deterministically per neighborhood, and creates the demo user (`sepnetflix2023@outlook.com`, the reference account) plus the guest account (`guest@roam.local`, ADR-008 — the login-free first visit's "necessary seed data": the User row that favourites/bookings hang off; the 78-place catalogue is global and already seeded).
 - **Rationale:** Guarantees content parity and gives the filter chips real data to be measured against (the stay view's "Under €250" / "With pool" chips literally mirror the entities' own tags).
-- **Consequences:** Seed is the source of truth for content — refreshing from a changed live app means re-capturing the JSON. Browse-row coordinates are synthetic-but-stable (the live API does not expose them); map-row coordinates are real (extracted from the bundle).
-- **Alternatives Rejected:** Hand-authored content (breaks parity); live API proxying (defeats self-hosting).
+- **Consequences:** Seed is the source of truth for content — refreshing from a changed live app means re-capturing the JSON. Browse-row coordinates are synthetic-but-stable (the live API does not expose them); map-row coordinates are real (extracted from the bundle). The seeded guest's password is a discarded random 32-byte secret (scrypt-hashed) — the row is schema-valid but the account can never be signed into.
+- **Alternatives Rejected:** Hand-authored content (breaks parity); live API proxying (defeats self-hosting); per-visitor guest accounts (DB pollution from every crawler + shared state is acceptable for the self-hosted single-user clone — see ADR-008).
+
+**ADR-008: Login-free guest bootstrap — a shared guest account provisioned via a route handler**
+
+- **Context:** The change request: disable login for a fresh user's initial visit and use a guest account with the necessary seed data. The previous model forced every session-less visitor through `/login` (demo credentials only).
+- **Decision:** ONE shared guest account (`guest@roam.local`, name "Guest", `src/lib/guest.ts`), provisioned twice — seeded by `prisma/seed.ts` and re-ensured at runtime by `ensureGuestUser()` (idempotent find + upsert, race-safe on the unique email). The `(app)`/`(bare)` layouts (and `/profile`'s own gate) redirect session-less visitors to `GET /api/auth/guest`, which signs the ORDINARY `roam_session` cookie for the guest and 303s back to a SANITISED `?next=` path (default `/`) **as a RELATIVE `Location` header** (v2.17 — the client resolves it against the origin it is actually browsing, so the redirect can never leave the host; see Rationale). Signing out routes to `/` and re-bootstraps a guest session. `/login` and its demo-account flow remain untouched (live-parity chrome, pinned by `tests/e2e/auth.spec.ts`); `/api` surfaces stay strict — they 401 without a session and never auto-bootstrap.
+- **Rationale:** Server Components cannot set cookies and the repo deliberately ships no middleware (ADR-003), so a route handler is the only in-architecture place to mint the session; reusing the ordinary session cookie means every `getSessionUser()` consumer (favourites, bookings, profile, `/api/auth/me`) works unchanged; a single shared account matches the self-hosted single-user deployment story and avoids accumulating a User row per crawler hit; the guest's password is a discarded random secret so the account is unreachable through the rate-limited `/api/auth/login`. The redirect target is sanitised (`sanitizeNextPath`: local absolute paths only; absolute/protocol-relative/backslash URLs, relative paths, control characters, and the bootstrap path itself all fall back to `/`) — open-redirect and self-loop are structurally impossible. Since v2.17 the 303's `Location` is a relative URI-reference (RFC 9110 §10.2.2) rather than an absolute URL built from `req.nextUrl.origin`: a reverse proxy that forwards `Host: localhost:3000` alongside `X-Forwarded-Proto: https` made that origin computation resolve to `https://localhost:3000` on the live deployment, bouncing the public site onto the origin box's localhost — while the layout gates' relative 307 worked fine through the same proxy. A relative Location keeps every origin correct (localhost dev, a preview URL, the production domain) with zero configuration.
+- **Consequences:** Anonymous visitors share one account's favourites/bookings (accepted for the self-hosted clone; a multi-user deployment would move to per-visitor accounts keyed by a guest cookie). Cookie-less clients cannot use the app (they never could — the reference is auth-gated behind cookies too). The bootstrap is deliberately NOT rate-limited: no credentials are brute-forced and the steady-state work is one indexed `findUnique` + one HMAC sign, the same order as a page render. The contract is pinned by `tests/guest.test.ts` (24 unit checks — including the origin-agnostic relative-Location regression checks) + `tests/e2e/guest.spec.ts` (5 checks) + 3 smoke checks (including the raw relative-Location assertion).
+- **Alternatives Rejected:** Middleware-based provisioning (contradicts the documented no-middleware architecture; Prisma-in-middleware on the edge runtime is its own risk); rendering the app without a session and faking a uid (breaks the FK-backed favourites/bookings model and re-runs provisioning on every request); per-visitor guest accounts (DB pollution, no benefit single-user); seeding guest favourites (invents behaviour the reference's fresh account does not have — the empty state is live parity).
 
 ---
 
@@ -144,9 +155,9 @@ flowchart TB
         B[Browser — desktop / 390px mobile]
     end
     subgraph App["Single process — next start :3000 (npm runtime)"]
-        RSC[Next.js server components<br/>route group (app) + /login]
-        API[API route handlers<br/>/api/auth · /api/places · /api/favourites · /api/bookings · /api/health]
-        LIB[lib seams<br/>auth · db-path · filters · places · rate-limit]
+        RSC[Next.js server components<br/>route groups (app) + (bare) + /login<br/>session-less visitors → guest bootstrap]
+        API[API route handlers<br/>/api/auth/{guest,login,logout,me} · /api/places · /api/favourites · /api/bookings · /api/health]
+        LIB[lib seams<br/>auth · guest · db-path · filters · places · rate-limit]
     end
     subgraph Data
         DB[(SQLite — db/custom.db<br/>Prisma client singleton)]
@@ -171,7 +182,7 @@ flowchart TB
 | Layer | Runtime | Scaling | Key constraint |
 |-------|---------|---------|----------------|
 | Client | Browser | Stateless | Leaflet is client-only (`ssr: false`); images/tiles load directly from CDNs |
-| App | Node (Bun) single process | Vertical only | In-memory rate limiter and Prisma singleton assume one process |
+| App | Node (npm `next start`) single process | Vertical only | In-memory rate limiter and Prisma singleton assume one process |
 | Data | SQLite file | Single writer | Absolute `DATABASE_URL` + persisted volume in production |
 | External | CDNs | N/A | `next.config.ts` `remotePatterns` allow-list: `media.base44.com`, `z-cdn.chatglm.cn` |
 
@@ -208,18 +219,24 @@ Layer 4: UI — server components by default; "use client" only for interactivit
 activity-map/
 ├── src/
 │   ├── app/
-│   │   ├── (app)/                    ← auth-gated route group; layout.tsx redirects to /login
+│   │   ├── (app)/                    ← auth-gated route group; layout.tsx redirects session-less
+│   │   │   │                             visitors to GET /api/auth/guest (the guest bootstrap —
+│   │   │   │                             NO login wall; /login stays for the demo account)
 │   │   │   ├── layout.tsx            ← resolves session, renders Navbar shell
 │   │   │   ├── page.tsx              ← Highlights: Hero + glass planner + glass category cards +
 │   │   │   │                              sticky Recommended Route + blue restaurants + stay
 │   │   │   │                              showcase + sights + SiteFooter (re-measured session 3)
 │   │   │   ├── eat|stay|do/page.tsx  ← server components (searchParams-aware) → CategoryExplorer
 │   │   │   ├── place/[slug]/page.tsx ← detail: gallery, About-this-place, booking-request form
+│   │   │   ├── place/[slug]/not-found.tsx ← in-app place 404 (46px serif h1 + Back-to-Do pill)
 │   │   │   ├── map/page.tsx          ← MapExplorer (client) with the 9 status:"map" demo places
-│   │   │   ├── favourites/page.tsx   ← FavouritesView (client)
+│   │   │   └── favourites/page.tsx   ← FavouritesView (client)
+│   │   ├── (bare)/                    ← auth-gated chrome-less group (session-16): NO Navbar/SiteFooter,
+│   │   │                                 same guest-bootstrap gate
 │   │   │   └── profile/page.tsx      ← ProfileView (client): identity + tabs + filters
 │   │   ├── api/
 │   │   │   ├── health/route.ts       ← public liveness probe
+│   │   │   ├── auth/guest/route.ts   ← GET: login-free bootstrap (guest session + sanitised RELATIVE 303)
 │   │   │   ├── auth/{login,logout,me}/route.ts
 │   │   │   ├── places/route.ts       ← ?category=eat|stay|do, per-user saved flags
 │   │   │   ├── places/[slug]/route.ts
@@ -228,7 +245,7 @@ activity-map/
 │   │   ├── login/page.tsx            ← public login route; bounces authenticated visits
 │   │   ├── privacy-policy|accessibility-statement/page.tsx ← public legal pages (the live's routes; legacy paths redirect)
 │   │   ├── layout.tsx                ← root layout: fonts, metadata, globals.css
-│   │   ├── not-found.tsx             ← branded 404
+│   │   ├── not-found.tsx             ← platform slate 404 (client — useSyncExternalStore path)
 │   │   └── globals.css               ← @theme tokens + @utility primitives + Leaflet skin
 │   ├── components/
 │   │   ├── auth/LoginForm.tsx        ← client: credentials → /api/auth/login → router.refresh()
@@ -237,9 +254,11 @@ activity-map/
 │   │   ├── home/CategoryCards.tsx    ← server: the three glass VIEW ALL cards (black pills)
 │   │   ├── home/RecommendedRoute.tsx ← client: sticky scroll route + progress pill (status:home rows)
 │   │   ├── home/HighlightedRestaurants.tsx ← client: blue band, featured card + strip
-│   │   ├── home/StayShowcase.tsx     ← server: the 12-stay Choose Your Vibe grid
-│   │   ├── home/HighlightedSights.tsx ← server: 6 sight cards + More Things to Do
-│   │   ├── layout/SiteFooter.tsx     ← server: nav links + legal line
+│   │   ├── home/StayShowcase.tsx     ← client (session-31): the 12-stay Choose Your Vibe grid + parallax
+│   │   ├── home/HighlightedSights.tsx ← client (session-31): 6 sight cards + More Things to Do + parallax
+│   │   ├── home/LetterReveal.tsx     ← client: per-letter scroll-reveal headings (session-8)
+│   │   ├── home/useParallax.ts       ← client hook: rAF-throttled scroll parallax (session-31)
+│   │   ├── layout/SiteFooter.tsx     ← client (session-33): scroll-linked pill-growth listener + legal line
 │   │   └── layout/LegalPage.tsx      ← server: shared shell for the legal pages
 │   │   ├── places/CategoryExplorer.tsx ← client: search + chip state → filtered grid
 │   │   ├── places/PlaceCard.tsx      ← client: eat/do card (overlaid name, Learn More) + SaveButton
@@ -247,31 +266,36 @@ activity-map/
 │   │   ├── places/SaveButton.tsx     ← client: heart toggle → router.refresh()
 │   │   ├── places/BookingForm.tsx    ← client: booking-request form → POST /api/bookings
 │   │   ├── planner/TripPlanner.tsx   ← client: shared glass/white planner pill
+│   │   ├── planner/BrowsePlanner.tsx ← client: the unified sticky browse planner (session-8/24)
 │   │   ├── planner/DateRangePicker.tsx ← client: Su–Sa range popover (from/to optional)
 │   │   ├── map/MapExplorer.tsx       ← client: pills + search + stats; mounts canvas dynamically
 │   │   ├── map/LeafletCanvas.tsx     ← client-only: react-leaflet map + dot markers
 │   │   ├── favourites/FavouritesView.tsx
-│   │   └── profile/ProfileView.tsx  (18 client components total — see §3.1)
-│   ├── lib/                          ← Layer 1-2 seams (see §3.1; incl. planner.ts)
+│   │   └── profile/ProfileView.tsx  (21 client components total — see §3.1)
+│   ├── lib/                          ← Layer 1-2 seams (see §3.1; incl. planner.ts, guest.ts)
 │   └── types/index.ts                ← PlaceDTO, BookingDTO, PlaceCategory
 ├── prisma/
 │   ├── schema.prisma                 ← User, Place, SavedPlace, Booking (+ request fields)
-│   ├── seed.ts                       ← idempotent: wipes domain tables, maps captured JSON
+│   ├── seed.ts                       ← idempotent: wipes domain tables, maps captured JSON,
+│   │                                    seeds the demo user + the guest user (guest@roam.local)
 │   └── data/{eat,stay,do,home,map}.json ← entity captures (12/12/18) + home-only showcase
 │                                      rows (27, status:"home") + map demo rows (9,
 │                                      status:"map", real lat/lng from the live bundle)
 ├── tests/
-│   ├── db-path.test.ts               ← 17 checks: URL resolution contract
+│   ├── db-path.test.ts               ← 19 checks: URL resolution contract
 │   ├── filters.test.ts               ← 15 checks: chip semantics
 │   ├── planner.test.ts               ← 10 checks: planner query/date-label helpers
+│   ├── auth.test.ts                  ← 4 checks: cookie Secure flag + scrypt round-trip
+│   ├── guest.test.ts                 ← 24 checks: identity/password/ensure/sanitize/tokens/handler + relative Location
 │   └── e2e/                          ← Playwright: global-setup, auth.setup, helpers,
-│                                      │   auth.spec (4), browse.spec (14), home.spec (8),
-│                                      └   mobile-navigation.spec (8) + .auth/user.json state
-├── scripts/smoke-test.sh             ← 27-check production API suite
+│                                      │   guest.spec (5), auth.spec (5), browse.spec (32),
+│                                      │   home.spec (19), mobile-navigation.spec (16),
+│                                      │   not-found.spec (3) + .auth/user.json state
+├── scripts/smoke-test.sh             ← 30-check production API suite (incl. the guest bootstrap)
 ├── docs/                             ← DEPLOYMENT.md, remediation-plan.md (session 2),
 │                                      remediation-plan-session-3.md, session logs,
 │                                      Tailwind-V4-Validation-Report.md,
-│                                      ssh_git_wrapper_v3.py + runbook, screenshots/ (14)
+│                                      ssh_git_wrapper_v3.py + runbook, screenshots/ (16)
 └── AGENTS.md · CLAUDE.md · README.md · this PAD
 ```
 
@@ -297,7 +321,7 @@ export function resolveDatabaseUrl(
 }
 ```
 
-**Why this pattern:** `next build` copies `prisma/schema.prisma` into `.next/standalone`, and the standalone server `chdir`s there — a plain `process.cwd()` rule would create/read the database inside the build output. `candidateRoots()` therefore skips anchors inside `.next/standalone` subtrees and upgrades an in-repo standalone anchor to the real repo root. Two hardening details are load-bearing: `stripQuotes` (a quoted `.env` value otherwise dodges the `file:` branch) and the **single-exit form of `standaloneRepoRoot`** — the Turbopack production minifier was observed dropping the final `return repo` from a multi-return variant, silently. The contract is pinned by `tests/db-path.test.ts` (17 checks).
+**Why this pattern:** `next build` copies `prisma/schema.prisma` into `.next/standalone`, and the standalone server `chdir`s there — a plain `process.cwd()` rule would create/read the database inside the build output. `candidateRoots()` therefore skips anchors inside `.next/standalone` subtrees and upgrades an in-repo standalone anchor to the real repo root. Two hardening details are load-bearing: `stripQuotes` (a quoted `.env` value otherwise dodges the `file:` branch) and the **single-exit form of `standaloneRepoRoot`** — the Turbopack production minifier was observed dropping the final `return repo` from a multi-return variant, silently. The contract is pinned by `tests/db-path.test.ts` (19 checks).
 
 #### Pattern 2 — Stateless HMAC session cookies
 
@@ -311,7 +335,7 @@ export function signSession(payload: Omit<SessionPayload, "exp">): string {
 }
 ```
 
-**Why this pattern:** a signed cookie needs no session table and no server-side lookup on every request; verification is one HMAC recomputation plus an expiry check (both constant-time-compared). The trade-off is explicit: logout = cookie clearing, and global revocation = rotating `AUTH_SECRET`. The cookie is `httpOnly` + `sameSite=lax` + `secure` in production, 7-day TTL.
+**Why this pattern:** a signed cookie needs no session table and no server-side lookup on every request; verification is one HMAC recomputation plus an expiry check (both constant-time-compared). The trade-off is explicit: logout = cookie clearing, and global revocation = rotating `AUTH_SECRET`. The cookie is `httpOnly` + `sameSite=lax` + `secure` in production, 7-day TTL. **Guest bootstrap companion (ADR-008):** the same mint path signs the guest session — `GET /api/auth/guest` calls `signSession()` for the ensured `guest@roam.local` row, so a guest session is INDISTINGUISHABLE from a demo session at the cookie layer and every `getSessionUser()` consumer works unchanged.
 
 #### Pattern 3 — Pure filter seam with measured chip semantics
 
@@ -352,23 +376,28 @@ export function toPlaceDTO(p: PlaceWithSaved, userId?: string): PlaceDTO {
 #### Pattern 5 — Mobile-nav safety valve (Tailwind v4)
 
 ```tsx
-// src/components/layout/Navbar.tsx — below sm the links are TEXT-ONLY
-// (icons hidden) and the row carries a horizontal no-scrollbar overflow,
+// src/components/layout/Navbar.tsx — below md the links are TEXT-ONLY
+// (icons hidden) inside a SHRINK-WRAPPED group (session-32: min-w-0 + mr-2,
+// no flex-1), and the row carries a horizontal no-scrollbar overflow,
 // so links can never slide under the logo or the right icon cluster.
-<div className="no-scrollbar flex min-w-0 flex-1 items-center justify-center gap-0 overflow-x-auto sm:gap-1">
+<div
+  className={cn(
+    "no-scrollbar flex min-w-0 items-center justify-center overflow-x-auto",
+    "mr-2 gap-3 md:mr-0 md:flex-none md:gap-1 md:overflow-visible",
+  )}
+>
   {LINKS.map(({ href, label, icon: Icon }) => (
     <Link key={href} href={href} className={cn(
-      "flex shrink-0 items-center whitespace-nowrap rounded-full …",
-      "px-1.5 py-2 text-[13px] sm:px-3 sm:text-sm",
+      "press-shrink font-nav flex h-full shrink-0 items-center whitespace-nowrap text-[12px] tracking-[-0.01em] md:text-[13px] md:tracking-[0.01em]",
     )}>
-      <Icon className="mr-1.5 hidden h-4 w-4 sm:block" strokeWidth={1.5} />
-      <span>{label}</span>
+      <Icon className="mr-2 hidden h-4 w-4 md:block" strokeWidth={1.5} />
+      <span className="transition-colors duration-200">{label}</span>
     </Link>
   ))}
 </div>
 ```
 
-**Why this pattern:** the documented v4 mobile-nav failure classes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) all involve content disappearing or being overlapped at small widths. Text-only links + compact padding fit the reference's 390px chrome; `no-scrollbar` + `overflow-x-auto` guarantees graceful degradation at extreme widths; `min-w-0 flex-1` lets the row shrink instead of overflowing. `tests/e2e/mobile-navigation.spec.ts` pins all five classes, including a bounding-box overlap detector (class D).
+**Why this pattern:** the documented v4 mobile-nav failure classes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) all involve content disappearing or being overlapped at small widths. Text-only links + compact padding fit the reference's 390px chrome; `no-scrollbar` + `overflow-x-auto` guarantees graceful degradation at extreme widths; `min-w-0` + `mr-2` shrink-wraps the group (session-32) so the nav's `justify-between` distributes the freed space into the two outer gaps — the live's own layout, measured at x=121/192/222/259 at 390. `press-shrink` (the unlayered globals.css touch feedback) and the 200ms color transition split across the anchor/label span keep the two `transition` shorthands from colliding. `tests/e2e/mobile-navigation.spec.ts` pins all five classes (16 checks), including a bounding-box overlap detector (class D).
 
 ---
 
@@ -450,7 +479,7 @@ Field naming mirrors the reference app's entity API (Eat / Stay / Do / SavedPlac
 **Map-demo rows (session 3).** The live map page renders a hardcoded 9-place array (the browse entities carry no coordinates). The seed therefore inserts 9 rows with `status: "map"` (`map-*` slugs, real lat/lng extracted from the live bundle) from `prisma/data/map.json`; `listMapPlaces(userId)` in `src/lib/places.ts` feeds the map page only those rows, and they resolve on `/place/[slug]` like any place. Browse views and category-card counts are unaffected — the `status: "published"` filter excludes both home-only and map rows.
 
 - **No connection pooling** — SQLite via a single Prisma client singleton (`globalThis`-cached in dev to survive HMR; fresh instance in production).
-- **Migrations:** intentionally none. `npm run db:push` applies the schema; `npm run db:seed` is idempotent (wipes domain tables, reseeds from `prisma/data/*.json`, recreates the demo user).
+- **Migrations:** intentionally none. `npm run db:push` applies the schema; `npm run db:seed` is idempotent (wipes domain tables, reseeds from `prisma/data/*.json`, recreates the demo user + the guest user).
 - **Backups:** the entire state is one file — `db/custom.db` (git-ignored). Production guidance in `docs/DEPLOYMENT.md` §4: absolute path on a persisted volume + file-level backup.
 
 ---
@@ -461,8 +490,8 @@ Field naming mirrors the reference app's entity API (Eat / Stay / Do / SavedPlac
 
 | Face | Role | Fallback | Notes |
 |------|------|----------|-------|
-| Libre Baskerville | Display serif — the live app's every h1/h2 (hero wordmark, section headlines, place titles, 48px route-stop titles), re-measured session 3 with per-section `clamp()` scales (e.g. browse h1 `clamp(36px, 4.3vw, 55px)` ls −0.06em; detail h1 `clamp(36px, 6.4vw, 82px)`) | `ui-serif, Georgia, serif` | Loaded via Google Fonts in the root layout; `--font-serif` token; the legacy `.font-poppins` utility was redefined to this face (live parity) |
-| Inter | UI sans AND navigation — body, nav links (16px, 400 weight desktop / 700 active mobile), chips, forms, card names (28px, tracking −0.04em), map popups; the live app dropped Poppins in its session-3 redesign | `ui-sans-serif, system-ui, -apple-system, "Segoe UI"` | `--font-sans` + `--font-nav` tokens (both Inter); `-webkit-font-smoothing: antialiased` |
+| Libre Baskerville | Display serif — the live app's every h1/h2 (hero wordmark, section headlines, place titles, 48px route-stop titles), re-measured session 3 with per-section `clamp()` scales (e.g. browse h1 `clamp(36px, 4.3vw, 55px)` ls −0.06em; detail h1 `clamp(36px, 6.4vw, 82px)`) | `ui-serif, Georgia, serif` | Loaded via Google Fonts in the root layout; `--font-serif` token |
+| Inter | UI sans AND navigation — body, nav links (16px, 400 weight desktop / 700 active mobile), chips, forms, card names (28px, tracking −0.04em), the map name-label pills; the live app dropped Poppins in its session-3 redesign | `ui-sans-serif, system-ui, -apple-system, "Segoe UI"` | `--font-sans` + `--font-nav` tokens (both Inter); `-webkit-font-smoothing: antialiased` |
 
 ### 5.2 Color Tokens (re-measured from the reference app, session 3)
 
@@ -483,11 +512,11 @@ VIEW ALL pills on the glass category cards are near-black `#141413` (36px pill, 
 
 ### 5.3 Component Primitives
 
-No component library — the UI is Tailwind utilities composed directly, with four `@utility` primitives in `globals.css`: `bg-grid` (22px graph-paper canvas for Favourites/Profile), `no-scrollbar` (chip/nav rows), `hero-shade` (the hero's legibility gradient), and the Leaflet skin (`.leaflet-container` radius, popup typography, `.roam-marker` 16px black dot / 22px violet active state). `cn()` (clsx + tailwind-merge) is the class-composition helper everywhere.
+No component library — the UI is Tailwind utilities composed directly, with `@utility` primitives in `globals.css`: `bg-grid` (22px graph-paper canvas for Favourites/Profile) and `no-scrollbar` (chip/nav rows), plus the session-32/33 interaction utilities `press-shrink` (the live's touch feedback), `footer-pill-transition`, `footer-link-transition`, and `footer-link-hover` (the scroll-linked footer growth + the violet link hover). The `hero-shade` legibility gradient was REMOVED in session-31 (the live renders its hero image raw). The Leaflet skin keeps `.leaflet-container` radius, the zoom-button overrides, and `.roam-marker` — a 12px ink dot with a 2px white ring (hover `scale(1.32)`) and a hover-reveal name-label pill (`.roam-marker-label`); no violet active state (retired session-30). `cn()` (clsx + tailwind-merge) is the class-composition helper everywhere.
 
 ### 5.4 Motion / Animation
 
-Transitions are Tailwind `transition-colors` on interactive elements only (chips, links, buttons). `prefers-reduced-motion: reduce` collapses all animation/transition durations to 0.01ms and disables smooth scrolling — pinned in `globals.css`.
+Transitions: `transition-colors` on chips, links, and buttons, plus the bespoke interaction utilities — `press-shrink` (0.18s transform/box-shadow + `:active scale(0.97)` on every nav/footer link), the 120ms footer pill/link growth transitions, the `footer-link-hover` matrix, and the rAF-throttled scroll parallax (session-31) / scroll-linked footer growth (session-33) driven from client components. `prefers-reduced-motion: reduce` collapses all animation/transition durations to 0.01ms and disables smooth scrolling — pinned in `globals.css`.
 
 ---
 
@@ -497,15 +526,16 @@ Transitions are Tailwind `transition-colors` on interactive elements only (chips
 
 | # | Rule | Enforcement |
 |---|------|-------------|
-| 1 | Every guide view and mutating API route requires a valid session | `(app)/layout.tsx` server-side redirect; `getSessionUser()` guard in each route handler |
+| 1 | Every guide view and mutating API route requires a valid session | `(app)`/`(bare)` layout server-side redirect to the guest bootstrap (session-less visitors get a guest session; there is no anonymous rendering); `getSessionUser()` guard in each route handler |
 | 2 | Passwords are never stored or compared in plain text | scrypt (16-byte salt, 64-byte key) in `src/lib/auth.ts`; constant-time comparison |
 | 3 | Session cookies are unforgeable and unreadable to scripts | HMAC-SHA256 signature + `httpOnly` + `sameSite=lax` + `secure` (production) |
-| 4 | Login brute-force is throttled | `src/lib/rate-limit.ts`: 10 attempts/IP/15 min → `429` + `Retry-After` |
-| 5 | Query inputs are validated by explicit membership/shape checks | `?category=` membership test; `placeId`/guests/date validation in route handlers |
-| 6 | Bookings clamp to place policy server-side | guests clamped to `minParty`/`maxParty` in `POST /api/bookings` |
-| 7 | Remote imagery is allow-listed | `next.config.ts` `remotePatterns` (media.base44.com, z-cdn.chatglm.cn) |
-| 8 | Baseline response hardening on every route | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` headers |
-| 9 | `AUTH_SECRET` must be set in production | dev-only fallback constant; deployment runbook requires `openssl rand -hex 32` |
+| 4 | Login brute-force is throttled | `src/lib/rate-limit.ts`: 10 attempts/IP/15 min → `429` + `Retry-After` (the guest bootstrap is exempt — no credentials to brute-force, steady-state cost = one page render) |
+| 5 | The guest bootstrap's `?next=` redirect cannot leave the origin | `sanitizeNextPath` in `src/lib/guest.ts`: local absolute paths only; absolute/protocol-relative/backslash URLs, relative paths, control chars, and the bootstrap path itself all fall back to `/`; since v2.17 the 303 `Location` is itself a RELATIVE reference, so it cannot encode ANY host — proxy-mangled `Host` headers included |
+| 6 | Query inputs are validated by explicit membership/shape checks | `?category=` membership test; `placeId`/guests/date validation in route handlers |
+| 7 | Bookings clamp to place policy server-side | guests clamped to `minParty`/`maxParty` in `POST /api/bookings` |
+| 8 | Remote imagery is allow-listed | `next.config.ts` `remotePatterns` (media.base44.com, z-cdn.chatglm.cn) |
+| 9 | Baseline response hardening on every route | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` headers |
+| 10 | `AUTH_SECRET` must be set in production | dev-only fallback constant; deployment runbook requires `openssl rand -hex 32` |
 
 ### 6.2 Security Utilities
 
@@ -514,18 +544,23 @@ Transitions are Tailwind `transition-colors` on interactive elements only (chips
 | `hashPassword` / `verifyPassword` | `src/lib/auth.ts` | scrypt hash/verify with constant-time compare |
 | `signSession` / `verifySessionToken` | `src/lib/auth.ts` | HMAC cookie mint/verify |
 | `getSessionUser` | `src/lib/auth.ts` | Request-cookie → session payload (RSC + route handlers) |
-| `clientIp` / `checkRateLimit` | `src/lib/rate-limit.ts` | Fixed-window limiter with `X-Forwarded-For` awareness |
+| `ensureGuestUser` | `src/lib/guest.ts` | Idempotent + race-safe create-or-reuse of the shared guest account |
+| `hashGuestPassword` | `src/lib/guest.ts` | Random discarded secret → the guest account has no knowable password |
+| `sanitizeNextPath` | `src/lib/guest.ts` | Open-redirect / header-injection / loop guard for the bootstrap's `?next=` |
+| `clientIp` / `checkRateLimit` | `src/lib/rate-limit.ts` | Sliding-window limiter with `X-Forwarded-For` awareness |
 | `resolveDatabaseUrl` | `src/lib/db-path.ts` | Quote-stripping + anchor resolution (input hardening) |
 
 ### 6.3 Authentication & Authorization
 
-Single role (authenticated user); no RBAC. Authorization = ownership: favourites and bookings are always queried by `user.uid` from the session — never from a client-supplied user id. Demo account is seeded data, not a backdoor (it uses the same scrypt path).
+Single role (authenticated user); no RBAC. Authorization = ownership: favourites and bookings are always queried by `user.uid` from the session — never from a client-supplied user id. Demo account is seeded data, not a backdoor (it uses the same scrypt path). **Guest-first (ADR-008):** a session-less visitor is transparently signed in as the shared guest account via `GET /api/auth/guest` — the session cookie, TTL, and guards are IDENTICAL to a demo session, so authorization needs no special-casing anywhere; the API surface stays strict (401 without a session — the bootstrap is only reachable through the page-route gates). The guest account itself is never signable: its password is a discarded random secret.
 
 ### 6.4 Threat Model
 
 | Vector | Mitigation | Residual risk |
 |--------|-----------|---------------|
 | Credential stuffing | Rate limiter + scrypt cost | In-memory buckets reset on restart (single-node accepted) |
+| Open redirect via the guest bootstrap's `?next=` | `sanitizeNextPath` (local absolute paths only; loop + control-char guards) | None identified |
+| Guest-account takeover via /api/auth/login | The guest's password is a discarded random 32-byte secret (unverifiable hash) | None identified |
 | Cookie forgery / tampering | HMAC signature, constant-time compare | `AUTH_SECRET` rotation invalidates all sessions (accepted) |
 | Session hijack via XSS | `httpOnly` cookie; no `dangerouslySetInnerHTML` anywhere | None identified |
 | CSRF on mutating routes | `sameSite=lax` cookies + JSON POSTs | Cross-site GETs are read-only and session-scoped |
@@ -540,28 +575,32 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 
 | Category | Files | Checks | Location | Framework |
 |----------|-------|--------|----------|-----------|
-| Unit — db-path contract | 1 | 17 | `tests/db-path.test.ts` | Vitest (node env) |
+| Unit — db-path contract | 1 | 19 | `tests/db-path.test.ts` | Vitest (node env) |
 | Unit — filter semantics | 1 | 15 | `tests/filters.test.ts` | Vitest (node env) |
 | Unit — planner helpers | 1 | 10 | `tests/planner.test.ts` | Vitest (node env) |
-| E2E — auth surface | 1 | 4 | `tests/e2e/auth.spec.ts` | Playwright (chromium) |
-| E2E — browse/planner/booking/favourites/map/profile | 1 | 14 | `tests/e2e/browse.spec.ts` | Playwright (chromium) |
-| E2E — home parity | 1 | 8 | `tests/e2e/home.spec.ts` | Playwright (chromium) |
-| E2E — mobile navigation | 1 | 8 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (chromium) |
+| Unit — auth seam | 1 | 4 | `tests/auth.test.ts` | Vitest (node env) |
+| Unit — guest bootstrap seam | 1 | 24 | `tests/guest.test.ts` | Vitest (node env, injected fake user store) |
+| E2E — guest bootstrap (login-free first visit) | 1 | 5 | `tests/e2e/guest.spec.ts` | Playwright (chromium, empty storageState) |
+| E2E — auth surface + legal pages | 1 | 5 | `tests/e2e/auth.spec.ts` | Playwright (chromium) |
+| E2E — browse/planner/booking/favourites/map/profile | 1 | 32 | `tests/e2e/browse.spec.ts` | Playwright (chromium) |
+| E2E — home parity | 1 | 19 | `tests/e2e/home.spec.ts` | Playwright (chromium) |
+| E2E — mobile navigation | 1 | 16 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (chromium) |
+| E2E — not-found surfaces | 1 | 3 | `tests/e2e/not-found.spec.ts` | Playwright (chromium) |
 | E2E — auth setup | 1 | 1 | `tests/e2e/auth.setup.ts` | Playwright (setup project) |
-| Smoke — production API | 1 script | 27 | `scripts/smoke-test.sh` | bash + curl |
+| Smoke — production API | 1 script | 30 | `scripts/smoke-test.sh` | bash + curl |
 
-**Totals: 42 unit + 35 E2E + 27 smoke — all green at the documented commit.** (Session 3 re-measured the live app, extended the planner/card/detail/map/profile contracts in place, and added the 10-check planner unit seam.)
+**Totals: 72 unit + 81 E2E + 30 smoke.** (v2.17: +4 unit origin-agnostic Location checks / +1 smoke relative-Location check over v2.16's 68/81/29; v2.16: +20 unit guest checks / +5 E2E guest checks / +2 smoke guest checks over v2.15's 48/76/27; the v2.15 counts were re-verified authoritatively with `playwright test --list`, and the 81-test census was re-listed the same way — guest.spec is 5 checks. The unit and smoke layers verified green in this environment; build/smoke/E2E await the repo's own full local gate — no server boot here.)
 
 ### 7.2 Test Patterns
 
 - **E2E runs against the production build** (`npx next start` on :3100) with its own scratch database (`db/e2e.db`, schema-pushed + seeded by `tests/e2e/global-setup.ts`) — never the dev server, never the dev database.
-- **Shared auth state:** the `setup` project signs in once and saves the cookie to `tests/e2e/.auth/user.json`; specs consume it as Playwright `storageState`. This exists *because* of the rate limiter — per-test logins would trip it mid-suite. `auth.spec.ts` opts out (empty storageState) to test the logged-out surface.
+- **Shared auth state:** the `setup` project signs in once and saves the cookie to `tests/e2e/.auth/user.json`; specs consume it as Playwright `storageState`. This exists *because* of the rate limiter — per-test logins would trip it mid-suite. `auth.spec.ts` (the login surface) and `guest.spec.ts` (the login-free first visit) opt out (empty storageState) to test the logged-out / guest surfaces.
 - **Failure-class pinning:** `mobile-navigation.spec.ts` encodes the five Tailwind v4 mobile-nav failure classes as assertions, including a bounding-box overlap detector (class D: "no nav element is covered by a neighbour") and viewport sweeps at 390 / 640 / 1280.
 - **Single worker** (`workers: 1`): specs share one seeded SQLite file — parallelization requires database isolation first.
 
 ### 7.3 Coverage Thresholds
 
-No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`) must carry tests for every behavior added. The verification gate (lint → typecheck → 48 unit → build → 27 smoke → 76 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists).
+No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`, `guest`) must carry tests for every behavior added. The verification gate (lint → typecheck → 72 unit → build → 30 smoke → 81 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists).
 
 ### 7.4 Pre-PR / Pre-Deploy Checklist
 
@@ -659,28 +698,33 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/lib/db-path.ts` | 192 | SQLite URL resolution contract (the standalone trap) — load-bearing |
-| `src/lib/auth.ts` | 89 | scrypt + HMAC session auth |
+| `src/lib/db-path.ts` | 200 | SQLite URL resolution contract (the standalone trap) — load-bearing |
+| `src/lib/auth.ts` | 104 | scrypt + HMAC session auth |
+| `src/lib/guest.ts` | 111 | Guest bootstrap seam: identity, `ensureGuestUser`, `sanitizeNextPath` (ADR-008) |
+| `src/app/api/auth/guest/route.ts` | 54 | GET: login-free bootstrap — guest session cookie + sanitised RELATIVE 303 (origin-agnostic, v2.17) |
 | `src/lib/filters.ts` | 117 | Measured filter-chip semantics (pure seam) |
 | `src/lib/planner.ts` | 51 | Trip-planner query/date-label helpers (pure seam, session 3) |
 | `src/lib/places.ts` | 165 | Domain queries + `toPlaceDTO` serialization boundary (incl. `listMapPlaces`) |
-| `src/lib/rate-limit.ts` | 40 | Login throttling (10/IP/15 min) |
+| `src/lib/rate-limit.ts` | 40 | Login throttling (10/IP/15 min, sliding window) |
 | `src/lib/utils.ts` | 47 | `cn()`, price/duration formatting, `priceRangeParts`, `initials` |
-| `src/components/layout/Navbar.tsx` | 215 | Dual chrome: mobile cream-glass tab-bar / desktop white bar + v4 safety valve |
-| `src/components/planner/TripPlanner.tsx` | 181 | Shared planner pill (hero glass / browse sticky white) — session 3 |
-| `src/components/places/StayCard.tsx` | 72 | Dark aspect-square stay card with hover buttons — session 3 |
-| `src/components/map/MapExplorer.tsx` | 252 | Map state holder; dynamic `ssr:false` mount of the canvas |
-| `src/components/map/LeafletCanvas.tsx` | 141 | Client-only react-leaflet map + dot markers |
-| `src/components/places/CategoryExplorer.tsx` | 182 | Search + chip filtering + grid |
-| `src/components/places/BookingForm.tsx` | 228 | Booking-request form → POST /api/bookings |
+| `src/components/layout/Navbar.tsx` | 241 | Dual chrome: mobile cream-glass tab-bar / desktop white pill + v4 safety valve |
+| `src/components/planner/TripPlanner.tsx` | 194 | Shared planner pill (hero glass / browse sticky white) — session 3 |
+| `src/components/places/StayCard.tsx` | 128 | Dark aspect-square stay card with hover buttons — session 3 |
+| `src/components/map/MapExplorer.tsx` | 284 | Map state holder; dynamic `ssr:false` mount of the canvas |
+| `src/components/map/LeafletCanvas.tsx` | 140 | Client-only react-leaflet map + dot markers |
+| `src/components/places/CategoryExplorer.tsx` | 160 | Search + chip filtering + grid |
+| `src/components/places/BookingForm.tsx` | 251 | Booking-request form → POST /api/bookings |
 | `prisma/schema.prisma` | 116 | User / Place / SavedPlace / Booking (+ request fields) |
-| `prisma/seed.ts` | 282 | Idempotent seed from captured JSON + deterministic coords |
-| `src/app/globals.css` | 131 | Tailwind v4 `@theme` tokens + `@utility` primitives + Leaflet skin |
-| `tests/db-path.test.ts` | — | 17 checks pinning the resolution contract |
+| `prisma/seed.ts` | 305 | Idempotent seed from captured JSON + deterministic coords + demo + guest users |
+| `src/app/globals.css` | 327 | Tailwind v4 `@theme` tokens + `@utility`/interaction primitives + Leaflet skin |
+| `tests/db-path.test.ts` | — | 19 checks pinning the resolution contract |
 | `tests/filters.test.ts` | — | 15 checks pinning chip semantics |
 | `tests/planner.test.ts` | — | 10 checks pinning planner param/date-label helpers |
-| `tests/e2e/mobile-navigation.spec.ts` | 150 | The five v4 failure classes + viewport sweeps |
-| `scripts/smoke-test.sh` | 147 | 27-check production API suite |
+| `tests/auth.test.ts` | — | 4 checks pinning the cookie Secure flag + scrypt round-trip |
+| `tests/guest.test.ts` | 330 | 24 checks pinning the guest bootstrap (identity, unguessable password, ensure/race, sanitize guards, session tokens, the route handler, the origin-agnostic relative Location) |
+| `tests/e2e/guest.spec.ts` | 58 | 5 checks: the login-free first visit, guest session resolution, Guest profile, sign-out → guest, open-redirect refusal (pinned to the exact relative `/`) |
+| `tests/e2e/mobile-navigation.spec.ts` | 346 | The five v4 failure classes + viewport sweeps + shrink-wrap/press-shrink contracts |
+| `scripts/smoke-test.sh` | 197 | 30-check production API suite (incl. the guest bootstrap + the relative-Location assertion) |
 
 ---
 
@@ -690,7 +734,8 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 - **Anchor** — a candidate directory for SQLite URL resolution; the winning anchor is the one containing `prisma/schema.prisma`.
 - **Standalone trap** — the `.next/standalone` traced copy of `schema.prisma` that would capture naive CWD-based resolution.
 - **DTO** — Data Transfer Object (`PlaceDTO` / `BookingDTO`); the typed shape crossing the server→client boundary.
-- **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, auth, rate-limit).
+- **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, planner, auth, guest, rate-limit, utils).
+- **Guest bootstrap** — the login-free first visit: the `(app)`/`(bare)` layout gates redirect session-less visitors to `GET /api/auth/guest`, which provisions/uses the shared `guest@roam.local` account, signs the ordinary session cookie, and 303s back to a sanitised path via a RELATIVE, origin-agnostic Location (ADR-008).
 - **Failure classes A–E** — the five Tailwind v4 mobile-nav failure modes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) pinned by the E2E suite.
 - **Envelope** — the API response shape `{ ok: true, data } | { ok: false, error }`.
 - **StorageState** — Playwright's saved-authentication file (`tests/e2e/.auth/user.json`) shared across specs to avoid rate-limited re-login.

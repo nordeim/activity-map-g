@@ -24,10 +24,21 @@ npm run start          # NODE_ENV=production next start
 The server listens on port 3000 by default (`PORT` overrides). Always start
 it from the repo root via the npm script — the SQLite path resolution
 (`file:../db/custom.db` → `<repo>/db/custom.db`) depends on the schema
-anchor at `prisma/schema.prisma`. Behind a reverse proxy, forward
-`X-Forwarded-Proto` so cookie attributes derive the right scheme. Session
+anchor at `prisma/schema.prisma`. Behind a reverse proxy, forward the
+original host so Next.js computes request URLs correctly (nginx:
+`proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme;`)
+and `X-Forwarded-Proto` so cookie attributes derive the right scheme. Session
 cookies only get the `Secure` flag when `NEXT_PUBLIC_SITE_URL` is `https://`
 (so HTTP previews and localhost keep working under `NODE_ENV=production`).
+
+**v2.17 note — the app's own redirects are origin-agnostic.** The guest
+bootstrap's 303 carries a RELATIVE `Location` header, so the visitor's
+browser resolves it against whichever origin it is actually browsing; a
+proxy that mangles the `Host` header (e.g. nginx's default
+`proxy_set_header Host $proxy_host` → `localhost:3000`) can no longer bounce
+the public site onto the origin box's localhost. Forwarding `Host` is still
+recommended — it keeps request-derived URLs and logs correct — but the
+login-free first visit no longer depends on it.
 
 ## 3. Environment variables
 
@@ -35,7 +46,7 @@ cookies only get the `Secure` flag when `NEXT_PUBLIC_SITE_URL` is `https://`
 |----------|----------|---------|
 | `DATABASE_URL` | Yes | SQLite connection string. See §4. |
 | `AUTH_SECRET` | **Yes in production** | HMAC secret for session cookies. Generate with `openssl rand -hex 32`. An insecure dev constant is used when unset — never ship that. |
-| `NEXT_PUBLIC_SITE_URL` | Recommended | Reserved canonical-origin slot (scaffold; not yet wired into app code). |
+| `NEXT_PUBLIC_SITE_URL` | Recommended | Canonical public origin — load-bearing: `src/lib/auth.ts`'s `cookieSecureFlag()` sets the session cookie's `Secure` flag only for `https://` origins (HTTP previews and localhost keep working under production mode). Set to the deployed URL in production; keep `http://localhost:3000` for local dev. |
 
 ## 4. Database location (§4 — the `.env.example` reference)
 
@@ -88,9 +99,9 @@ npm run build
 ## 6. Verification checklist
 
 ```bash
-curl -s https://your-host/api/health          # {"status":"ok",...}
+curl -s https://your-host/api/health          # {"ok":true,"data":{"status":"healthy"}}
 npm run lint && npm run typecheck && npm run test
-./scripts/smoke-test.sh                       # 27 E2E checks (local)
+./scripts/smoke-test.sh                       # 30 smoke checks (local)
 npm run test:e2e                              # Playwright suite (local)
 ```
 
@@ -98,6 +109,7 @@ npm run test:e2e                              # Playwright suite (local)
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
+| First visit redirects to `https://localhost:3000` | Reverse proxy forwarded `Host: localhost:3000`, so the (pre-v2.17) guest bootstrap built its 303 `Location` from the wrong request origin | Fixed since v2.17 — the 303 `Location` is relative (origin-agnostic). Also set `proxy_set_header Host $host;` (nginx) so request-derived URLs/logs are correct |
 | `Error code 14: Unable to open the database file` | Server started from a directory that has no `prisma/schema.prisma` and no absolute `DATABASE_URL` | Start via `npm run start`, or set an absolute `file:` URL (§4) |
 | Logins loop back to `/login` | `AUTH_SECRET` changed between restarts | Keep the secret stable across restarts |
-| Rate-limited logins (429) | 10 attempts/IP/15 min fixed window | Wait for `Retry-After`, or restart to clear the in-memory buckets (single-node) |
+| Rate-limited logins (429) | 10 attempts/IP/15 min sliding window | Wait for `Retry-After`, or restart to clear the in-memory buckets (single-node) |

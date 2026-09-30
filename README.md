@@ -11,7 +11,7 @@ A production-grade, self-hosted clone of the reference trip-planning app at `act
 
 ## Overview
 
-The reference app is an Augsburg city guide: a photographic hero with a frosted glass trip-planner pill (hover-revealed labels, a react-day-picker-style date-range popover, and a search that routes into the category browses with `people`/`start_date`/`end_date` params), glass category cards, the scroll-driven **Recommended Route** itinerary, a blue **Highlighted Restaurants** band with a featured card and restaurant strip, the full **Choose Your Vibe** stay showcase, the **Highlighted Sights** grid, three category browses (Eat / Stay / Do) with search, measured filter chips, and a sticky white planner pill, redesigned place detail pages with a booking-request form, a Leaflet map over the whole city (9 demo places, as on the live app), favourites, and a redesigned profile with trips and bookings — all behind an email/password login. This repo reproduces that experience end-to-end: same visual design tokens (re-measured session 3: cream `#F8F7F4`, ink `#0E0E0E`, violet `#571AFF`, Libre Baskerville display serif + Inter for UI and nav), same filter semantics, same entity data, but running locally as a standalone Next.js 16 server with a Prisma/SQLite store and zero external services.
+The reference app is an Augsburg city guide: a photographic hero with a frosted glass trip-planner pill (hover-revealed labels, a react-day-picker-style date-range popover, and a search that routes into the category browses with `people`/`start_date`/`end_date` params), glass category cards, the scroll-driven **Recommended Route** itinerary, a blue **Highlighted Restaurants** band with a featured card and restaurant strip, the full **Choose Your Vibe** stay showcase, the **Highlighted Sights** grid, three category browses (Eat / Stay / Do) with search, measured filter chips, and a sticky white planner pill, redesigned place detail pages with a booking-request form, a Leaflet map over the whole city (9 demo places, as on the live app), favourites, and a redesigned profile with trips and bookings — all behind an email/password login. This repo reproduces that experience end-to-end — with ONE deliberate divergence: visits are LOGIN-FREE (a fresh visitor is auto-signed-in as a seeded guest account; the reference app's login wall is not reproduced) — same visual design tokens (re-measured session 3: cream `#F8F7F4`, ink `#0E0E0E`, violet `#571AFF`, Libre Baskerville display serif + Inter for UI and nav), same filter semantics, same entity data, but running locally as a standalone Next.js 16 server with a Prisma/SQLite store and zero external services.
 
 | Desktop home | Mobile browse |
 |---|---|
@@ -35,7 +35,7 @@ Sixteen dev-server captures live in [`docs/screenshots/`](docs/screenshots/) (re
 | ❤️ **Favourites** | One-tap save/unsave on cards and detail pages (the 44×44 dark-glass heart, session-10), with a dedicated Favourites view (session-12: the 18px graph-paper grid texture at 40% opacity — session-14: scoped INSIDE the overflow-hidden heading section (the live's texture covers the heading block only), 55px serif heading riding the pt-16/md:pt-24 block (h1 y≈244), the 14px #3A3A3A subtitle, the live's Inter empty state) and an illustrated empty state |
 | 👤 **Profile** | Session-16: a CHROME-LESS page (the `(bare)` route group — no navbar at any breakpoint, no footer, exactly like the live) carrying a FULL-PAGE fixed 18px graph-paper grid overlay at 40% opacity, the outer block `px-5 pb-24 pt-10 md:px-8 md:pt-16` with the main at max-w-4xl, and the translucent white/80 Go back + Sign out pills at the top. TWO glass cards (896px): the identity card (rounded-36, bg-white/78, border-white/70, CENTERED on phones / left from md) with the Profile eyebrow, the account identity as the h1 (session-14: the USERNAME "sepnetflix2023" — 72px serif) with the EMAIL as the 16px #555550 line, the cream outlined Augsburg / sun-icon 0-day-streak / heart-icon Explorer chips, and the dark heart Saved-places button into /favourites; the bookings card (rounded-32, mt-8) with the Trips eyebrow, the 36px "My bookings" h2 + total count, FULL-WIDTH 44px/12px Upcoming/Past tabs, 38px All/Eat/Stay/Do filters, and the white rounded-26 empty state |
 | 📄 **Legal pages** | Privacy policy and Accessibility Statement (the footer's measured links), rendered as real public routes — and the white icon-cell footer pill renders on EVERY app page (session-6 live parity) |
-| 🔐 **Cookie-session auth** | scrypt password hashing + HMAC-SHA256-signed stateless cookies, login rate limiting (10/IP/15 min), auth-gated route group with server-side redirects, and the live-parity login card (session-10: a plain white page — session-12: the document body pinned white too — with the shadcn-style card, the circular logo disc, system-font heading, Mail/Lock input icons, and the slate-900 `#0F172A` Sign-in button; the Google/forgot/signup flows answer with inline notices) |
+| 🔐 **Cookie-session auth, guest-first** | scrypt password hashing + HMAC-SHA256-signed stateless cookies, login rate limiting (10/IP/15 min), and the LOGIN-FREE first visit: the auth-gated route groups redirect session-less visitors through the guest bootstrap (`GET /api/auth/guest` — provisions/uses the seeded guest account `guest@roam.local`, signs the session cookie, 303s back to a sanitised path via a RELATIVE Location — origin-agnostic behind any reverse proxy, v2.17), while the live-parity login card stays available at `/login` for the demo account (session-10: a plain white page — session-12: the document body pinned white too — with the shadcn-style card, the circular logo disc, system-font heading, Mail/Lock input icons, and the slate-900 `#0F172A` Sign-in button; the Google/forgot/signup flows answer with inline notices) |
 | 📱 **Mobile-first chrome** | Measured 390px fixed-top cream-glass tab-bar (52px, ≤430px centered, text-only 12px Inter links — active 700/`#0E0E0E`, inactive 500/40%, three 18px right icons: MapPin/Heart/User; the home hero slides under the glass). Session-16: the mobile home planner card escapes the px-6 hero content — 358px wide at x=16 with a 4px grid gap (the live's measured geometry) that becomes the sticky transparent header wrapping the centered WHITE floating PILL (h-14, max-w 820, radius 999, 1px `#E8E6DC` border, soft shadow, 13px icon+text links with the active link 700 on the `rgba(14,14,14,0.08)` pill, heart + black avatar disc right cluster, hide-on-scroll choreography) from `md` up — regression-pinned by E2E against the five known Tailwind v4 mobile-nav failure classes |
 
 ## Architecture
@@ -50,7 +50,7 @@ Sixteen dev-server captures live in [`docs/screenshots/`](docs/screenshots/) (re
 | Map | Leaflet + react-leaflet | 1.9 / 5 | Map view, `ssr:false` dynamic mount |
 | ORM | Prisma | 6 | Schema, client, seed |
 | Database | SQLite (PostgreSQL switchable) | — | Zero-config local store |
-| Unit tests | Vitest | 5 | 48 checks on the pure seams (db-path, filters, planner, auth cookies) |
+| Unit tests | Vitest | 5 | 72 checks on the pure seams (db-path, filters, planner, auth cookies, guest bootstrap incl. the origin-agnostic relative Location) |
 | E2E tests | Playwright | 1.63 | Production `next start` on :3100 with its own seeded SQLite file |
 | Runtime | npm / Node.js | ≥20 | Install, dev, seed, server |
 
@@ -67,7 +67,7 @@ flowchart TB
 ```
 📂 src/
  ┣ 📂 app/
- ┃ ┣ 📂 (app)/            ← auth-gated route group (layout redirects to /login)
+ ┃ ┣ 📂 (app)/            ← auth-gated route group (layout redirects session-less visitors to the guest bootstrap)
  ┃ ┃ ┣ 📄 page.tsx        ← Home: hero + planner + category cards + Recommended Route
                              + blue restaurants + stay showcase + sights + footer
  ┃ ┃ ┣ 📄 eat|stay|do/    ← Category browses (server components, searchParams-aware)
@@ -88,8 +88,8 @@ flowchart TB
  ┗ 📂 types/              ← PlaceDTO / BookingDTO / PlaceCategory
 📂 prisma/                ← schema.prisma, seed.ts, data/{eat,stay,do,home,map}.json
                               (captured entities + home-only showcase rows + 9 map-demo places)
-📂 tests/                 ← db-path + filters (Vitest), e2e/ (Playwright: auth, browse, home parity, mobile-nav)
-📂 scripts/               ← smoke-test.sh (27-check API suite)
+📂 tests/                 ← db-path + filters + guest (Vitest), e2e/ (Playwright: guest, auth, browse, home parity, mobile-nav)
+📂 scripts/               ← smoke-test.sh (30-check API suite incl. the guest bootstrap)
 📂 docs/                  ← DEPLOYMENT.md, remediation-plan.md, Tailwind-V4-Validation-Report.md,
                               screenshots/ (14 captures), SSH push runbook
 ```
@@ -113,7 +113,7 @@ Requires Node.js ≥20 and npm.
     ```bash
     cp .env.example .env
     npm run db:push     # apply the schema (no migrations folder)
-    npm run db:seed     # 78 places (42 published + 27 home-only + 9 map-demo) + the demo user
+    npm run db:seed     # 78 places (42 published + 27 home-only + 9 map-demo) + the demo user + the guest user
     ```
 
 3. Start the dev server:
@@ -122,7 +122,7 @@ Requires Node.js ≥20 and npm.
     npm run dev
     ```
 
-**Verify setup:** open `http://localhost:3000` → you land on the login card; sign in with `sepnetflix2023@outlook.com` / `$Abcd1234` → the Highlights page renders the traveller-photo hero, the glass planner (pick dates in the popover, then Search → `/eat?people=…&start_date=…`), the glass category cards, and the full home showcase (sticky route, restaurants, stays, sights).
+**Verify setup:** open `http://localhost:3000` → you land straight on the Highlights page — no login: the first visit is auto-signed-in as the seeded guest account (`guest@roam.local`, visible as "Guest" on `/profile`) — and the page renders the traveller-photo hero, the glass planner (pick dates in the popover, then Search → `/eat?people=…&start_date=…`), the glass category cards, and the full home showcase (sticky route, restaurants, stays, sights). Optional demo login: navigate to `/login` and sign in with `sepnetflix2023@outlook.com` / `$Abcd1234`.
 
 ## Environment Variables
 
@@ -136,9 +136,9 @@ Requires Node.js ≥20 and npm.
 
 | Layer | Command | Checks | Notes |
 |-------|---------|--------|-------|
-| Unit | `npm test` | 48 | Vitest — db-path (including Postgres-URL pin to SQLite), filter semantics, planner helpers, cookie Secure flag, password hashing |
-| E2E | `npm run build && npm run test:e2e` | 76+ | Playwright drives `next start` on :3100 with its own seeded SQLite file (`db/e2e.db`) |
-| Smoke | `npm run build && ./scripts/smoke-test.sh` | 27 | Boots a fresh production server and exercises the whole API surface |
+| Unit | `npm test` | 72 | Vitest — db-path (including Postgres-URL pin to SQLite), filter semantics, planner helpers, cookie Secure flag, password hashing, guest bootstrap (identity, never-guessable guest password, create-or-reuse, open-redirect guard, session tokens, route handler, origin-agnostic relative Location) |
+| E2E | `npm run build && npm run test:e2e` | 81 | Playwright drives `next start` on :3100 with its own seeded SQLite file (`db/e2e.db`) — incl. the login-free first visit |
+| Smoke | `npm run build && ./scripts/smoke-test.sh` | 30 | Boots a fresh production server and exercises the whole API surface (incl. the guest bootstrap + the relative-Location assertion) |
 
 The full pre-push gate is `lint → typecheck → test → build → smoke → e2e` (see `AGENTS.md`).
 
@@ -147,6 +147,7 @@ The full pre-push gate is `lint → typecheck → test → build → smoke → e
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/health` | GET | — | Liveness probe |
+| `/api/auth/guest` | GET | — | Login-free bootstrap: provisions/uses the guest account → session cookie → relative 303 to the sanitised `?next=` (default `/`) — origin-agnostic (v2.17) |
 | `/api/auth/login` | POST | — | Credential check → session cookie (rate-limited: 10/IP/15 min) |
 | `/api/auth/logout` | POST | ✔ | Clears the session |
 | `/api/auth/me` | GET | ✔ | Current session payload |
