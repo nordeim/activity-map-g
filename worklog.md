@@ -924,3 +924,19 @@ Stage Summary:
 - The parity baseline verified on both sites (the live source unchanged; the mirror all green — the mobile nav exact + working, no Tailwind v4 regression); the owner's ae20598 commit benign.
 - Remediated: the 3 unused scaffold deps pruned; npm audit 3 high → 0 via the deepmerge-ts override (no downgrade); the .env bun leftover fixed; the stale bun/standalone doc blocks corrected to the npm runtime; 16 screenshots re-captured.
 - Gates: 48 unit + 27/27 smoke ×2 + 76/76 E2E ×2 — all green; 10 docs aligned (PAD v2.14, SKILL v1.22.0); single conventional commit + SSH-wrapper push to main.
+
+---
+Task ID: 36-push
+Agent: Super Z (main agent, session 36)
+Task: Session 36 — push verification record.
+
+Work Log:
+- Push infrastructure rebuilt from scratch (the workspace had been reset): paramiko 5.0.0 installed on the system python, the Appendix-A shim extracted from the runbook to /home/z/my-project/bin/ssh (outside the repo; the first sed extraction picked up a trailing markdown fence — rebuilt clean from the doc's code block), operator key materialized at /home/z/.ssh-tmp/op.key (0600), fingerprint verified SHA256:KxJw0EP6J775zmnyFJxGZ4ECJD1R5YlBXq4sVcfQraA (the session-36 operator key).
+- Secret scan of the staged diff + the new untracked files: 0 private-key material, 0 GitHub tokens. The 7 changed screenshots are pixel refreshes of the same surfaces (the re-capture on the remediated tree).
+- Dry-run: authenticated, remote main at ae20598 (the owner's start-server-log commit — the repo state at this session's clone), fast-forward confirmed (ae20598..1d1449d).
+- Real push via docs/ssh_git_wrapper_v3.py --remote git@github.com:nordeim/activity-map-g.git: ae20598..1d1449d HEAD -> main; wrapper verified refs/heads/main @ 1d1449d == local HEAD and synced refs/remotes/origin/main.
+- Operator key shredded (random-overwrite + remove); the wrapper's own temp key + known_hosts sidecar shredded by the wrapper; working tree clean; git status agrees with the remote (origin/main == HEAD == 1d1449d).
+
+Stage Summary:
+- Commit 1d1449d (19 files: 1 package.json + lockfile + install script + .env comment + 5 docs + 7 screenshot refreshes + 3 new files — the plan, the session log, the capture script) pushed to main and verified on the remote.
+- No secrets in the tree; key material destroyed post-push.
