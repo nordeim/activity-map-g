@@ -88,7 +88,7 @@ npm run build
 ## 6. Verification checklist
 
 ```bash
-curl -s https://your-host/api/health          # {"status":"ok",...}
+curl -s https://your-host/api/health          # {"ok":true,"data":{"status":"healthy"}}
 npm run lint && npm run typecheck && npm run test
 ./scripts/smoke-test.sh                       # 27 E2E checks (local)
 npm run test:e2e                              # Playwright suite (local)
@@ -100,4 +100,4 @@ npm run test:e2e                              # Playwright suite (local)
 |---------|-------|-----|
 | `Error code 14: Unable to open the database file` | Server started from a directory that has no `prisma/schema.prisma` and no absolute `DATABASE_URL` | Start via `npm run start`, or set an absolute `file:` URL (§4) |
 | Logins loop back to `/login` | `AUTH_SECRET` changed between restarts | Keep the secret stable across restarts |
-| Rate-limited logins (429) | 10 attempts/IP/15 min fixed window | Wait for `Retry-After`, or restart to clear the in-memory buckets (single-node) |
+| Rate-limited logins (429) | 10 attempts/IP/15 min sliding window | Wait for `Retry-After`, or restart to clear the in-memory buckets (single-node) |

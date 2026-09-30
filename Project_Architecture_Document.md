@@ -3,12 +3,13 @@
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 **Companion Documents:** `README.md` (user-facing), `AGENTS.md` (compact operator file), `CLAUDE.md` (agent conventions), `docs/DEPLOYMENT.md` (production runbook), `docs/Tailwind-V4-Validation-Report.md` (v4 findings)
-**Last Updated:** 2026-09-30 (v2.14)
+**Last Updated:** 2026-09-30 (v2.15)
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
 #### Revision Block — v1.0 (Tracked Changes)
 
+- `[v2.15]` Independent doc-to-code alignment audit — every claim in `docs/findings_to_validate_and_update.md` re-validated against the tree at `1a8b0fe` (fresh clone; the gate counts re-verified authoritatively via `playwright test --list` → **76 tests in 6 files**: auth 5 / browse 32 / home 19 / mobile-nav 16 / not-found 3 + the 1-check setup project; 48 unit = 19+15+10+4; 27 smoke = 15 static + two 6-iteration loops). The stale sections brought to the code in this revision: §1.2 npm runtime + Vitest ^5.0.2, ADR-003/§6.2 sliding-window limiter, ADR-004 19 checks, ADR-005 md breakpoint + 16 mobile-nav checks + hero-shade removal, ADR-006 the 12px-ink-dot no-popup pin model, ADR-007 five (not four) seed files, §2 layer table + topology labels, §3.2 directory tree (the (bare) group, 21 client components, LetterReveal/useParallax/BrowsePlanner/place-404, the refreshed E2E distribution, 16 screenshots), §3.3 Pattern 5 shrink-wrapped sample, §5.1–§5.4 design-system refresh, §7.1 test-distribution table (48/76/27), §11 line counts, §12 seam glossary. One code-side remediation shipped with it: `/api/health`'s unhealthy path now returns `{ ok: false, error: "unhealthy" }` per the envelope contract (was `data`-shaped; zero consumers of the old shape verified).
 - `[v2.14]` Session 36 the dependency-hygiene + npm-audit remediation on a fully-verified parity baseline (`docs/remediation-plan-session-36.md`, findings B1–B6) — the workspace re-cloned at `ae20598` (the owner's post-session-35 start-server-log commit: the npm `allowScripts` block — GOOD, kept — + `docs/session_43.md` + the log refresh; no code changes); the baseline gate green on the untouched tree with **76/76 E2E on the FIRST run** (the session-35 font-ready fix holding) and every session-35 remediation verified INTACT (the pinning, the toolchain, the 16 screenshots, the exec bits, no Drizzle, the smoke orphan fix); the dual-site browser audit: the live source UNCHANGED at every swept signature (desktop nav 433/559/639/727/805 · mobile tab-bar 121/192/222/259 @390 + 246/317/347/384 @640 + the 52px glass · footer compact 506×96 → grown 646×118 r-34/links 92×92/gap 12 · hero h1 y=319 @1280×900) and the deployed mirror matching EXACTLY (the footer `--footer-p`=0.9422 → 638×117 mid-growth signature; zero console errors on 7 pages; the mobile nav end-to-end — geometry EXACT, taps + the 700/ink active state; the favourites round-trip through the empty state; the booking round-trip “Request sent” → Profile · My bookings — NO bugs, the mobile navigation menu works exactly as expected, no Tailwind v4 regression); remediated: the 3 unused scaffold deps PRUNED (`zustand` — contradicting the documented no-Zustand state architecture — + `tailwindcss-animate` + `class-variance-authority`; zero src imports verified before the npm remove; `clsx`/`tailwind-merge`/`tw-animate-css` verified used and kept; the PAD §10 hygiene row closed); `npm audit` cleared **3 high → 0 vulnerabilities** via the npm `overrides` deepmerge-ts ^8.0.2 pin (GHSA-ggr8-5vv4-36mx stack-exhaustion in the prisma→@prisma/config CLI chain — dev-CLI-time only, but flagged on every install; the `audit fix --force` prisma-6.12.0 DOWNGRADE rejected; 8.0.2 verified dual-package with the same `deepmerge` export and @prisma/config loads it via dynamic import — the full CLI path re-exercised: prisma generate + db:push + db:seed re-wrote the 118784-byte DB); the `.env` PostgreSQL-section `bun run` leftover fixed (npm-accurate everywhere now); `install_packages.sh` re-aligned; the stale bun/standalone command blocks in THIS PAD + CLAUDE.md's tech-stack line corrected (the npm `next start` runtime — ADR-004 retitled, §7.3–7.4 the 48/76 counts, §8.1/§8.3/§9.1 the npm commands, the architecture-diagram subgraph); the SKILL's toolchain table corrected (npm runtime; the scaffold-leftovers note marked pruned); 16 screenshots re-captured on the remediated tree via `scripts/capture-screens-session36.mjs`. Gates: 48 unit + 27/27 smoke ×2 + **76/76 E2E ×2**.
 - `[v2.13]` Session 35 the operator-commit audit + remediation — the workspace re-cloned at `3fc7e4f`; the two operator commits audited (`e35202e` the image/docs cleanup + `3690531` the npm-runtime port, `docs/remediation-plan-session-35.md` findings A1–A15); the mirror verified running the session-33 code ALL GREEN (zero console errors on 10 pages, the mobile nav end-to-end at 390 — geometry EXACT 121/192/222/259 + the icon taps, the favourites + booking round-trips, the footer `--footer-p` growth live at p=0.9441) and the live source re-verified UNCHANGED (the desktop nav 433/559/639/727, the mobile tab-bar + 52px glass, the footer compact 506×96 → grown 646×118); remediated to the documented baseline: the inline `DATABASE_URL=file:../db/custom.db` pinning RESTORED on `dev`/`start`/`db:push`/`db:seed` (the documented hijack REPRODUCED first — a stray parent-directory `.env` + an exported absolute `DATABASE_URL` sent the seed's Prisma client one directory above the repo until the pinning was restored; pinned by a hostile-env probe: push+seed under the exported var writes the fully-seeded 118784-byte `<repo>/db/custom.db`); the parity toolchain restored (tailwindcss 4.3.3 + @tailwindcss/postcss 4.3.3 + next 16.3.x + react 19.3 — the operator commit had downgraded to 4.1.17/16.2.6/19.2.6); the unused Drizzle/Postgres sandbox scaffolding removed (drizzle.config.json, src/db/, drizzle-orm/drizzle-kit/pg/@types/pg/dotenv deps, the stale bun.lock — one lockfile now: package-lock.json); the smoke script's server cleanup fixed for the npm runtime (`next start` renames its worker to `next-server (vX.Y.Z)` which the `pkill -f "next start"` pattern misses — an orphan holding :3000 with a spent in-memory rate limiter failed the NEXT run with phantom 429/401s; now killed by PORT via ss, and the final shutdown kills the port too); the E2E mobile-nav position specs await `document.fonts.ready` before measuring (Inter loads from the Google Fonts CDN and the fallback font's wider metrics shifted the shrink-wrapped links ~6px left under full-suite network contention — Highlights x=115 vs the 121±2 contract, observed once at 75/76); the script exec bits restored (smoke-test.sh + the capture/par probes — the cleanup commit had stripped 100755→100644); `scripts/install_packages.sh` re-aligned to the real dependency set; 16 dev-server screenshots re-captured into docs/screenshots/ (the cleanup commit had deleted all 66 while the README still referenced them) via `scripts/capture-screens-session35.mjs` (the capture login goes STRAIGHT to /login and verifies the input values before submitting — a fill landing before React hydration gets reset to "" and the submit 400s); docs aligned (README, AGENTS, CLAUDE, this PAD, the SKILL, the plan, the worklog, docs/session_42.md). En-route lessons: an exported absolute `DATABASE_URL` beats every .env file (the inline script pinning is the only reliable defense — the npm scripts' env prefix wins over the exported shell var); `next start`'s worker process RENAMES itself (kill by port, not by command pattern); a Playwright `fill` on a not-yet-hydrated React form silently resets (verify input values before clicking submit). Gates: 48 unit + 27/27 smoke (×2, clean port handoff) + **76/76 E2E ×3** (the font-ready wait holds across three consecutive full-suite runs).
 - `[v2.12]` Session 33 the footer's scroll-linked growth + the link hover parity — the deployed mirror (running the SESSION-32 code, verified by DOM signature: the 646×118 desktop pill with the 92×92 tiles + 24px icons, the shrink-wrapped mobile nav 121/192/222/259, the press-shrink on every link) audited ALL GREEN (zero console errors swept across 11 pages; the mobile navbar end-to-end at 390; the favourites + booking round-trips; NO bugs found) and the live source re-measured with FOUR FINDINGS remediated to EXACT parity (findings F1–F4, `docs/remediation-plan-session-33.md`): **the desktop footer pill's growth is SCROLL-LINKED and CONTINUOUS** — the live's pill renders the COMPACT model while the footer is offscreen (506×96, gap 8, r-28, pad 8/10, links 74×78 r-18, icons 20px, labels 11px) and interpolates LINEARLY with the footer's visible fraction p (fit to ±0.02 across 10 sampled scroll positions at 1280×900: gap 8+4p, pad (8+4p)/(10+6p), radius 28+6p, links 74+18p × 78+14p with radius 18+6p, icons 20+4p, labels 11+1p) reaching the GROWN model when the footer is fully visible (646×118, gap 12, r-34, pad 12px 16px, links 92×92 **r-24**, icons 24px, labels 12px) and compacting back when it leaves — the per-frame updates smoothed by 120ms linear transitions (the pill: gap/padding/border-radius; the link: width/height/border-radius composed with the 300ms hover transform/background/color/box-shadow list); below md the pill NEVER grows (the static 3-col model, `transition: none`); replicated via the `--footer-p` CSS var written by SiteFooter's rAF-throttled passive scroll listener (a client component now — SSR renders p=0, the live's own initial compact state) + the md+ arbitrary-value calc classes + the `footer-pill-transition`/`footer-link-transition` globals.css utilities (the link's md override sits UNLAYERED, the press-shrink mechanism); **the links' VIOLET hover at both breakpoints** — `transform: translateY(-12px) scale(1.1)` composed into ONE matrix (`matrix(1.1, 0, 0, 1.1, 0, -12)`) over the #571AFF fill with white text + the `0 16px 34px rgba(87,26,255,0.28)` glow, the svg carrying its own hover `scale: 1.1` with `transition-transform duration-300` — written as the unguarded `footer-link-hover` utility (NOT v4's separate translate/scale utilities, which would escape the transform transition entry and read differently in the computed style; NOT v4's media-wrapped group-hover, which would not apply on touch-capable probes where the live's own unguarded classes do); **the pill's soft `0 2px 12px rgba(14,14,14,0.08)` shadow** at both breakpoints; the icons' **stroke-width 2.1** (was 1.8) + the labels' **tracking-[-0.01em]** + the grown link radius **24px** (was 18). En-route lessons: an offscreen element can render a DIFFERENT model than the visible one — sweep scroll-POSITIONS, not just breakpoints (the first live read of the footer at page-top read 506×96 and looked like a reversion; the in-view read shows the growth — the live's pill was caught MID-INTERPOLATION at 537px, exposing the continuous driver); Chrome's computed `transition` shorthand serializes in SECONDS (`0.12s`, not `120ms`); Chrome's INITIAL transition value is `all` — an element with no transition rule reads "all", so the live's explicit mobile `transition: none` needs the clone's explicit `transition-none`; a lingering E2E hover's 1.1 scale inflates later mid-transition measurements (move the pointer off + settle first). Non-gaps re-verified: every session-24→32 surface (the hero vh-model at both breakpoints, the vibe, the parallax, the planner, the band, the category cards, the browse/detail/map/404s, the legal row, the MOBILE pill static + exact). Gates: 42 unit + 27 smoke + **76 E2E** (the rewritten footer contract: the compact-at-load + the transition lists + the shadow + the stroke/tracking + the grown + the link-radius-24 + the hover matrix + the half-visibility interpolation midpoint gap 10 + the mobile static model) — all green; 66 screenshots incl. the session-33 set (the compact pill, the mid-growth interpolation, the grown pill, the violet hover, the mobile footer with the shadow).
@@ -72,9 +73,9 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 | Map | Leaflet + react-leaflet | ^1.9.4 / ^5.0.0 | Open, keyless, matches the reference's dot-marker map |
 | ORM | Prisma | ^6.19.3 | Schema + client + seed; switchable SQLite→PostgreSQL without app changes |
 | Database | SQLite (default) | — | Zero-config local story; absolute-path form for production |
-| Unit tests | Vitest | ^5.0.1 | Fast node-env tests for the pure seams |
+| Unit tests | Vitest | ^5.0.2 | Fast node-env tests for the pure seams |
 | E2E tests | Playwright | ^1.63.0 | Drives the real production build in Chromium |
-| Runtime/PM | Bun (npm-compatible) | ≥1.4 | Install, dev server, seed runner, production server |
+| Runtime/PM | npm (`next start`) | — | Install, dev server, seed runner (`tsx`), production server — the npm runtime since the session-34/35 port (bun also works for install) |
 
 ### 1.3 Architecture Decision Records (ADRs)
 
@@ -97,7 +98,7 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 **ADR-003: Hand-rolled scrypt + HMAC cookie auth, not a library**
 
 - **Context:** The reference app is email/password behind a session. The clone must authenticate without OAuth providers or external identity services.
-- **Decision:** `src/lib/auth.ts` — scrypt password hashing (16-byte salt, 64-byte key) + stateless HMAC-SHA256-signed cookies (`roam_session`, 7-day TTL) + a per-process fixed-window rate limiter on login.
+- **Decision:** `src/lib/auth.ts` — scrypt password hashing (16-byte salt, 64-byte key) + stateless HMAC-SHA256-signed cookies (`roam_session`, 7-day TTL) + a per-process sliding-window rate limiter on login.
 - **Rationale:** Two crypto primitives from `node:crypto` cover the whole requirement with ~90 auditable lines; Auth.js/NextAuth would add provider abstraction, callback routes, and JWT machinery for a single local credential flow. The reference's own session model is a signed cookie.
 - **Consequences:** No password reset / MFA / OAuth (reference parity — not in scope). Sessions are stateless: logout is cookie clearing; revocation requires rotating `AUTH_SECRET`. The limiter is in-memory → single-node only.
 - **Alternatives Rejected:** Auth.js v5 (provider machinery unused); JWTs in localStorage (XSS-exposed, no httpOnly benefit).
@@ -106,30 +107,30 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 
 - **Context:** The production contract is one process (`npm run start` → `next start` with `serverExternalPackages: ["@prisma/client", "prisma"]`) + one SQLite file. The standalone history remains load-bearing: Next's tracer **copies `prisma/schema.prisma` into `.next/standalone`** during a build, and the resolver must never anchor against build output — a naive CWD-based path rule would resolve the database against the wrong tree.
 - **Decision:** `src/lib/db-path.ts` resolves relative `file:` URLs against the first "anchor" directory that contains `prisma/schema.prisma` (mirroring the Prisma CLI's own rule), with candidates: chunk-derived root (skipped inside `.next/standalone` subtrees) → detected in-repo standalone root → CWD. Plus two hardening rules: quote-stripping (some `.env` loaders pass `KEY="value"` through) and single-exit function forms (the Turbopack production minifier demonstrably dropped a `return repo` from a multi-return variant of `standaloneRepoRoot`).
-- **Rationale:** Verified by three real incidents during the build (§7, §10) and pinned by 17 unit checks.
+- **Rationale:** Verified by three real incidents during the build (§7, §10) and pinned by 19 unit checks.
 - **Consequences:** `db-path.ts` is load-bearing infra — changes must extend `tests/db-path.test.ts`. Deployed copies outside the repo should use an absolute `DATABASE_URL`.
 - **Alternatives Rejected:** Absolute-path-only URLs (worse DX for local dev); `prisma migrate` + migrations folder (unnecessary for a seeded clone — `db push` + idempotent seed is the workflow).
 
 **ADR-005: Tailwind CSS v4, CSS-first, with a measured mobile-navigation strategy**
 
 - **Context:** The scaffold's `docs/Tailwind-V4-Validation-Report.md` documents v4's failure modes around mobile navigation (the five failure classes: no-nav / invisible / clipped / under-layer / breakpoint mismatch), and the user flagged this as the key quality risk.
-- **Decision:** All design tokens as `@theme` variables in `src/app/globals.css` (no `tailwind.config.*` anywhere); custom primitives as `@utility` (`bg-grid`, `no-scrollbar`, `hero-shade`); the Navbar renders text-only links below `sm` with a `no-scrollbar` horizontal overflow as a safety valve; the five failure classes are regression-pinned by `tests/e2e/mobile-navigation.spec.ts` (8 checks incl. a bounding-box overlap detector for failure class D).
+- **Decision:** All design tokens as `@theme` variables in `src/app/globals.css` (no `tailwind.config.*` anywhere); custom primitives as `@utility` (`bg-grid`, `no-scrollbar` — the `hero-shade` gradient was removed in session-31); the Navbar renders text-only links below `md` with a `no-scrollbar` horizontal overflow as a safety valve; the five failure classes are regression-pinned by `tests/e2e/mobile-navigation.spec.ts` (16 checks incl. a bounding-box overlap detector for failure class D).
 - **Rationale:** CSS-first is v4's native configuration mode and eliminates the config/JS split-brain that caused the documented bugs; the safety valve guarantees links can never slide under the right icon cluster at 390px.
 - **Consequences:** Theme changes happen in CSS, not a config file; the E2E suite is the guardrail for any navbar refactor.
 - **Alternatives Rejected:** Keeping a `tailwind.config.ts` for compat (v4 tolerates it but reintroduces the split-brain); a hamburger drawer (the reference uses a compact top bar — fidelity wins).
 
 **ADR-006: Leaflet + CARTO basemap, keyless**
 
-- **Context:** The reference map view shows 9 hardcoded demo places (the live bundle's array — the 42 browse entities carry no coordinates) as dot markers over a light basemap with popups.
-- **Decision:** `react-leaflet` 5 + Leaflet 1.9, CARTO Positron raster tiles, custom `.roam-marker` CSS (16px black dot, white ring; 22px violet when active), mounted through `next/dynamic` with `ssr: false`. The 9 demo places are seeded as `status: "map"` rows (real lat/lng from the bundle array) and the map page queries them via `listMapPlaces()`.
+- **Context:** The reference map view shows 9 hardcoded demo places (the live bundle's array — the 42 browse entities carry no coordinates) as dot markers over a light basemap; the live has no popup layer — a hover reveals a name-label pill and a click navigates (session-30 re-measure).
+- **Decision:** `react-leaflet` 5 + Leaflet 1.9, CARTO Positron raster tiles, custom `.roam-marker` CSS (12px ink dot with a 2px white ring, hover `scale(1.32)` + the hover-reveal `.roam-marker-label` pill; no violet active state — retired session-30), mounted through `next/dynamic` with `ssr: false`. The 9 demo places are seeded as `status: "map"` rows (real lat/lng from the bundle array) and the map page queries them via `listMapPlaces()`.
 - **Rationale:** Matches the reference's visual language and its data reality exactly (a demo array, not an entity-fed map); needs no API key or billing account; the `ssr: false` boundary is mandatory because Leaflet touches `window` at import time.
 - **Consequences:** One client-only component boundary to respect; tile availability depends on the CARTO CDN; browse entities stay coordinate-less (live parity).
-- **Alternatives Rejected:** Feeding the map from the 42 published places (contradicts the measured live behavior); MapBox GL (key + bundle weight); Google Maps (key + licensing); SVG-only static map (loses pan/zoom/popups).
+- **Alternatives Rejected:** Feeding the map from the 42 published places (contradicts the measured live behavior); MapBox GL (key + bundle weight); Google Maps (key + licensing); SVG-only static map (loses pan/zoom).
 
 **ADR-007: Seed data reverse-engineered from the live entity API and page DOM**
 
 - **Context:** The clone's content must match the reference app — the 42 places, their tags, prices, and descriptions, plus the home showcase and the map's demo pins.
-- **Decision:** The live app's entity endpoints were captured into `prisma/data/{eat,stay,do}.json` (12 / 12 / 18 records); the home page's showcase rows into `prisma/data/home.json` (27 `status: "home"` rows: 5 route stops, 6 sights, 16 restaurants); the live map's hardcoded array into `prisma/data/map.json` (9 `status: "map"` rows, real lat/lng). `prisma/seed.ts` maps all four 1:1 into `Place` rows, generating browse-row coordinates deterministically per neighborhood, and creates the demo user (`sepnetflix2023@outlook.com`, the reference account).
+- **Decision:** The live app's entity endpoints were captured into `prisma/data/{eat,stay,do}.json` (12 / 12 / 18 records); the home page's showcase rows into `prisma/data/home.json` (27 `status: "home"` rows: 5 route stops, 6 sights, 16 restaurants); the live map's hardcoded array into `prisma/data/map.json` (9 `status: "map"` rows, real lat/lng). `prisma/seed.ts` maps all five files 1:1 into `Place` rows, generating browse-row coordinates deterministically per neighborhood, and creates the demo user (`sepnetflix2023@outlook.com`, the reference account).
 - **Rationale:** Guarantees content parity and gives the filter chips real data to be measured against (the stay view's "Under €250" / "With pool" chips literally mirror the entities' own tags).
 - **Consequences:** Seed is the source of truth for content — refreshing from a changed live app means re-capturing the JSON. Browse-row coordinates are synthetic-but-stable (the live API does not expose them); map-row coordinates are real (extracted from the bundle).
 - **Alternatives Rejected:** Hand-authored content (breaks parity); live API proxying (defeats self-hosting).
@@ -144,7 +145,7 @@ flowchart TB
         B[Browser — desktop / 390px mobile]
     end
     subgraph App["Single process — next start :3000 (npm runtime)"]
-        RSC[Next.js server components<br/>route group (app) + /login]
+        RSC[Next.js server components<br/>route groups (app) + (bare) + /login]
         API[API route handlers<br/>/api/auth · /api/places · /api/favourites · /api/bookings · /api/health]
         LIB[lib seams<br/>auth · db-path · filters · places · rate-limit]
     end
@@ -171,7 +172,7 @@ flowchart TB
 | Layer | Runtime | Scaling | Key constraint |
 |-------|---------|---------|----------------|
 | Client | Browser | Stateless | Leaflet is client-only (`ssr: false`); images/tiles load directly from CDNs |
-| App | Node (Bun) single process | Vertical only | In-memory rate limiter and Prisma singleton assume one process |
+| App | Node (npm `next start`) single process | Vertical only | In-memory rate limiter and Prisma singleton assume one process |
 | Data | SQLite file | Single writer | Absolute `DATABASE_URL` + persisted volume in production |
 | External | CDNs | N/A | `next.config.ts` `remotePatterns` allow-list: `media.base44.com`, `z-cdn.chatglm.cn` |
 
@@ -215,8 +216,10 @@ activity-map/
 │   │   │   │                              showcase + sights + SiteFooter (re-measured session 3)
 │   │   │   ├── eat|stay|do/page.tsx  ← server components (searchParams-aware) → CategoryExplorer
 │   │   │   ├── place/[slug]/page.tsx ← detail: gallery, About-this-place, booking-request form
+│   │   │   ├── place/[slug]/not-found.tsx ← in-app place 404 (46px serif h1 + Back-to-Do pill)
 │   │   │   ├── map/page.tsx          ← MapExplorer (client) with the 9 status:"map" demo places
-│   │   │   ├── favourites/page.tsx   ← FavouritesView (client)
+│   │   │   └── favourites/page.tsx   ← FavouritesView (client)
+│   │   ├── (bare)/                    ← auth-gated chrome-less group (session-16): NO Navbar/SiteFooter
 │   │   │   └── profile/page.tsx      ← ProfileView (client): identity + tabs + filters
 │   │   ├── api/
 │   │   │   ├── health/route.ts       ← public liveness probe
@@ -228,7 +231,7 @@ activity-map/
 │   │   ├── login/page.tsx            ← public login route; bounces authenticated visits
 │   │   ├── privacy-policy|accessibility-statement/page.tsx ← public legal pages (the live's routes; legacy paths redirect)
 │   │   ├── layout.tsx                ← root layout: fonts, metadata, globals.css
-│   │   ├── not-found.tsx             ← branded 404
+│   │   ├── not-found.tsx             ← platform slate 404 (client — useSyncExternalStore path)
 │   │   └── globals.css               ← @theme tokens + @utility primitives + Leaflet skin
 │   ├── components/
 │   │   ├── auth/LoginForm.tsx        ← client: credentials → /api/auth/login → router.refresh()
@@ -237,9 +240,11 @@ activity-map/
 │   │   ├── home/CategoryCards.tsx    ← server: the three glass VIEW ALL cards (black pills)
 │   │   ├── home/RecommendedRoute.tsx ← client: sticky scroll route + progress pill (status:home rows)
 │   │   ├── home/HighlightedRestaurants.tsx ← client: blue band, featured card + strip
-│   │   ├── home/StayShowcase.tsx     ← server: the 12-stay Choose Your Vibe grid
-│   │   ├── home/HighlightedSights.tsx ← server: 6 sight cards + More Things to Do
-│   │   ├── layout/SiteFooter.tsx     ← server: nav links + legal line
+│   │   ├── home/StayShowcase.tsx     ← client (session-31): the 12-stay Choose Your Vibe grid + parallax
+│   │   ├── home/HighlightedSights.tsx ← client (session-31): 6 sight cards + More Things to Do + parallax
+│   │   ├── home/LetterReveal.tsx     ← client: per-letter scroll-reveal headings (session-8)
+│   │   ├── home/useParallax.ts       ← client hook: rAF-throttled scroll parallax (session-31)
+│   │   ├── layout/SiteFooter.tsx     ← client (session-33): scroll-linked pill-growth listener + legal line
 │   │   └── layout/LegalPage.tsx      ← server: shared shell for the legal pages
 │   │   ├── places/CategoryExplorer.tsx ← client: search + chip state → filtered grid
 │   │   ├── places/PlaceCard.tsx      ← client: eat/do card (overlaid name, Learn More) + SaveButton
@@ -247,11 +252,12 @@ activity-map/
 │   │   ├── places/SaveButton.tsx     ← client: heart toggle → router.refresh()
 │   │   ├── places/BookingForm.tsx    ← client: booking-request form → POST /api/bookings
 │   │   ├── planner/TripPlanner.tsx   ← client: shared glass/white planner pill
+│   │   ├── planner/BrowsePlanner.tsx ← client: the unified sticky browse planner (session-8/24)
 │   │   ├── planner/DateRangePicker.tsx ← client: Su–Sa range popover (from/to optional)
 │   │   ├── map/MapExplorer.tsx       ← client: pills + search + stats; mounts canvas dynamically
 │   │   ├── map/LeafletCanvas.tsx     ← client-only: react-leaflet map + dot markers
 │   │   ├── favourites/FavouritesView.tsx
-│   │   └── profile/ProfileView.tsx  (18 client components total — see §3.1)
+│   │   └── profile/ProfileView.tsx  (21 client components total — see §3.1)
 │   ├── lib/                          ← Layer 1-2 seams (see §3.1; incl. planner.ts)
 │   └── types/index.ts                ← PlaceDTO, BookingDTO, PlaceCategory
 ├── prisma/
@@ -261,17 +267,19 @@ activity-map/
 │                                      rows (27, status:"home") + map demo rows (9,
 │                                      status:"map", real lat/lng from the live bundle)
 ├── tests/
-│   ├── db-path.test.ts               ← 17 checks: URL resolution contract
+│   ├── db-path.test.ts               ← 19 checks: URL resolution contract
 │   ├── filters.test.ts               ← 15 checks: chip semantics
 │   ├── planner.test.ts               ← 10 checks: planner query/date-label helpers
+│   ├── auth.test.ts                  ← 4 checks: cookie Secure flag + scrypt round-trip
 │   └── e2e/                          ← Playwright: global-setup, auth.setup, helpers,
-│                                      │   auth.spec (4), browse.spec (14), home.spec (8),
-│                                      └   mobile-navigation.spec (8) + .auth/user.json state
+│                                      │   auth.spec (5), browse.spec (32), home.spec (19),
+│                                      │   mobile-navigation.spec (16), not-found.spec (3)
+│                                      └   + .auth/user.json state
 ├── scripts/smoke-test.sh             ← 27-check production API suite
 ├── docs/                             ← DEPLOYMENT.md, remediation-plan.md (session 2),
 │                                      remediation-plan-session-3.md, session logs,
 │                                      Tailwind-V4-Validation-Report.md,
-│                                      ssh_git_wrapper_v3.py + runbook, screenshots/ (14)
+│                                      ssh_git_wrapper_v3.py + runbook, screenshots/ (16)
 └── AGENTS.md · CLAUDE.md · README.md · this PAD
 ```
 
@@ -297,7 +305,7 @@ export function resolveDatabaseUrl(
 }
 ```
 
-**Why this pattern:** `next build` copies `prisma/schema.prisma` into `.next/standalone`, and the standalone server `chdir`s there — a plain `process.cwd()` rule would create/read the database inside the build output. `candidateRoots()` therefore skips anchors inside `.next/standalone` subtrees and upgrades an in-repo standalone anchor to the real repo root. Two hardening details are load-bearing: `stripQuotes` (a quoted `.env` value otherwise dodges the `file:` branch) and the **single-exit form of `standaloneRepoRoot`** — the Turbopack production minifier was observed dropping the final `return repo` from a multi-return variant, silently. The contract is pinned by `tests/db-path.test.ts` (17 checks).
+**Why this pattern:** `next build` copies `prisma/schema.prisma` into `.next/standalone`, and the standalone server `chdir`s there — a plain `process.cwd()` rule would create/read the database inside the build output. `candidateRoots()` therefore skips anchors inside `.next/standalone` subtrees and upgrades an in-repo standalone anchor to the real repo root. Two hardening details are load-bearing: `stripQuotes` (a quoted `.env` value otherwise dodges the `file:` branch) and the **single-exit form of `standaloneRepoRoot`** — the Turbopack production minifier was observed dropping the final `return repo` from a multi-return variant, silently. The contract is pinned by `tests/db-path.test.ts` (19 checks).
 
 #### Pattern 2 — Stateless HMAC session cookies
 
@@ -352,23 +360,28 @@ export function toPlaceDTO(p: PlaceWithSaved, userId?: string): PlaceDTO {
 #### Pattern 5 — Mobile-nav safety valve (Tailwind v4)
 
 ```tsx
-// src/components/layout/Navbar.tsx — below sm the links are TEXT-ONLY
-// (icons hidden) and the row carries a horizontal no-scrollbar overflow,
+// src/components/layout/Navbar.tsx — below md the links are TEXT-ONLY
+// (icons hidden) inside a SHRINK-WRAPPED group (session-32: min-w-0 + mr-2,
+// no flex-1), and the row carries a horizontal no-scrollbar overflow,
 // so links can never slide under the logo or the right icon cluster.
-<div className="no-scrollbar flex min-w-0 flex-1 items-center justify-center gap-0 overflow-x-auto sm:gap-1">
+<div
+  className={cn(
+    "no-scrollbar flex min-w-0 items-center justify-center overflow-x-auto",
+    "mr-2 gap-3 md:mr-0 md:flex-none md:gap-1 md:overflow-visible",
+  )}
+>
   {LINKS.map(({ href, label, icon: Icon }) => (
     <Link key={href} href={href} className={cn(
-      "flex shrink-0 items-center whitespace-nowrap rounded-full …",
-      "px-1.5 py-2 text-[13px] sm:px-3 sm:text-sm",
+      "press-shrink font-nav flex h-full shrink-0 items-center whitespace-nowrap text-[12px] tracking-[-0.01em] md:text-[13px] md:tracking-[0.01em]",
     )}>
-      <Icon className="mr-1.5 hidden h-4 w-4 sm:block" strokeWidth={1.5} />
-      <span>{label}</span>
+      <Icon className="mr-2 hidden h-4 w-4 md:block" strokeWidth={1.5} />
+      <span className="transition-colors duration-200">{label}</span>
     </Link>
   ))}
 </div>
 ```
 
-**Why this pattern:** the documented v4 mobile-nav failure classes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) all involve content disappearing or being overlapped at small widths. Text-only links + compact padding fit the reference's 390px chrome; `no-scrollbar` + `overflow-x-auto` guarantees graceful degradation at extreme widths; `min-w-0 flex-1` lets the row shrink instead of overflowing. `tests/e2e/mobile-navigation.spec.ts` pins all five classes, including a bounding-box overlap detector (class D).
+**Why this pattern:** the documented v4 mobile-nav failure classes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) all involve content disappearing or being overlapped at small widths. Text-only links + compact padding fit the reference's 390px chrome; `no-scrollbar` + `overflow-x-auto` guarantees graceful degradation at extreme widths; `min-w-0` + `mr-2` shrink-wraps the group (session-32) so the nav's `justify-between` distributes the freed space into the two outer gaps — the live's own layout, measured at x=121/192/222/259 at 390. `press-shrink` (the unlayered globals.css touch feedback) and the 200ms color transition split across the anchor/label span keep the two `transition` shorthands from colliding. `tests/e2e/mobile-navigation.spec.ts` pins all five classes (16 checks), including a bounding-box overlap detector (class D).
 
 ---
 
@@ -461,8 +474,8 @@ Field naming mirrors the reference app's entity API (Eat / Stay / Do / SavedPlac
 
 | Face | Role | Fallback | Notes |
 |------|------|----------|-------|
-| Libre Baskerville | Display serif — the live app's every h1/h2 (hero wordmark, section headlines, place titles, 48px route-stop titles), re-measured session 3 with per-section `clamp()` scales (e.g. browse h1 `clamp(36px, 4.3vw, 55px)` ls −0.06em; detail h1 `clamp(36px, 6.4vw, 82px)`) | `ui-serif, Georgia, serif` | Loaded via Google Fonts in the root layout; `--font-serif` token; the legacy `.font-poppins` utility was redefined to this face (live parity) |
-| Inter | UI sans AND navigation — body, nav links (16px, 400 weight desktop / 700 active mobile), chips, forms, card names (28px, tracking −0.04em), map popups; the live app dropped Poppins in its session-3 redesign | `ui-sans-serif, system-ui, -apple-system, "Segoe UI"` | `--font-sans` + `--font-nav` tokens (both Inter); `-webkit-font-smoothing: antialiased` |
+| Libre Baskerville | Display serif — the live app's every h1/h2 (hero wordmark, section headlines, place titles, 48px route-stop titles), re-measured session 3 with per-section `clamp()` scales (e.g. browse h1 `clamp(36px, 4.3vw, 55px)` ls −0.06em; detail h1 `clamp(36px, 6.4vw, 82px)`) | `ui-serif, Georgia, serif` | Loaded via Google Fonts in the root layout; `--font-serif` token |
+| Inter | UI sans AND navigation — body, nav links (16px, 400 weight desktop / 700 active mobile), chips, forms, card names (28px, tracking −0.04em), the map name-label pills; the live app dropped Poppins in its session-3 redesign | `ui-sans-serif, system-ui, -apple-system, "Segoe UI"` | `--font-sans` + `--font-nav` tokens (both Inter); `-webkit-font-smoothing: antialiased` |
 
 ### 5.2 Color Tokens (re-measured from the reference app, session 3)
 
@@ -483,11 +496,11 @@ VIEW ALL pills on the glass category cards are near-black `#141413` (36px pill, 
 
 ### 5.3 Component Primitives
 
-No component library — the UI is Tailwind utilities composed directly, with four `@utility` primitives in `globals.css`: `bg-grid` (22px graph-paper canvas for Favourites/Profile), `no-scrollbar` (chip/nav rows), `hero-shade` (the hero's legibility gradient), and the Leaflet skin (`.leaflet-container` radius, popup typography, `.roam-marker` 16px black dot / 22px violet active state). `cn()` (clsx + tailwind-merge) is the class-composition helper everywhere.
+No component library — the UI is Tailwind utilities composed directly, with `@utility` primitives in `globals.css`: `bg-grid` (22px graph-paper canvas for Favourites/Profile) and `no-scrollbar` (chip/nav rows), plus the session-32/33 interaction utilities `press-shrink` (the live's touch feedback), `footer-pill-transition`, `footer-link-transition`, and `footer-link-hover` (the scroll-linked footer growth + the violet link hover). The `hero-shade` legibility gradient was REMOVED in session-31 (the live renders its hero image raw). The Leaflet skin keeps `.leaflet-container` radius, the zoom-button overrides, and `.roam-marker` — a 12px ink dot with a 2px white ring (hover `scale(1.32)`) and a hover-reveal name-label pill (`.roam-marker-label`); no violet active state (retired session-30). `cn()` (clsx + tailwind-merge) is the class-composition helper everywhere.
 
 ### 5.4 Motion / Animation
 
-Transitions are Tailwind `transition-colors` on interactive elements only (chips, links, buttons). `prefers-reduced-motion: reduce` collapses all animation/transition durations to 0.01ms and disables smooth scrolling — pinned in `globals.css`.
+Transitions: `transition-colors` on chips, links, and buttons, plus the bespoke interaction utilities — `press-shrink` (0.18s transform/box-shadow + `:active scale(0.97)` on every nav/footer link), the 120ms footer pill/link growth transitions, the `footer-link-hover` matrix, and the rAF-throttled scroll parallax (session-31) / scroll-linked footer growth (session-33) driven from client components. `prefers-reduced-motion: reduce` collapses all animation/transition durations to 0.01ms and disables smooth scrolling — pinned in `globals.css`.
 
 ---
 
@@ -514,7 +527,7 @@ Transitions are Tailwind `transition-colors` on interactive elements only (chips
 | `hashPassword` / `verifyPassword` | `src/lib/auth.ts` | scrypt hash/verify with constant-time compare |
 | `signSession` / `verifySessionToken` | `src/lib/auth.ts` | HMAC cookie mint/verify |
 | `getSessionUser` | `src/lib/auth.ts` | Request-cookie → session payload (RSC + route handlers) |
-| `clientIp` / `checkRateLimit` | `src/lib/rate-limit.ts` | Fixed-window limiter with `X-Forwarded-For` awareness |
+| `clientIp` / `checkRateLimit` | `src/lib/rate-limit.ts` | Sliding-window limiter with `X-Forwarded-For` awareness |
 | `resolveDatabaseUrl` | `src/lib/db-path.ts` | Quote-stripping + anchor resolution (input hardening) |
 
 ### 6.3 Authentication & Authorization
@@ -540,17 +553,19 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 
 | Category | Files | Checks | Location | Framework |
 |----------|-------|--------|----------|-----------|
-| Unit — db-path contract | 1 | 17 | `tests/db-path.test.ts` | Vitest (node env) |
+| Unit — db-path contract | 1 | 19 | `tests/db-path.test.ts` | Vitest (node env) |
 | Unit — filter semantics | 1 | 15 | `tests/filters.test.ts` | Vitest (node env) |
 | Unit — planner helpers | 1 | 10 | `tests/planner.test.ts` | Vitest (node env) |
-| E2E — auth surface | 1 | 4 | `tests/e2e/auth.spec.ts` | Playwright (chromium) |
-| E2E — browse/planner/booking/favourites/map/profile | 1 | 14 | `tests/e2e/browse.spec.ts` | Playwright (chromium) |
-| E2E — home parity | 1 | 8 | `tests/e2e/home.spec.ts` | Playwright (chromium) |
-| E2E — mobile navigation | 1 | 8 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (chromium) |
+| Unit — auth seam | 1 | 4 | `tests/auth.test.ts` | Vitest (node env) |
+| E2E — auth surface + legal pages | 1 | 5 | `tests/e2e/auth.spec.ts` | Playwright (chromium) |
+| E2E — browse/planner/booking/favourites/map/profile | 1 | 32 | `tests/e2e/browse.spec.ts` | Playwright (chromium) |
+| E2E — home parity | 1 | 19 | `tests/e2e/home.spec.ts` | Playwright (chromium) |
+| E2E — mobile navigation | 1 | 16 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (chromium) |
+| E2E — not-found surfaces | 1 | 3 | `tests/e2e/not-found.spec.ts` | Playwright (chromium) |
 | E2E — auth setup | 1 | 1 | `tests/e2e/auth.setup.ts` | Playwright (setup project) |
 | Smoke — production API | 1 script | 27 | `scripts/smoke-test.sh` | bash + curl |
 
-**Totals: 42 unit + 35 E2E + 27 smoke — all green at the documented commit.** (Session 3 re-measured the live app, extended the planner/card/detail/map/profile contracts in place, and added the 10-check planner unit seam.)
+**Totals: 48 unit + 76 E2E + 27 smoke — all green at the documented commit.** (v2.15: the E2E distribution re-verified authoritatively with `playwright test --list` — the browse spec's parameterized loops expand to 32 checks, mobile-navigation's viewport loop to 16; the earlier table lagged the session-25→33 spec growth and omitted both `auth.test.ts` and `not-found.spec.ts`.)
 
 ### 7.2 Test Patterns
 
@@ -659,28 +674,29 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/lib/db-path.ts` | 192 | SQLite URL resolution contract (the standalone trap) — load-bearing |
-| `src/lib/auth.ts` | 89 | scrypt + HMAC session auth |
+| `src/lib/db-path.ts` | 200 | SQLite URL resolution contract (the standalone trap) — load-bearing |
+| `src/lib/auth.ts` | 104 | scrypt + HMAC session auth |
 | `src/lib/filters.ts` | 117 | Measured filter-chip semantics (pure seam) |
 | `src/lib/planner.ts` | 51 | Trip-planner query/date-label helpers (pure seam, session 3) |
 | `src/lib/places.ts` | 165 | Domain queries + `toPlaceDTO` serialization boundary (incl. `listMapPlaces`) |
-| `src/lib/rate-limit.ts` | 40 | Login throttling (10/IP/15 min) |
+| `src/lib/rate-limit.ts` | 40 | Login throttling (10/IP/15 min, sliding window) |
 | `src/lib/utils.ts` | 47 | `cn()`, price/duration formatting, `priceRangeParts`, `initials` |
-| `src/components/layout/Navbar.tsx` | 215 | Dual chrome: mobile cream-glass tab-bar / desktop white bar + v4 safety valve |
-| `src/components/planner/TripPlanner.tsx` | 181 | Shared planner pill (hero glass / browse sticky white) — session 3 |
-| `src/components/places/StayCard.tsx` | 72 | Dark aspect-square stay card with hover buttons — session 3 |
-| `src/components/map/MapExplorer.tsx` | 252 | Map state holder; dynamic `ssr:false` mount of the canvas |
-| `src/components/map/LeafletCanvas.tsx` | 141 | Client-only react-leaflet map + dot markers |
-| `src/components/places/CategoryExplorer.tsx` | 182 | Search + chip filtering + grid |
-| `src/components/places/BookingForm.tsx` | 228 | Booking-request form → POST /api/bookings |
+| `src/components/layout/Navbar.tsx` | 241 | Dual chrome: mobile cream-glass tab-bar / desktop white pill + v4 safety valve |
+| `src/components/planner/TripPlanner.tsx` | 194 | Shared planner pill (hero glass / browse sticky white) — session 3 |
+| `src/components/places/StayCard.tsx` | 128 | Dark aspect-square stay card with hover buttons — session 3 |
+| `src/components/map/MapExplorer.tsx` | 284 | Map state holder; dynamic `ssr:false` mount of the canvas |
+| `src/components/map/LeafletCanvas.tsx` | 140 | Client-only react-leaflet map + dot markers |
+| `src/components/places/CategoryExplorer.tsx` | 160 | Search + chip filtering + grid |
+| `src/components/places/BookingForm.tsx` | 251 | Booking-request form → POST /api/bookings |
 | `prisma/schema.prisma` | 116 | User / Place / SavedPlace / Booking (+ request fields) |
-| `prisma/seed.ts` | 282 | Idempotent seed from captured JSON + deterministic coords |
-| `src/app/globals.css` | 131 | Tailwind v4 `@theme` tokens + `@utility` primitives + Leaflet skin |
-| `tests/db-path.test.ts` | — | 17 checks pinning the resolution contract |
+| `prisma/seed.ts` | 288 | Idempotent seed from captured JSON + deterministic coords |
+| `src/app/globals.css` | 327 | Tailwind v4 `@theme` tokens + `@utility`/interaction primitives + Leaflet skin |
+| `tests/db-path.test.ts` | — | 19 checks pinning the resolution contract |
 | `tests/filters.test.ts` | — | 15 checks pinning chip semantics |
 | `tests/planner.test.ts` | — | 10 checks pinning planner param/date-label helpers |
-| `tests/e2e/mobile-navigation.spec.ts` | 150 | The five v4 failure classes + viewport sweeps |
-| `scripts/smoke-test.sh` | 147 | 27-check production API suite |
+| `tests/auth.test.ts` | — | 4 checks pinning the cookie Secure flag + scrypt round-trip |
+| `tests/e2e/mobile-navigation.spec.ts` | 346 | The five v4 failure classes + viewport sweeps + shrink-wrap/press-shrink contracts |
+| `scripts/smoke-test.sh` | 162 | 27-check production API suite |
 
 ---
 
@@ -690,7 +706,7 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 - **Anchor** — a candidate directory for SQLite URL resolution; the winning anchor is the one containing `prisma/schema.prisma`.
 - **Standalone trap** — the `.next/standalone` traced copy of `schema.prisma` that would capture naive CWD-based resolution.
 - **DTO** — Data Transfer Object (`PlaceDTO` / `BookingDTO`); the typed shape crossing the server→client boundary.
-- **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, auth, rate-limit).
+- **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, planner, auth, rate-limit, utils).
 - **Failure classes A–E** — the five Tailwind v4 mobile-nav failure modes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) pinned by the E2E suite.
 - **Envelope** — the API response shape `{ ok: true, data } | { ok: false, error }`.
 - **StorageState** — Playwright's saved-authentication file (`tests/e2e/.auth/user.json`) shared across specs to avoid rate-limited re-login.

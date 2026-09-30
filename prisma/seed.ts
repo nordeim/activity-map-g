@@ -1,7 +1,7 @@
 // Seed: mirrors the reference app's data (ROAM — Augsburg City Guide).
 // Idempotent: clears domain tables, then inserts the captured entity data
 // (12 Eat + 12 Stay + 18 Do places) plus the demo login user.
-// Run: bun prisma/seed.ts  (or: npx tsx prisma/seed.ts)
+// Run: npm run db:seed  (or: npx tsx prisma/seed.ts)
 
 import { PrismaClient } from "@prisma/client";
 import { scryptSync, randomBytes } from "crypto";

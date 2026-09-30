@@ -940,3 +940,22 @@ Work Log:
 Stage Summary:
 - Commit 1d1449d (19 files: 1 package.json + lockfile + install script + .env comment + 5 docs + 7 screenshot refreshes + 3 new files — the plan, the session log, the capture script) pushed to main and verified on the remote.
 - No secrets in the tree; key material destroyed post-push.
+
+---
+Task ID: 37
+Agent: Super Z (external validation session)
+Task: Validate the claims/findings in docs/findings_to_validate_and_update.md against the codebase, then remediate the misaligned documents + the one code-side envelope variance.
+
+Work Log:
+- Fresh clone at 1a8b0fe; the three operator docs (AGENTS/CLAUDE/PAD) + the findings doc read end-to-end; every code claim re-verified (stack versions, all four configs, the 48-unit census by word-boundary it( count, the seed JSON parse 12+12+18+27+9=78, seed.ts nested flattening, places.ts status filters, layouts, Navbar shrink-wrap, globals.css utilities + 12px .roam-marker, 23 "use client" files = 21 components + not-found page + useParallax hook, wc -l on all 19 §11 files).
+- The E2E census closed AUTHORITATIVELY: playwright test --list → "Total: 76 tests in 6 files" (auth 5 / browse 32 / home 19 / mobile-navigation 16 / not-found 3 + the 1-check setup project) — the findings doc's own D3 breakdown (browse 25 / mobile-nav 15) was wrong and is corrected; its "four JSON files" attribution (D12/C4) was misattributed (the real "maps all four 1:1" wording is PAD ADR-007 — AGENTS/CLAUDE both list five files correctly); its .font-poppins citation belonged to §5.1, not §5.3.
+- Eleven ADDITIONAL stale spots the findings doc missed: PAD §2 layer-table "Node (Bun)", Vitest ^5.0.1→^5.0.2, ADR-005 "below sm"→md + 8→16 mobile-nav checks, ADR-006 "with popups" + the alternatives row, §5.4 transition-colors-only, the §3.2 tree omissions (LetterReveal/useParallax/BrowsePlanner/(bare)/place-404/"branded 404"), screenshots (14)→(16), LeafletCanvas 141→140, DEPLOYMENT.md's health example {"status":"ok"} → the real {"ok":true,...} shape + its "fixed window" row, and seed.ts's bun-first run comment.
+- Remediated: the PAD v2.14→v2.15 (revision block + every stale section: §1.2, ADR-003/004/005/006/007, §2, §3.2 tree, Pattern 1 + Pattern 5 (the current shrink-wrapped Navbar code), §5.1-§5.4, §6.2, §7.1 (48/76/27 + the authoritative distribution), §11 line counts, §12 glossary); AGENTS.md (17→19 checks, fixed→sliding window); activity-map_SKILL.md v1.22.0→v1.22.1 (npm-first bootstrap, utility inventory, 21 client components, 19 checks); docs/DEPLOYMENT.md (health shape + sliding window); prisma/seed.ts comment npm-first; CLAUDE.md + README verified accurate — NO changes needed.
+- Code-side remediation (E1): /api/health's unhealthy path now returns { ok: false, error: "unhealthy" } (503) per the envelope contract — was the only data-shaped failure across all 22 error returns in src/app/api/**; safety verified first (zero consumers of the old shape; the smoke readiness grep only touches the healthy path).
+- Gate on the remediated tree: lint ✓ (the 2 pre-existing inspect-live-nav warnings, 0 errors) · typecheck ✓ · 48/48 unit ✓ · playwright test --list 76 ✓. Build/smoke/E2E NOT run (no server boot in this environment) — the tree is left UNCOMMITTED for the repo's own full gate before push.
+- docs/findings_to_validate_and_update.md rewritten as the v2 validated+corrected+remediated record (verdict on every original claim, the three meta-corrections M1-M3, the eleven new findings N1-N11, the full remediation inventory, the verification log).
+
+Stage Summary:
+- The original findings report verified highly accurate on code-side facts (all 30+ claims reproduced) but carried 3 internal errors (the E2E breakdown, the "four JSON files" attribution, the .font-poppins location) and missed 11 additional stale doc spots — all corrected and remediated.
+- 8 files changed (PAD v2.15, AGENTS, SKILL v1.22.1, DEPLOYMENT, seed.ts comment, the health route fix, the rewritten findings doc, this worklog); CLAUDE.md + README verified accurate and untouched.
+- Gates: lint (2 pre-existing warnings) + typecheck + 48/48 unit + the 76-test census all green; the working tree left uncommitted pending the repo's full build/smoke/E2E gate before push.
