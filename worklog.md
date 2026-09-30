@@ -997,3 +997,25 @@ Stage Summary:
 - The live site's first visit now stays on-origin: `/` → 307 `/api/auth/guest` (relative) → 303 `Location: /` (RELATIVE, RFC 9110 §10.2.2) + Set-Cookie → the browser resolves against https://activity-map.jesspete.shop — immune to any proxy's Host mangling, on every deployment, zero configuration.
 - 4 tracked files changed (route.ts, guest.test.ts, guest.spec.ts, smoke-test.sh) + 7 docs (PAD v2.17, AGENTS, CLAUDE, README, SKILL v1.22.3, DEPLOYMENT, findings); gate arithmetic 68→72 unit · 29→30 smoke · 81 E2E.
 - Deliverable: the remediated tree archived (excluding .git/, node_modules/, .next/, skills/) into the workspace download folder.
+
+---
+Task ID: 40
+Agent: Super Z (main agent, session 46)
+Task: Session 46 — audit + validate the v2.16/v2.17 guest-bootstrap range (recent_changes_to_validate.txt), then remediate the deep-link regression + gate alignment (TDD), screenshots, docs, push to main.
+
+Work Log:
+- Workspace re-cloned at 66c50de; every root doc + the session history re-read; the scandihaven reference repo re-cloned and its patterns re-verified (already followed). Baseline gates on the untouched tree: lint ✓ · typecheck ✓ · 72/72 unit ✓ · build ✓ · E2E 79/81 — 2 FAILING guest specs (the profile deep link + the sign-out round-trip). Root process cause: sessions 38/39 recorded only `playwright test --list 81 ✓` (a census), never a run.
+- Dual-site browser audit (agent-browser, per the repo's own skills catalog): the live source UNCHANGED at every swept signature (desktop nav 433/559/639/727/805; mobile 121/192/222/259 @390 + icons 304/330/356 + the 52px glass; footer 506×96→646×118) and it PRESERVES logged-out deep links (a fresh /eat stays on /eat); the deployed mirror all green EXCEPT fresh-context deep links bounce to / (reproduced for /profile and /place/map-brass-marble) and the post-sign-out DOM is an empty shell; the local dev server's mobile nav EXACT — no Tailwind v4 regression.
+- Findings F1–F5 (docs/remediation-plan-session-46.md): F1 HIGH — the layout gates passed no ?next= so every fresh deep link bounced to / (the layouts cannot learn the request path: headers() exposes only proxy headers; a layout redirect preempts a page's); F2 MED — the E2E corpus was never executed for v2.16/17; F3 MED — .env git-tracked with a live AUTH_SECRET; F4 LOW — the triple-redundant (bare) gate; F5 INFO — everything else verified intact.
+- R0 RED: +3 guestBootstrapUrl unit checks + 3 E2E deep-link pins (/eat, /map, /place/map-brass-marble).
+- R1 GREEN: guestBootstrapUrl() (pure, encodeURIComponent) in src/lib/guest.ts; requireUser(next) in the new src/lib/page-gate.ts; wired into all 8 authenticated pages (the user! assertions dropped); the (app) layout chrome-only ({user ? <Navbar/> : null}); the (bare) layout's redundant gate removed. En-route root cause: sign-out's router.replace+refresh cannot follow the bootstrap's redirect-to-route-handler chain (the RSC soft-nav renders an empty shell) → window.location.assign("/").
+- R2: smoke check 14 next-aware + the new 14b deep-link check → 31/31.
+- R3: .env untracked via git rm --cached; .env.example verified as the complete env-surface match (included in the push).
+- R4: 16 screenshots re-captured via scripts/capture-screens-session46.mjs (login moved to each context's FIRST navigation — the guest bootstrap bounces authenticated visits off /login).
+- R5: 10 docs aligned (AGENTS, CLAUDE, README, PAD v2.18, SKILL v1.22.4, DEPLOYMENT, findings addendum, the worklog, docs/session_46.md, the plan's execution record).
+- R6 final gate on the push tree: lint ✓ (0 errors) · typecheck ✓ · 75/75 unit ✓ · build ✓ · 31/31 smoke ✓ · 84/84 E2E ✓ — the guest suite EXECUTED green for the first time.
+
+Stage Summary:
+- The v2.16/v2.17 range audited: one HIGH functional regression found (deep links bounced to /), one MED process gap (census ≠ pass), one MED security hygiene item (.env tracked) — all remediated with TDD evidence.
+- The deep-link contract now matches the live: any authenticated page's URL returns the first-time visitor to that page through the login-free bootstrap; sign-out renders the guide (was an empty shell on the deployed build).
+- Gates: 75 unit + 31/31 smoke + 84/84 E2E — all green; 16 screenshots; 10 docs aligned; single conventional commit + SSH-wrapper push to main (no branches).

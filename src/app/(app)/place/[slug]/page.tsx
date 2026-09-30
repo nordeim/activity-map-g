@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getSessionUser } from "@/lib/auth";
+import { requireUser } from "@/lib/page-gate";
 import { getPlaceBySlug } from "@/lib/places";
 import { ArrowLeft, MapPin, Star } from "lucide-react";
 import { priceRangeSymbols } from "@/lib/utils";
@@ -16,8 +16,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PlaceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const user = await getSessionUser();
-  const place = await getPlaceBySlug(slug, user?.uid);
+  // v2.18: the gate carries the page's own path — a shared /place/<slug>
+  // link survives the login-free first visit (the 303 returns here).
+  const user = await requireUser(`/place/${slug}`);
+  const place = await getPlaceBySlug(slug, user.uid);
   if (!place) notFound();
 
   const meta = CATEGORY_META[place.category];

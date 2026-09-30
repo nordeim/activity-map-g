@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/lib/auth";
+import { requireUser } from "@/lib/page-gate";
 import { listPlacesForUser } from "@/lib/places";
 import { CATEGORY_META } from "@/types";
 import { CategoryExplorer } from "@/components/places/CategoryExplorer";
@@ -10,9 +10,9 @@ export default async function DoPage({
 }: {
   searchParams: Promise<{ people?: string; start_date?: string; end_date?: string }>;
 }) {
-  const user = await getSessionUser();
+  const user = await requireUser("/do");
   const sp = await searchParams;
-  const places = await listPlacesForUser(user!.uid, "do");
+  const places = await listPlacesForUser(user.uid, "do");
   return (
     <CategoryExplorer
       meta={CATEGORY_META.do}

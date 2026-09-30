@@ -70,13 +70,26 @@ export function ProfileView({
     tab === "upcoming" ? byCategory(upcoming) : tab === "past" ? byCategory(past) : byCategory(bookings);
 
   // Login-free first visit: signing out ends the CURRENT session and returns
-  // to the guide, where the (app) layout re-bootstraps a fresh guest session
+  // to the guide, where the (app) gate re-bootstraps a fresh guest session
   // — the visitor never lands back on the /login wall (the demo login stays
   // reachable by navigating to /login directly).
+  //
+  // v2.18: a FULL browser navigation, not router.replace/refresh. The
+  // bootstrap re-establishes the guest session through a 307→303 chain that
+  // only a top-level navigation can follow — the App Router's RSC soft-nav
+  // cannot follow a server redirect that targets a route handler (it renders
+  // an empty shell with no navbar/main instead; pinned by guest.spec's
+  // sign-out test). Login keeps router.refresh() because its POST response
+  // sets the session cookie directly — no redirect chain to follow.
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/");
-    router.refresh();
+    // The App Router's lint rule prefers router navigation for internal
+    // paths — but this is the one documented place where that is impossible:
+    // the RSC soft-nav cannot follow the bootstrap's redirect-to-route-handler
+    // chain (it renders an empty shell). A top-level navigation is REQUIRED
+    // here; see the comment block above and guest.spec's sign-out pin.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign("/");
   }
 
   return (

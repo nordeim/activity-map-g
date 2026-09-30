@@ -35,6 +35,19 @@ export const GUEST_NAME = "Guest";
 export const GUEST_AVATAR_COLOR = "#996CE4"; // the schema's User default
 export const GUEST_BOOTSTRAP_PATH = "/api/auth/guest";
 
+/**
+ * The redirect target the page-level session gates use: the bootstrap WITH
+ * the page's own path as next (v2.18 — deep links survive the login-free
+ * first visit). The value is encodeURIComponent'd so path characters (?, &,
+ * #) can never corrupt the bootstrap URL's query string; the route handler
+ * decodes it back through searchParams before sanitizeNextPath ever sees it.
+ * Pure on purpose — no next/navigation import (unit-testable, see
+ * tests/guest.test.ts).
+ */
+export function guestBootstrapUrl(next: string): string {
+  return `${GUEST_BOOTSTRAP_PATH}?next=${encodeURIComponent(next)}`;
+}
+
 export interface GuestUser {
   id: string;
   email: string;

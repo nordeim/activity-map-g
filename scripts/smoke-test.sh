@@ -163,11 +163,24 @@ else
   bad "guest bootstrap Location -> $loc (expected the relative /)"
 fi
 
-# ---- 14. signed-out app routes bounce through the guest bootstrap ----
+# ---- 14. signed-out app routes bounce through the guest bootstrap (v2.18:
+# WITH the page's own path as next, so deep links survive the login-free
+# first visit) ----
 for path in eat stay do map favourites profile; do
   loc=$(curl -s -o /dev/null -w "%{redirect_url}" --max-time 10 "$BASE/$path")
-  if [ "$loc" = "$BASE/api/auth/guest" ]; then ok "GET /$path redirects to the guest bootstrap"; else bad "GET /$path -> $loc (expected the guest bootstrap)"; fi
+  want="$BASE/api/auth/guest?next=%2F$path"
+  if [ "$loc" = "$want" ]; then ok "GET /$path redirects to the bootstrap with next=/$path"; else bad "GET /$path -> $loc (expected $want)"; fi
 done
+
+# ---- 14b. the deep-link 303 returns the visitor to the deep link ----
+# The bootstrap must honour the next param the page gates pass: a signed-out
+# visitor to /profile re-enters at /profile (not the home default /).
+loc=$(curl -s -o /dev/null -D - --max-time 10 "$BASE/api/auth/guest?next=%2Fprofile" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')
+if [ "$loc" = "/profile" ]; then
+  ok "deep-link bootstrap 303 returns to /profile"
+else
+  bad "deep-link bootstrap Location -> $loc (expected /profile)"
+fi
 code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE/not-a-real-page")
 if [ "$code" = "404" ]; then ok "unknown path 404s"; else bad "unknown path -> $code"; fi
 

@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/lib/auth";
+import { requireUser } from "@/lib/page-gate";
 import { listMapPlaces } from "@/lib/places";
 import { MapExplorer } from "@/components/map/MapExplorer";
 
@@ -9,10 +9,10 @@ export default async function MapPage({
 }: {
   searchParams: Promise<{ place?: string; category?: string }>;
 }) {
-  const [user, sp] = await Promise.all([getSessionUser(), searchParams]);
+  const [user, sp] = await Promise.all([requireUser("/map"), searchParams]);
   // The map renders the nine demo pins (status "map") — the browse entities
   // never appear on the live app's map (session 3 parity).
-  const places = await listMapPlaces(user!.uid);
+  const places = await listMapPlaces(user.uid);
 
   const initialCategory =
     sp.category === "eat" || sp.category === "stay" || sp.category === "do" ? sp.category : null;

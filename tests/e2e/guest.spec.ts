@@ -55,4 +55,20 @@ test.describe("guest bootstrap", () => {
     // any reverse proxy (the live-site localhost-bounce regression).
     expect(location).toBe("/");
   });
+
+  // v2.18: deep links survive the login-free first visit. The pages 307
+  // session-less visitors through the bootstrap WITH their own path as next
+  // (the layouts cannot know the request path — verified — so the page-level
+  // gate owns it), and the 303 returns the visitor to the deep link instead
+  // of the home default. The live source preserves logged-out deep links the
+  // same way (a fresh /eat visit on the live stays on /eat).
+  for (const deepLink of ["/eat", "/map", "/place/map-brass-marble"]) {
+    test(`a fresh deep link to ${deepLink} returns to ${deepLink} after the bootstrap`, async ({ page }) => {
+      await page.goto(deepLink, { waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(new RegExp(`${deepLink.replace(/[/?]/g, "\\$&")}$`), {
+        timeout: 15_000,
+      });
+      await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+    });
+  }
 });

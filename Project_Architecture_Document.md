@@ -3,12 +3,13 @@
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 **Companion Documents:** `README.md` (user-facing), `AGENTS.md` (compact operator file), `CLAUDE.md` (agent conventions), `docs/DEPLOYMENT.md` (production runbook), `docs/Tailwind-V4-Validation-Report.md` (v4 findings)
-**Last Updated:** 2026-10-01 (v2.17)
+**Last Updated:** 2026-10-01 (v2.18)
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
 #### Revision Block — v1.0 (Tracked Changes)
 
+- `[v2.18]` Deep-link-preserving guest gates (the v2.16/v2.17 audit finding F1: the E2E corpus had never been EXECUTED for those commits — only `--list` — and running it exposed 2 RED guest specs, reproduced on the deployed mirror: a fresh visitor deep-linking to `/profile`, `/eat`, or `/place/<slug>` was bounced to `/`; the live source preserves logged-out deep links). ADR-008 amended: the PATH-AWARE gate — `requireUser("/own-path")` (`src/lib/page-gate.ts`, new) in every authenticated page (home, eat, stay, do, map, favourites, place/[slug], profile) 307s session-less visitors to the bootstrap WITH the page's own path as next; the `(app)`/`(bare)` layouts became CHROME-ONLY (they resolve the session for the Navbar, rendering it only when a user exists — a layout cannot learn the request path, verified: `headers()` exposes only proxy headers — and a layout redirect always preempts the page's, so the gate must live in the pages); the pure `guestBootstrapUrl(next)` seam (encodeURIComponent — path characters can never corrupt the bootstrap URL's query) added to `src/lib/guest.ts`. ProfileView's sign-out is now a FULL navigation (`window.location.assign("/")`): the App Router's RSC soft-nav cannot follow a server redirect targeting a route handler — it rendered an empty shell (no navbar/main) after logout; login keeps `router.refresh()` (its POST sets the cookie directly). §3.2 tree (page-gate.ts, chrome-only layouts), §6.2 (`requireUser`/`guestBootstrapUrl` utilities), §7.1/§7.3: 72→**75 unit** (+3 `guestBootstrapUrl` checks) / 81→**84 E2E** (+3 deep-link pins) / 30→**31 smoke** (check 14 next-aware + the new 14b deep-link 303); §11 line counts refreshed; §12 glossary updated. Verified in this revision: lint 0 errors, typecheck clean, **75/75 unit green, 31/31 smoke green, 84/84 E2E green — the first fully-executed run of the guest suite** (session 46). `.env` untracked (a live AUTH_SECRET had been git-tracked since the v2.16 upload — AGENTS.md's own "never commit .env" rule now enforced by the index).
 - `[v2.17]` Origin-agnostic bootstrap redirect (the live-deploy regression: behind a reverse proxy forwarding `Host: localhost:3000` + `X-Forwarded-Proto: https`, `req.nextUrl.origin` computed as `https://localhost:3000` and the bootstrap's ABSOLUTE 303 Location bounced `https://activity-map.jesspete.shop` visitors onto the origin box's localhost — the layout gates' relative 307 worked fine through the same proxy). ADR-008 amended: the 303 now emits a RELATIVE `Location` (an RFC 9110 §10.2.2 URI-reference) built from `sanitizeNextPath` output only — the CLIENT resolves it against whichever origin it is browsing, so the redirect can never leave the host on any deployment (localhost dev, preview, production domain) with zero configuration; `NextResponse.redirect()` demands an absolute URL, hence the hand-rolled `seeOther()` helper (§3.2, §6.4, ADR-008). docs/DEPLOYMENT.md: reverse-proxy guidance (`Host`/`X-Forwarded-Host` forwarding), the `NEXT_PUBLIC_SITE_URL` row corrected (it IS load-bearing — the cookie Secure flag), and the localhost-bounce row added to its §7 common issues. Tests: +4 unit origin-agnostic Location checks (`tests/guest.test.ts` 20→24; the existing absolute-Location assertions flipped to relative) / +1 smoke raw relative-Location check (29→30) / the E2E open-redirect assertion tightened to the exact `/` (81 unchanged). §7.1/§7.3: 68→**72 unit** · 29→**30 smoke** · 81 E2E; §11 line counts refreshed. Verified in this revision: lint 0 errors (2 pre-existing warnings), typecheck clean, 72/72 unit green, the 81-test census re-listed; build/smoke/E2E left to the repo's own full local gate (no server boot in this environment).
 - `[v2.16]` Login-free guest bootstrap (the change request: "disable login for a fresh user initial visit; create and use a guest account with the necessary seed data"). ADR-008 added (the shared `guest@roam.local` account + the `GET /api/auth/guest` bootstrap route handler); the `(app)`/`(bare)` layout gates and `/profile`'s own gate now redirect session-less visitors to the bootstrap instead of `/login` (§2, §3.2, §6.1, §6.3); `prisma/seed.ts` seeds the guest user (password = a discarded random 32-byte secret — never signable) and `src/lib/guest.ts` re-ensures it at runtime (§4.3, ADR-007); sign-out now returns to `/` and re-bootstraps a guest session (the login wall never resurfaces; `/login` remains for the demo account — ADR-003). §3.3 Pattern 2 companion note; §6.2 `ensureGuestUser`/`hashGuestPassword`/`sanitizeNextPath` utilities; §6.4 open-redirect threat row; §7.1/§7.3 test distribution 48→**68 unit** (new `tests/guest.test.ts`, 20 checks) / 76→**81 E2E** (new `tests/e2e/guest.spec.ts`, 5 checks) / 27→**29 smoke** (the fresh-visit + guest-auth/me checks + the Location-accurate signed-out redirect check); §11 adds the four new files + refreshed line counts; §12 adds the Guest bootstrap term. Verified in this revision: lint 0 errors (2 pre-existing warnings), typecheck clean, 68/68 unit green; build/smoke/E2E left to the repo's own full local gate (no server boot in this environment).
 - `[v2.15]` Independent doc-to-code alignment audit — every claim in `docs/findings_to_validate_and_update.md` re-validated against the tree at `1a8b0fe` (fresh clone; the gate counts re-verified authoritatively via `playwright test --list` → **76 tests in 6 files**: auth 5 / browse 32 / home 19 / mobile-nav 16 / not-found 3 + the 1-check setup project; 48 unit = 19+15+10+4; 27 smoke = 15 static + two 6-iteration loops). The stale sections brought to the code in this revision: §1.2 npm runtime + Vitest ^5.0.2, ADR-003/§6.2 sliding-window limiter, ADR-004 19 checks, ADR-005 md breakpoint + 16 mobile-nav checks + hero-shade removal, ADR-006 the 12px-ink-dot no-popup pin model, ADR-007 five (not four) seed files, §2 layer table + topology labels, §3.2 directory tree (the (bare) group, 21 client components, LetterReveal/useParallax/BrowsePlanner/place-404, the refreshed E2E distribution, 16 screenshots), §3.3 Pattern 5 shrink-wrapped sample, §5.1–§5.4 design-system refresh, §7.1 test-distribution table (48/76/27), §11 line counts, §12 seam glossary. One code-side remediation shipped with it: `/api/health`'s unhealthy path now returns `{ ok: false, error: "unhealthy" }` per the envelope contract (was `data`-shaped; zero consumers of the old shape verified).
@@ -140,9 +141,9 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 **ADR-008: Login-free guest bootstrap — a shared guest account provisioned via a route handler**
 
 - **Context:** The change request: disable login for a fresh user's initial visit and use a guest account with the necessary seed data. The previous model forced every session-less visitor through `/login` (demo credentials only).
-- **Decision:** ONE shared guest account (`guest@roam.local`, name "Guest", `src/lib/guest.ts`), provisioned twice — seeded by `prisma/seed.ts` and re-ensured at runtime by `ensureGuestUser()` (idempotent find + upsert, race-safe on the unique email). The `(app)`/`(bare)` layouts (and `/profile`'s own gate) redirect session-less visitors to `GET /api/auth/guest`, which signs the ORDINARY `roam_session` cookie for the guest and 303s back to a SANITISED `?next=` path (default `/`) **as a RELATIVE `Location` header** (v2.17 — the client resolves it against the origin it is actually browsing, so the redirect can never leave the host; see Rationale). Signing out routes to `/` and re-bootstraps a guest session. `/login` and its demo-account flow remain untouched (live-parity chrome, pinned by `tests/e2e/auth.spec.ts`); `/api` surfaces stay strict — they 401 without a session and never auto-bootstrap.
-- **Rationale:** Server Components cannot set cookies and the repo deliberately ships no middleware (ADR-003), so a route handler is the only in-architecture place to mint the session; reusing the ordinary session cookie means every `getSessionUser()` consumer (favourites, bookings, profile, `/api/auth/me`) works unchanged; a single shared account matches the self-hosted single-user deployment story and avoids accumulating a User row per crawler hit; the guest's password is a discarded random secret so the account is unreachable through the rate-limited `/api/auth/login`. The redirect target is sanitised (`sanitizeNextPath`: local absolute paths only; absolute/protocol-relative/backslash URLs, relative paths, control characters, and the bootstrap path itself all fall back to `/`) — open-redirect and self-loop are structurally impossible. Since v2.17 the 303's `Location` is a relative URI-reference (RFC 9110 §10.2.2) rather than an absolute URL built from `req.nextUrl.origin`: a reverse proxy that forwards `Host: localhost:3000` alongside `X-Forwarded-Proto: https` made that origin computation resolve to `https://localhost:3000` on the live deployment, bouncing the public site onto the origin box's localhost — while the layout gates' relative 307 worked fine through the same proxy. A relative Location keeps every origin correct (localhost dev, a preview URL, the production domain) with zero configuration.
-- **Consequences:** Anonymous visitors share one account's favourites/bookings (accepted for the self-hosted clone; a multi-user deployment would move to per-visitor accounts keyed by a guest cookie). Cookie-less clients cannot use the app (they never could — the reference is auth-gated behind cookies too). The bootstrap is deliberately NOT rate-limited: no credentials are brute-forced and the steady-state work is one indexed `findUnique` + one HMAC sign, the same order as a page render. The contract is pinned by `tests/guest.test.ts` (24 unit checks — including the origin-agnostic relative-Location regression checks) + `tests/e2e/guest.spec.ts` (5 checks) + 3 smoke checks (including the raw relative-Location assertion).
+- **Decision:** ONE shared guest account (`guest@roam.local`, name "Guest", `src/lib/guest.ts`), provisioned twice — seeded by `prisma/seed.ts` and re-ensured at runtime by `ensureGuestUser()` (idempotent find + upsert, race-safe on the unique email). Every authenticated PAGE calls `requireUser("/own-path")` (`src/lib/page-gate.ts`, v2.18), which 307s session-less visitors to `GET /api/auth/guest?next=<the page's own path>`; the handler signs the ORDINARY `roam_session` cookie for the guest and 303s back to a SANITISED `?next=` path (default `/`) **as a RELATIVE `Location` header** (v2.17 — the client resolves it against the origin it is actually browsing, so the redirect can never leave the host; see Rationale) — so DEEP LINKS SURVIVE the login-free first visit (v2.18). The `(app)`/`(bare)` layouts are CHROME-ONLY (session resolution for the Navbar; no redirect — a layout cannot learn the request path). Signing out routes to `/` via a FULL navigation and re-bootstraps a guest session. `/login` and its demo-account flow remain untouched (live-parity chrome, pinned by `tests/e2e/auth.spec.ts`); `/api` surfaces stay strict — they 401 without a session and never auto-bootstrap.
+- **Rationale:** Server Components cannot set cookies and the repo deliberately ships no middleware (ADR-003), so a route handler is the only in-architecture place to mint the session; reusing the ordinary session cookie means every `getSessionUser()` consumer (favourites, bookings, profile, `/api/auth/me`) works unchanged; a single shared account matches the self-hosted single-user deployment story and avoids accumulating a User row per crawler hit; the guest's password is a discarded random secret so the account is unreachable through the rate-limited `/api/auth/login`. The redirect target is sanitised (`sanitizeNextPath`: local absolute paths only; absolute/protocol-relative/backslash URLs, relative paths, control characters, and the bootstrap path itself all fall back to `/`) — open-redirect and self-loop are structurally impossible. Since v2.17 the 303's `Location` is a relative URI-reference (RFC 9110 §10.2.2) rather than an absolute URL built from `req.nextUrl.origin`: a reverse proxy that forwards `Host: localhost:3000` alongside `X-Forwarded-Proto: https` made that origin computation resolve to `https://localhost:3000` on the live deployment, bouncing the public site onto the origin box's localhost — while the layout gates' relative 307 worked fine through the same proxy. A relative Location keeps every origin correct (localhost dev, a preview URL, the production domain) with zero configuration. Since v2.18 the gate is PAGE-LEVEL and PATH-AWARE: the v2.16/v2.17 layout-level gate passed no `?next=`, so every fresh deep link (a shared `/place/<slug>` URL, a bookmarked browse) bounced to `/` while the live source preserves logged-out deep links — the layouts CANNOT know the request path (`headers()` exposes only proxy headers; layouts receive no pathname), and a layout redirect always preempts the page's (verified empirically), so the gate moved into each page where the path IS known; the future-page safety property is preserved by the E2E deep-link pins and by the pages' typed `requireUser` return (an ungated page fails loudly). Sign-out uses a FULL navigation because the App Router's RSC soft-nav cannot follow a server redirect that targets a route handler — it rendered an empty shell after logout (pinned by guest.spec's sign-out test).
+- **Consequences:** Anonymous visitors share one account's favourites/bookings (accepted for the self-hosted clone; a multi-user deployment would move to per-visitor accounts keyed by a guest cookie). Cookie-less clients cannot use the app (they never could — the reference is auth-gated behind cookies too). The bootstrap is deliberately NOT rate-limited: no credentials are brute-forced and the steady-state work is one indexed `findUnique` + one HMAC sign, the same order as a page render. The contract is pinned by `tests/guest.test.ts` (27 unit checks — including the origin-agnostic relative-Location regression checks and the v2.18 `guestBootstrapUrl` encoding contract) + `tests/e2e/guest.spec.ts` (8 checks — including the v2.18 deep-link pins) + 4 smoke checks (the raw relative-Location, next-aware gate, and deep-link 303 assertions).
 - **Alternatives Rejected:** Middleware-based provisioning (contradicts the documented no-middleware architecture; Prisma-in-middleware on the edge runtime is its own risk); rendering the app without a session and faking a uid (breaks the FK-backed favourites/bookings model and re-runs provisioning on every request); per-visitor guest accounts (DB pollution, no benefit single-user); seeding guest favourites (invents behaviour the reference's fresh account does not have — the empty state is live parity).
 
 ---
@@ -272,7 +273,7 @@ activity-map/
 │   │   ├── map/LeafletCanvas.tsx     ← client-only: react-leaflet map + dot markers
 │   │   ├── favourites/FavouritesView.tsx
 │   │   └── profile/ProfileView.tsx  (21 client components total — see §3.1)
-│   ├── lib/                          ← Layer 1-2 seams (see §3.1; incl. planner.ts, guest.ts)
+│   ├── lib/                          ← Layer 1-2 seams (see §3.1; incl. planner.ts, guest.ts, page-gate.ts)
 │   └── types/index.ts                ← PlaceDTO, BookingDTO, PlaceCategory
 ├── prisma/
 │   ├── schema.prisma                 ← User, Place, SavedPlace, Booking (+ request fields)
@@ -286,7 +287,7 @@ activity-map/
 │   ├── filters.test.ts               ← 15 checks: chip semantics
 │   ├── planner.test.ts               ← 10 checks: planner query/date-label helpers
 │   ├── auth.test.ts                  ← 4 checks: cookie Secure flag + scrypt round-trip
-│   ├── guest.test.ts                 ← 24 checks: identity/password/ensure/sanitize/tokens/handler + relative Location
+│   ├── guest.test.ts                 ← 27 checks: identity/password/ensure/sanitize/guestBootstrapUrl/tokens/handler + relative Location
 │   └── e2e/                          ← Playwright: global-setup, auth.setup, helpers,
 │                                      │   guest.spec (5), auth.spec (5), browse.spec (32),
 │                                      │   home.spec (19), mobile-navigation.spec (16),
@@ -545,6 +546,8 @@ Transitions: `transition-colors` on chips, links, and buttons, plus the bespoke 
 | `signSession` / `verifySessionToken` | `src/lib/auth.ts` | HMAC cookie mint/verify |
 | `getSessionUser` | `src/lib/auth.ts` | Request-cookie → session payload (RSC + route handlers) |
 | `ensureGuestUser` | `src/lib/guest.ts` | Idempotent + race-safe create-or-reuse of the shared guest account |
+| `guestBootstrapUrl` | `src/lib/guest.ts` | The path-aware gate target: the bootstrap + encodeURIComponent'd next (v2.18) |
+| `requireUser` | `src/lib/page-gate.ts` | Page-level session gate: resolve or 307 through the bootstrap with the page's own path (v2.18) |
 | `hashGuestPassword` | `src/lib/guest.ts` | Random discarded secret → the guest account has no knowable password |
 | `sanitizeNextPath` | `src/lib/guest.ts` | Open-redirect / header-injection / loop guard for the bootstrap's `?next=` |
 | `clientIp` / `checkRateLimit` | `src/lib/rate-limit.ts` | Sliding-window limiter with `X-Forwarded-For` awareness |
@@ -579,17 +582,17 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 | Unit — filter semantics | 1 | 15 | `tests/filters.test.ts` | Vitest (node env) |
 | Unit — planner helpers | 1 | 10 | `tests/planner.test.ts` | Vitest (node env) |
 | Unit — auth seam | 1 | 4 | `tests/auth.test.ts` | Vitest (node env) |
-| Unit — guest bootstrap seam | 1 | 24 | `tests/guest.test.ts` | Vitest (node env, injected fake user store) |
-| E2E — guest bootstrap (login-free first visit) | 1 | 5 | `tests/e2e/guest.spec.ts` | Playwright (chromium, empty storageState) |
+| Unit — guest bootstrap seam | 1 | 27 | `tests/guest.test.ts` | Vitest (node env, injected fake user store) |
+| E2E — guest bootstrap (login-free first visit + deep links) | 1 | 8 | `tests/e2e/guest.spec.ts` | Playwright (chromium, empty storageState) |
 | E2E — auth surface + legal pages | 1 | 5 | `tests/e2e/auth.spec.ts` | Playwright (chromium) |
 | E2E — browse/planner/booking/favourites/map/profile | 1 | 32 | `tests/e2e/browse.spec.ts` | Playwright (chromium) |
 | E2E — home parity | 1 | 19 | `tests/e2e/home.spec.ts` | Playwright (chromium) |
 | E2E — mobile navigation | 1 | 16 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (chromium) |
 | E2E — not-found surfaces | 1 | 3 | `tests/e2e/not-found.spec.ts` | Playwright (chromium) |
 | E2E — auth setup | 1 | 1 | `tests/e2e/auth.setup.ts` | Playwright (setup project) |
-| Smoke — production API | 1 script | 30 | `scripts/smoke-test.sh` | bash + curl |
+| Smoke — production API | 1 script | 31 | `scripts/smoke-test.sh` | bash + curl |
 
-**Totals: 72 unit + 81 E2E + 30 smoke.** (v2.17: +4 unit origin-agnostic Location checks / +1 smoke relative-Location check over v2.16's 68/81/29; v2.16: +20 unit guest checks / +5 E2E guest checks / +2 smoke guest checks over v2.15's 48/76/27; the v2.15 counts were re-verified authoritatively with `playwright test --list`, and the 81-test census was re-listed the same way — guest.spec is 5 checks. The unit and smoke layers verified green in this environment; build/smoke/E2E await the repo's own full local gate — no server boot here.)
+**Totals: 75 unit + 84 E2E + 31 smoke — ALL EXECUTED GREEN (session 46: 75/75 · 31/31 · 84/84).** (v2.18: +3 unit `guestBootstrapUrl` checks / +3 E2E deep-link pins / +1 smoke deep-link check over v2.17's 72/81/30; v2.17: +4 unit origin-agnostic Location checks / +1 smoke relative-Location check over v2.16's 68/81/29; v2.16: +20 unit guest checks / +5 E2E guest checks / +2 smoke guest checks over v2.15's 48/76/27. v2.18's session was the first to EXECUTE the v2.16/17 guest E2E corpus — it exposed the 2 RED specs that `--list`-only verification had missed.)
 
 ### 7.2 Test Patterns
 
@@ -600,17 +603,17 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 
 ### 7.3 Coverage Thresholds
 
-No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`, `guest`) must carry tests for every behavior added. The verification gate (lint → typecheck → 72 unit → build → 30 smoke → 81 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists).
+No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`, `guest`) must carry tests for every behavior added. The verification gate (lint → typecheck → 75 unit → build → 31 smoke → 84 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists). The E2E gate must be RUN — a `--list` census is not a pass (the v2.16/17 lesson: 2 RED guest specs shipped behind a green `--list`).
 
 ### 7.4 Pre-PR / Pre-Deploy Checklist
 
 ```bash
 npm run lint          # eslint .
 npm run typecheck     # tsc --noEmit
-npm run test          # 48 unit checks
+npm run test          # 75 unit checks
 npm run build         # next build (Turbopack)
-./scripts/smoke-test.sh   # 27 API checks against a fresh production server
-npm run test:e2e      # 76 browser checks (chromium, production build on :3100)
+./scripts/smoke-test.sh   # 31 API checks against a fresh production server
+npm run test:e2e      # 84 browser checks (chromium, production build on :3100)
 ```
 
 ---
@@ -700,7 +703,8 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 |------|-------|---------|
 | `src/lib/db-path.ts` | 200 | SQLite URL resolution contract (the standalone trap) — load-bearing |
 | `src/lib/auth.ts` | 104 | scrypt + HMAC session auth |
-| `src/lib/guest.ts` | 111 | Guest bootstrap seam: identity, `ensureGuestUser`, `sanitizeNextPath` (ADR-008) |
+| `src/lib/guest.ts` | 124 | Guest bootstrap seam: identity, `guestBootstrapUrl`, `ensureGuestUser`, `sanitizeNextPath` (ADR-008) |
+| `src/lib/page-gate.ts` | 43 | The page-level session gate: `requireUser(next)` — path-aware 307 through the bootstrap (v2.18) |
 | `src/app/api/auth/guest/route.ts` | 54 | GET: login-free bootstrap — guest session cookie + sanitised RELATIVE 303 (origin-agnostic, v2.17) |
 | `src/lib/filters.ts` | 117 | Measured filter-chip semantics (pure seam) |
 | `src/lib/planner.ts` | 51 | Trip-planner query/date-label helpers (pure seam, session 3) |
@@ -721,10 +725,10 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 | `tests/filters.test.ts` | — | 15 checks pinning chip semantics |
 | `tests/planner.test.ts` | — | 10 checks pinning planner param/date-label helpers |
 | `tests/auth.test.ts` | — | 4 checks pinning the cookie Secure flag + scrypt round-trip |
-| `tests/guest.test.ts` | 330 | 24 checks pinning the guest bootstrap (identity, unguessable password, ensure/race, sanitize guards, session tokens, the route handler, the origin-agnostic relative Location) |
-| `tests/e2e/guest.spec.ts` | 58 | 5 checks: the login-free first visit, guest session resolution, Guest profile, sign-out → guest, open-redirect refusal (pinned to the exact relative `/`) |
+| `tests/guest.test.ts` | 361 | 27 checks pinning the guest bootstrap (identity, unguessable password, ensure/race, sanitize guards, the guestBootstrapUrl encoding, session tokens, the route handler, the origin-agnostic relative Location) |
+| `tests/e2e/guest.spec.ts` | 74 | 8 checks: the login-free first visit, guest session resolution, Guest profile, sign-out → guest, open-redirect refusal (the exact relative `/`), + the v2.18 deep-link pins (/eat, /map, /place/<slug>) |
 | `tests/e2e/mobile-navigation.spec.ts` | 346 | The five v4 failure classes + viewport sweeps + shrink-wrap/press-shrink contracts |
-| `scripts/smoke-test.sh` | 197 | 30-check production API suite (incl. the guest bootstrap + the relative-Location assertion) |
+| `scripts/smoke-test.sh` | 210 | 31-check production API suite (incl. the guest bootstrap, the relative-Location + deep-link-gate assertions) |
 
 ---
 
@@ -735,7 +739,7 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 - **Standalone trap** — the `.next/standalone` traced copy of `schema.prisma` that would capture naive CWD-based resolution.
 - **DTO** — Data Transfer Object (`PlaceDTO` / `BookingDTO`); the typed shape crossing the server→client boundary.
 - **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, planner, auth, guest, rate-limit, utils).
-- **Guest bootstrap** — the login-free first visit: the `(app)`/`(bare)` layout gates redirect session-less visitors to `GET /api/auth/guest`, which provisions/uses the shared `guest@roam.local` account, signs the ordinary session cookie, and 303s back to a sanitised path via a RELATIVE, origin-agnostic Location (ADR-008).
+- **Guest bootstrap** — the login-free first visit: each authenticated page's `requireUser("/own-path")` gate (v2.18) 307s session-less visitors to `GET /api/auth/guest?next=<path>`, which provisions/uses the shared `guest@roam.local` account, signs the ordinary session cookie, and 303s back to a sanitised path via a RELATIVE, origin-agnostic Location — deep links survive (ADR-008).
 - **Failure classes A–E** — the five Tailwind v4 mobile-nav failure modes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) pinned by the E2E suite.
 - **Envelope** — the API response shape `{ ok: true, data } | { ok: false, error }`.
 - **StorageState** — Playwright's saved-authentication file (`tests/e2e/.auth/user.json`) shared across specs to avoid rate-limited re-login.

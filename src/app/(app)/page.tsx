@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/lib/auth";
+import { requireUser } from "@/lib/page-gate";
 import { countPlaces, listHomePlaces, listPlacesForUser } from "@/lib/places";
 import { Hero } from "@/components/home/Hero";
 import { CategoryCards } from "@/components/home/CategoryCards";
@@ -34,14 +34,16 @@ const HOME_STAY_ORDER: readonly string[] = [
 ];
 
 export default async function HomePage() {
-  const user = await getSessionUser();
-  const uid = user?.uid;
+  // v2.18: the page owns the path-aware session gate (deep links survive the
+  // login-free bootstrap — the layout can't know the request path).
+  const user = await requireUser("/");
+  const uid = user.uid;
   const [counts, route, sights, restaurants, stays] = await Promise.all([
     countPlaces(),
     listHomePlaces("home-route-"),
     listHomePlaces("home-sight-", uid),
     listHomePlaces("home-restaurant-"),
-    listPlacesForUser(uid ?? "", "stay"),
+    listPlacesForUser(uid, "stay"),
   ]);
   const orderedStays = [...stays].sort((a, b) => {
     const ia = HOME_STAY_ORDER.indexOf(a.slug);
@@ -58,7 +60,7 @@ export default async function HomePage() {
           carry the mobile 22px). */}
       <main>
         <Hero />
-        <CategoryCards counts={counts} signedInName={user?.name ?? null} />
+        <CategoryCards counts={counts} signedInName={user.name} />
         <RecommendedRoute stops={route} />
         <HighlightedRestaurants restaurants={restaurants} />
         <StayShowcase stays={orderedStays} />

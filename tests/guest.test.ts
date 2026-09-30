@@ -8,6 +8,7 @@ import {
   GUEST_EMAIL,
   GUEST_NAME,
   ensureGuestUser,
+  guestBootstrapUrl,
   hashGuestPassword,
   sanitizeNextPath,
 } from "@/lib/guest";
@@ -170,6 +171,36 @@ describe("sanitizeNextPath", () => {
   it("refuses the guest bootstrap itself (redirect-loop guard)", () => {
     expect(sanitizeNextPath(GUEST_BOOTSTRAP_PATH)).toBe("/");
     expect(sanitizeNextPath(`${GUEST_BOOTSTRAP_PATH}?next=/eat`)).toBe("/");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// guestBootstrapUrl (v2.18: the path-aware gate target — every authenticated
+// page 307s session-less visitors through the bootstrap WITH its own path as
+// next, so deep links survive the login-free first visit)
+// ---------------------------------------------------------------------------
+
+describe("guestBootstrapUrl", () => {
+  it("builds the bootstrap URL with the next param URL-encoded", () => {
+    expect(guestBootstrapUrl("/eat")).toBe(`${GUEST_BOOTSTRAP_PATH}?next=${encodeURIComponent("/eat")}`);
+    expect(guestBootstrapUrl("/")).toBe(`${GUEST_BOOTSTRAP_PATH}?next=${encodeURIComponent("/")}`);
+  });
+
+  it("encodes path characters that would corrupt the query string", () => {
+    expect(guestBootstrapUrl("/place/x?tab=info")).toBe(
+      `${GUEST_BOOTSTRAP_PATH}?next=${encodeURIComponent("/place/x?tab=info")}`,
+    );
+    // A crafted slug can never smuggle an extra param or a fragment into
+    // the bootstrap URL — encodeURIComponent escapes ? & = # and friends.
+    expect(guestBootstrapUrl('/evil?a=1&b=2#f')).not.toContain("&b=2");
+  });
+
+  it("round-trips through the route handler: searchParams decodes back to the original path", async () => {
+    const target = "/place/courtyard-stay?tab=info";
+    const req = new NextRequest(`${ORIGIN}${guestBootstrapUrl(target)}`);
+    expect(req.nextUrl.searchParams.get("next")).toBe(target);
+    // …and the sanitiser keeps the decoded value (the deep link survives).
+    expect(sanitizeNextPath(req.nextUrl.searchParams.get("next"))).toBe(target);
   });
 });
 

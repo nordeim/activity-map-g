@@ -40,6 +40,17 @@ the public site onto the origin box's localhost. Forwarding `Host` is still
 recommended — it keeps request-derived URLs and logs correct — but the
 login-free first visit no longer depends on it.
 
+**v2.18 note — deep links survive the login-free first visit.** Every
+authenticated page gates session-less visitors through the bootstrap WITH
+the page's own path as `?next=` (`requireUser("/own-path")` —
+`src/lib/page-gate.ts`), so a first-time visitor opening a shared
+`/place/<slug>` or `/eat` link lands back ON that page (not the home
+default). Sign-out is a FULL navigation by design: the App Router's
+client-side soft navigation cannot follow the bootstrap's 307→303 redirect
+chain (it renders an empty shell), so ProfileView navigates
+`window.location.assign("/")` — no reverse-proxy or app configuration is
+needed.
+
 ## 3. Environment variables
 
 | Variable | Required | Purpose |
@@ -101,7 +112,7 @@ npm run build
 ```bash
 curl -s https://your-host/api/health          # {"ok":true,"data":{"status":"healthy"}}
 npm run lint && npm run typecheck && npm run test
-./scripts/smoke-test.sh                       # 30 smoke checks (local)
+./scripts/smoke-test.sh                       # 31 smoke checks (local)
 npm run test:e2e                              # Playwright suite (local)
 ```
 
