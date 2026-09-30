@@ -69,9 +69,13 @@ export function ProfileView({
   const shown =
     tab === "upcoming" ? byCategory(upcoming) : tab === "past" ? byCategory(past) : byCategory(bookings);
 
+  // Login-free first visit: signing out ends the CURRENT session and returns
+  // to the guide, where the (app) layout re-bootstraps a fresh guest session
+  // — the visitor never lands back on the /login wall (the demo login stays
+  // reachable by navigating to /login directly).
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
+    router.replace("/");
     router.refresh();
   }
 

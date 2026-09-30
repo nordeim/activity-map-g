@@ -30,7 +30,7 @@ kill_port() {
 kill_port 3000
 pkill -f "next start" 2>/dev/null || true
 sleep 1
-rm -f "$CJ" /tmp/smoke-*.json
+rm -f "$CJ" /tmp/roam-smoke-guest-cookies.txt /tmp/smoke-*.json
 
 # ---- 1. boot server ----
 # DATABASE_URL is pinned explicitly so a stray parent-directory .env can
@@ -128,10 +128,45 @@ if [ "$code" = "401" ]; then ok "post-logout places blocked (401)"; else bad "po
 code=$(curl -s -o /tmp/smoke-page.html -w "%{http_code}" --max-time 15 "$BASE/login")
 if [ "$code" = "200" ] && grep -q "<!DOCTYPE html" /tmp/smoke-page.html; then ok "login page renders (200)"; else bad "login page -> $code"; fi
 
-# ---- 14. authenticated app routes redirect to /login when signed out ----
+# ---- 13b. guest bootstrap: a fresh visit signs in as the guest account ----
+# Login-free first visit: GET / follows layout → /api/auth/guest → / with a
+# roam_session cookie issued for the seeded guest user (separate cookie jar
+# so the smoke login state above is untouched).
+GJ="/tmp/roam-smoke-guest-cookies.txt"
+rm -f "$GJ"
+code=$(curl -s -L -o /tmp/smoke-guest.html -w "%{http_code}" --max-time 15 -c "$GJ" "$BASE/")
+if [ "$code" = "200" ] && grep -q "<!DOCTYPE html" /tmp/smoke-guest.html \
+   && grep -q "roam_session" "$GJ"; then
+  ok "fresh visit lands on the guide with a guest session (200 + cookie)"
+else
+  bad "fresh visit -> $code"
+fi
+
+# ---- 13c. the guest session resolves to the guest account ----
+code=$(curl -s -o /tmp/smoke-guest-me.json -w "%{http_code}" --max-time 10 \
+  -b "$GJ" "$BASE/api/auth/me")
+if [ "$code" = "200" ] && grep -q 'guest@roam.local' /tmp/smoke-guest-me.json; then
+  ok "guest session resolves to guest@roam.local (auth/me)"
+else
+  bad "guest auth/me -> $code $(cat /tmp/smoke-guest-me.json)"
+fi
+
+# ---- 13d. the bootstrap 303 Location is RELATIVE (origin-agnostic) ----
+# Live-site regression: behind a reverse proxy that forwards
+# Host: localhost:3000, an ABSOLUTE Location would bounce the public
+# origin's visitors to https://localhost:3000/. The 303 must carry a bare
+# path so the client resolves it against the origin it is browsing.
+loc=$(curl -s -o /dev/null -D - --max-time 10 "$BASE/api/auth/guest" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')
+if [ "$loc" = "/" ]; then
+  ok "guest bootstrap 303 Location is relative (origin-agnostic)"
+else
+  bad "guest bootstrap Location -> $loc (expected the relative /)"
+fi
+
+# ---- 14. signed-out app routes bounce through the guest bootstrap ----
 for path in eat stay do map favourites profile; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE/$path")
-  if [ "$code" = "307" ] || [ "$code" = "302" ]; then ok "GET /$path redirects signed-out users"; else bad "GET /$path -> $code (expected 307/302)"; fi
+  loc=$(curl -s -o /dev/null -w "%{redirect_url}" --max-time 10 "$BASE/$path")
+  if [ "$loc" = "$BASE/api/auth/guest" ]; then ok "GET /$path redirects to the guest bootstrap"; else bad "GET /$path -> $loc (expected the guest bootstrap)"; fi
 done
 code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE/not-a-real-page")
 if [ "$code" = "404" ]; then ok "unknown path 404s"; else bad "unknown path -> $code"; fi

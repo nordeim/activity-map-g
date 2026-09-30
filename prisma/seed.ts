@@ -1,7 +1,8 @@
 // Seed: mirrors the reference app's data (ROAM — Augsburg City Guide).
 // Idempotent: clears domain tables, then inserts the captured entity data
-// (12 Eat + 12 Stay + 18 Do places) plus the demo login user.
-// Run: bun prisma/seed.ts  (or: npx tsx prisma/seed.ts)
+// (12 Eat + 12 Stay + 18 Do places) plus the demo login user and the guest
+// account (the login-free first visit — see src/lib/guest.ts).
+// Run: npm run db:seed  (or: npx tsx prisma/seed.ts)
 
 import { PrismaClient } from "@prisma/client";
 import { scryptSync, randomBytes } from "crypto";
@@ -117,6 +118,22 @@ async function main() {
     },
   });
   console.log(`seeded user: ${demo.email}`);
+
+  // Guest account — the login-free first visit (src/lib/guest.ts). The
+  // password is a RANDOM 32-byte secret whose plaintext is discarded right
+  // here: the row carries a valid scrypt hash for the schema, but the guest
+  // can never be signed into through /api/auth/login. The runtime bootstrap
+  // (GET /api/auth/guest) re-creates this row on demand for legacy DBs, so
+  // an un-seeded database still gets a working guest experience.
+  const guest = await db.user.create({
+    data: {
+      email: "guest@roam.local",
+      name: "Guest",
+      passwordHash: hashPassword(randomBytes(32).toString("hex")),
+      avatarColor: "#996CE4",
+    },
+  });
+  console.log(`seeded guest user: ${guest.email}`);
 
   const categories: Array<{ file: string; category: string; sortBase: number }> = [
     { file: "eat", category: "eat", sortBase: 0 },

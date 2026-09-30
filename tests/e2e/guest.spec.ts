@@ -1,0 +1,58 @@
+import { expect, test } from "@playwright/test";
+
+// Guest bootstrap (login-free first visit): a FRESH visitor — empty
+// storageState, no roam_session cookie — must land straight in the guide.
+// The (app)/(bare) layouts redirect session-less visitors to
+// GET /api/auth/guest, which provisions/uses the seeded guest account
+// (guest@roam.local), signs the 7-day session cookie, and 303s back to the
+// guide. This file OPTS OUT of the shared storageState (like auth.spec.ts)
+// because it tests the logged-OUT surface; navigations use
+// waitUntil: "domcontentloaded" per the helpers.ts CDN-font note.
+
+test.use({ storageState: { cookies: [], origins: [] } });
+
+test.describe("guest bootstrap", () => {
+  test("a fresh visit lands on the guide without the login wall", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    // / → 307 /api/auth/guest → 303 (Set-Cookie) → /
+    await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+    await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Augsburg City Guide" })).toBeVisible();
+  });
+
+  test("the issued session resolves to the seeded guest account", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+
+    const me = await page.request.get("/api/auth/me");
+    expect(me.ok()).toBeTruthy();
+    const body = (await me.json()) as { data?: { user?: { email?: string; name?: string } } };
+    expect(body.data?.user?.email).toBe("guest@roam.local");
+    expect(body.data?.user?.name).toBe("Guest");
+  });
+
+  test("the profile renders the guest identity", async ({ page }) => {
+    await page.goto("/profile", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Guest", exact: true })).toBeVisible();
+    await expect(page.getByText("guest@roam.local")).toBeVisible();
+  });
+
+  test("signing out returns to the guide as a fresh guest, not the login wall", async ({ page }) => {
+    await page.goto("/profile", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+    await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+  });
+
+  test("the bootstrap refuses open redirects", async ({ page }) => {
+    const res = await page.request.get("/api/auth/guest?next=https%3A%2F%2Fevil.example", {
+      maxRedirects: 0,
+    });
+    expect(res.status()).toBe(303);
+    const location = res.headers()["location"] ?? "";
+    expect(location).not.toContain("evil.example");
+    // v2.17: the Location is a RELATIVE reference — origin-agnostic behind
+    // any reverse proxy (the live-site localhost-bounce regression).
+    expect(location).toBe("/");
+  });
+});

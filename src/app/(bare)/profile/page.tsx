@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
+import { GUEST_BOOTSTRAP_PATH } from "@/lib/guest";
 import { listBookings } from "@/lib/places";
 import { db } from "@/lib/db";
 import { ProfileView } from "@/components/profile/ProfileView";
@@ -8,7 +9,7 @@ export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const session = await getSessionUser();
-  if (!session) redirect("/login");
+  if (!session) redirect(GUEST_BOOTSTRAP_PATH);
 
   const [bookings, user, favourites] = await Promise.all([
     listBookings(session.uid),
