@@ -1,54 +1,26 @@
-$ git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes to be committed:
-  (use "git restore --staged <file>..." to unstage)
-	modified:   README.md
-	modified:   docs/DEPLOYMENT.md
-	new file:   docs/remediation-plan-session-34.md
-	new file:   drizzle.config.json
-	modified:   next.config.ts
-	modified:   package-lock.json
-	modified:   package.json
-	modified:   playwright.config.ts
-	modified:   scripts/capture-screens-v3.sh
-	modified:   scripts/capture-screens-v8-session27.sh
-	new file:   scripts/capture-screenshots.mjs
-	modified:   scripts/par-probe.sh
-	modified:   scripts/par-probe2.sh
-	modified:   scripts/smoke-test.sh
-	modified:   src/app/api/health/route.ts
-	new file:   src/db/index.ts
-	new file:   src/db/schema.ts
-	modified:   src/lib/auth.ts
-	modified:   src/lib/db-path.ts
-	new file:   tests/auth.test.ts
-	modified:   tests/db-path.test.ts
-	modified:   worklog.md
-
-$ git commit -m "grok updates"
-[main 3690531] grok updates
- 22 files changed, 3705 insertions(+), 2813 deletions(-)
- create mode 100644 docs/remediation-plan-session-34.md
- create mode 100644 drizzle.config.json
- mode change 100755 => 100644 scripts/capture-screens-v3.sh
- mode change 100755 => 100644 scripts/capture-screens-v8-session27.sh
- create mode 100644 scripts/capture-screenshots.mjs
- mode change 100755 => 100644 scripts/par-probe.sh
- mode change 100755 => 100644 scripts/par-probe2.sh
- mode change 100755 => 100644 scripts/smoke-test.sh
- create mode 100644 src/db/index.ts
- create mode 100644 src/db/schema.ts
- create mode 100644 tests/auth.test.ts
-
-$ git push
-Enumerating objects: 50, done.
-Counting objects: 100% (50/50), done.
-Delta compression using up to 4 threads
-Compressing objects: 100% (28/28), done.
-Writing objects: 100% (29/29), 32.07 KiB | 2.92 MiB/s, done.
-Total 29 (delta 17), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (17/17), completed with 17 local objects.
-To github.com:nordeim/activity-map-g
-   0fb3c85..3690531  main -> main
+$ git pull
+Updating 20e6f9e..1964242
+Fast-forward
+ AGENTS.md                               |  20 +++++-----
+ CLAUDE.md                               |  31 ++++++++--------
+ Project_Architecture_Document.md        |  93 ++++++++++++++++++++++++++++++----------------
+ README.md                               |  23 ++++++------
+ activity-map_SKILL.md                   |  69 +++++++++++++++++++++-------------
+ docs/DEPLOYMENT.md                      |  20 ++++++++--
+ docs/findings_to_validate_and_update.md |  14 ++++++-
+ prisma/seed.ts                          |  19 +++++++++-
+ scripts/smoke-test.sh                   |  43 ++++++++++++++++++++--
+ src/app/(app)/layout.tsx                |   7 +++-
+ src/app/(bare)/layout.tsx               |  10 +++--
+ src/app/(bare)/profile/page.tsx         |   3 +-
+ src/app/api/auth/guest/route.ts         |  54 +++++++++++++++++++++++++++
+ src/components/profile/ProfileView.tsx  |   6 ++-
+ src/lib/guest.ts                        | 111 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/e2e/guest.spec.ts                 |  58 +++++++++++++++++++++++++++++
+ tests/guest.test.ts                     | 330 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ worklog.md                              |  38 +++++++++++++++++++
+ 19 files changed, 838 insertions(+), 111 deletions(-)
+ create mode 100644 src/app/api/auth/guest/route.ts
+ create mode 100644 src/lib/guest.ts
+ create mode 100644 tests/e2e/guest.spec.ts
+ create mode 100644 tests/guest.test.ts
