@@ -902,3 +902,25 @@ Stage Summary:
 - The operator commits audited (15 findings: 3 HIGH — the removed DB pinning (hijack reproduced), the toolchain downgrades, the deleted screenshots; the good npm-port changes kept); everything remediated to the documented baseline with evidence.
 - Parity re-verified on both sites (the mirror all green running the session-33 code; the live unchanged at every swept signature); the mobile navigation menu confirmed working exactly as expected at 390/640/1280.
 - Gates: 48 unit + 27 smoke ×2 + 76 E2E ×3 — all green; 16 screenshots; 9 docs aligned; single conventional commit + SSH-wrapper push to main.
+
+---
+Task ID: 36
+Agent: Super Z (main agent, session 36)
+Task: Session 36 — verify the parity baseline + audit the tree at ae20598 → dep hygiene + the npm-audit fix (TDD) → screenshots, docs, push to main.
+
+Work Log:
+- Workspace re-cloned from scratch at ae20598 (the owner's post-session-35 start-server-log commit: the npm allowScripts block — GOOD, kept — + docs/session_43.md + the log refresh; no code changes); every root doc re-read + the session-35 plan/log + the worklog + the start-server log; the scandihaven reference repo re-cloned and its patterns re-verified; the codebase state re-validated (env DATABASE_URL="file:../db/custom.db" with the seeded 118784-byte db/custom.db at the repo root, the vitest + playwright configs working — 48 + 76 checks, skills exclusion).
+- Baseline gate on the untouched tree: lint ✓ (2 pre-existing warnings) · typecheck ✓ · 48 unit ✓ · build ✓ · 27/27 smoke ✓ · 76/76 E2E ✓ ON THE FIRST RUN (the session-35 font-ready fix holding). Every session-35 remediation verified INTACT (the pinning, the toolchain, the 16 screenshots + links, the exec bits, no Drizzle, the kill-by-port smoke cleanup).
+- Dual-site browser audit: the live source (logged in) UNCHANGED at every swept signature (desktop nav 433/559/639/727/805; mobile 121/192/222/259 @390 + 246/317/347/384 @640 + the 52px glass; the footer pill compact 506×96 → grown 646×118 r-34/links 92×92/gap 12; the hero h1 y=319 @1280×900) — NO DRIFT. The deployed mirror (logged in) running the session-33/35 code (the footer --footer-p=0.9422 → 638×117 mid-growth signature; an earlier compact read raced the rAF listener — the documented trap) and ALL GREEN: zero console errors on 7 pages; the mobile nav end-to-end at 390 (geometry EXACT, taps + the 700/ink active state); the favourites round-trip through the empty state; the booking round-trip ("Request sent" → Profile · My bookings). NO BUGS — the mobile navigation menu works exactly as expected; no Tailwind v4 regression.
+- Findings B1–B6 written into docs/remediation-plan-session-36.md and validated against the codebase before execution (the zero-reference probe, the audit chain, the .env line, the insertion points).
+- R1: npm remove zustand tailwindcss-animate class-variance-authority (zero src imports verified first; clsx + tailwind-merge + tw-animate-css verified used and kept); install_packages.sh re-aligned.
+- R2: the overrides deepmerge-ts ^8.0.2 pin — npm audit 3 high → 0 VULNERABILITIES (the audit fix --force prisma-6.12.0 downgrade rejected; 8.0.2 verified dual-package + the same deepmerge export + @prisma/config's dynamic import); the full Prisma CLI path re-exercised (generate + db:push + db:seed re-wrote the 118784-byte DB under the pinning).
+- R3: the .env PostgreSQL-section bun leftover fixed (npm-first everywhere; matches .env.example).
+- R4: 16 screenshots re-captured on the REMEDIATED tree via scripts/capture-screens-session36.mjs against npm run dev (the session-35 script's proven login/settle/verify pattern); all healthy sizes; the dev server shut down cleanly (port 3000 free).
+- R5: docs aligned — README (the session-36 row + the screenshot narrative), the PAD v2.14 (the revision block + the stale bun/standalone body corrected: ADR-004 retitled for the npm runtime, §7.3 the 48/76 counts + the auth seam, §7.4/§8.1/§8.3/§9.1 the npm commands, the diagram subgraph, §10 the hygiene row closed + the stale NEXT_PUBLIC_SITE_URL row corrected), CLAUDE.md (the tech-stack line), the SKILL v1.22.0 (the npm-runtime toolchain row + the pruned-leftovers note + the project_state), docs/session_44.md, the worklog, the plan.
+- Final gate on the push tree: lint ✓ · typecheck ✓ · 48 unit ✓ · build ✓ · 27/27 smoke ✓ ×2 · 76/76 E2E ✓ ×2.
+
+Stage Summary:
+- The parity baseline verified on both sites (the live source unchanged; the mirror all green — the mobile nav exact + working, no Tailwind v4 regression); the owner's ae20598 commit benign.
+- Remediated: the 3 unused scaffold deps pruned; npm audit 3 high → 0 via the deepmerge-ts override (no downgrade); the .env bun leftover fixed; the stale bun/standalone doc blocks corrected to the npm runtime; 16 screenshots re-captured.
+- Gates: 48 unit + 27/27 smoke ×2 + 76/76 E2E ×2 — all green; 10 docs aligned (PAD v2.14, SKILL v1.22.0); single conventional commit + SSH-wrapper push to main.

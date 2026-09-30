@@ -3,12 +3,13 @@
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 **Companion Documents:** `README.md` (user-facing), `AGENTS.md` (compact operator file), `CLAUDE.md` (agent conventions), `docs/DEPLOYMENT.md` (production runbook), `docs/Tailwind-V4-Validation-Report.md` (v4 findings)
-**Last Updated:** 2026-09-30 (v2.13)
+**Last Updated:** 2026-09-30 (v2.14)
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
 #### Revision Block — v1.0 (Tracked Changes)
 
+- `[v2.14]` Session 36 the dependency-hygiene + npm-audit remediation on a fully-verified parity baseline (`docs/remediation-plan-session-36.md`, findings B1–B6) — the workspace re-cloned at `ae20598` (the owner's post-session-35 start-server-log commit: the npm `allowScripts` block — GOOD, kept — + `docs/session_43.md` + the log refresh; no code changes); the baseline gate green on the untouched tree with **76/76 E2E on the FIRST run** (the session-35 font-ready fix holding) and every session-35 remediation verified INTACT (the pinning, the toolchain, the 16 screenshots, the exec bits, no Drizzle, the smoke orphan fix); the dual-site browser audit: the live source UNCHANGED at every swept signature (desktop nav 433/559/639/727/805 · mobile tab-bar 121/192/222/259 @390 + 246/317/347/384 @640 + the 52px glass · footer compact 506×96 → grown 646×118 r-34/links 92×92/gap 12 · hero h1 y=319 @1280×900) and the deployed mirror matching EXACTLY (the footer `--footer-p`=0.9422 → 638×117 mid-growth signature; zero console errors on 7 pages; the mobile nav end-to-end — geometry EXACT, taps + the 700/ink active state; the favourites round-trip through the empty state; the booking round-trip “Request sent” → Profile · My bookings — NO bugs, the mobile navigation menu works exactly as expected, no Tailwind v4 regression); remediated: the 3 unused scaffold deps PRUNED (`zustand` — contradicting the documented no-Zustand state architecture — + `tailwindcss-animate` + `class-variance-authority`; zero src imports verified before the npm remove; `clsx`/`tailwind-merge`/`tw-animate-css` verified used and kept; the PAD §10 hygiene row closed); `npm audit` cleared **3 high → 0 vulnerabilities** via the npm `overrides` deepmerge-ts ^8.0.2 pin (GHSA-ggr8-5vv4-36mx stack-exhaustion in the prisma→@prisma/config CLI chain — dev-CLI-time only, but flagged on every install; the `audit fix --force` prisma-6.12.0 DOWNGRADE rejected; 8.0.2 verified dual-package with the same `deepmerge` export and @prisma/config loads it via dynamic import — the full CLI path re-exercised: prisma generate + db:push + db:seed re-wrote the 118784-byte DB); the `.env` PostgreSQL-section `bun run` leftover fixed (npm-accurate everywhere now); `install_packages.sh` re-aligned; the stale bun/standalone command blocks in THIS PAD + CLAUDE.md's tech-stack line corrected (the npm `next start` runtime — ADR-004 retitled, §7.3–7.4 the 48/76 counts, §8.1/§8.3/§9.1 the npm commands, the architecture-diagram subgraph); the SKILL's toolchain table corrected (npm runtime; the scaffold-leftovers note marked pruned); 16 screenshots re-captured on the remediated tree via `scripts/capture-screens-session36.mjs`. Gates: 48 unit + 27/27 smoke ×2 + **76/76 E2E ×2**.
 - `[v2.13]` Session 35 the operator-commit audit + remediation — the workspace re-cloned at `3fc7e4f`; the two operator commits audited (`e35202e` the image/docs cleanup + `3690531` the npm-runtime port, `docs/remediation-plan-session-35.md` findings A1–A15); the mirror verified running the session-33 code ALL GREEN (zero console errors on 10 pages, the mobile nav end-to-end at 390 — geometry EXACT 121/192/222/259 + the icon taps, the favourites + booking round-trips, the footer `--footer-p` growth live at p=0.9441) and the live source re-verified UNCHANGED (the desktop nav 433/559/639/727, the mobile tab-bar + 52px glass, the footer compact 506×96 → grown 646×118); remediated to the documented baseline: the inline `DATABASE_URL=file:../db/custom.db` pinning RESTORED on `dev`/`start`/`db:push`/`db:seed` (the documented hijack REPRODUCED first — a stray parent-directory `.env` + an exported absolute `DATABASE_URL` sent the seed's Prisma client one directory above the repo until the pinning was restored; pinned by a hostile-env probe: push+seed under the exported var writes the fully-seeded 118784-byte `<repo>/db/custom.db`); the parity toolchain restored (tailwindcss 4.3.3 + @tailwindcss/postcss 4.3.3 + next 16.3.x + react 19.3 — the operator commit had downgraded to 4.1.17/16.2.6/19.2.6); the unused Drizzle/Postgres sandbox scaffolding removed (drizzle.config.json, src/db/, drizzle-orm/drizzle-kit/pg/@types/pg/dotenv deps, the stale bun.lock — one lockfile now: package-lock.json); the smoke script's server cleanup fixed for the npm runtime (`next start` renames its worker to `next-server (vX.Y.Z)` which the `pkill -f "next start"` pattern misses — an orphan holding :3000 with a spent in-memory rate limiter failed the NEXT run with phantom 429/401s; now killed by PORT via ss, and the final shutdown kills the port too); the E2E mobile-nav position specs await `document.fonts.ready` before measuring (Inter loads from the Google Fonts CDN and the fallback font's wider metrics shifted the shrink-wrapped links ~6px left under full-suite network contention — Highlights x=115 vs the 121±2 contract, observed once at 75/76); the script exec bits restored (smoke-test.sh + the capture/par probes — the cleanup commit had stripped 100755→100644); `scripts/install_packages.sh` re-aligned to the real dependency set; 16 dev-server screenshots re-captured into docs/screenshots/ (the cleanup commit had deleted all 66 while the README still referenced them) via `scripts/capture-screens-session35.mjs` (the capture login goes STRAIGHT to /login and verifies the input values before submitting — a fill landing before React hydration gets reset to "" and the submit 400s); docs aligned (README, AGENTS, CLAUDE, this PAD, the SKILL, the plan, the worklog, docs/session_42.md). En-route lessons: an exported absolute `DATABASE_URL` beats every .env file (the inline script pinning is the only reliable defense — the npm scripts' env prefix wins over the exported shell var); `next start`'s worker process RENAMES itself (kill by port, not by command pattern); a Playwright `fill` on a not-yet-hydrated React form silently resets (verify input values before clicking submit). Gates: 48 unit + 27/27 smoke (×2, clean port handoff) + **76/76 E2E ×3** (the font-ready wait holds across three consecutive full-suite runs).
 - `[v2.12]` Session 33 the footer's scroll-linked growth + the link hover parity — the deployed mirror (running the SESSION-32 code, verified by DOM signature: the 646×118 desktop pill with the 92×92 tiles + 24px icons, the shrink-wrapped mobile nav 121/192/222/259, the press-shrink on every link) audited ALL GREEN (zero console errors swept across 11 pages; the mobile navbar end-to-end at 390; the favourites + booking round-trips; NO bugs found) and the live source re-measured with FOUR FINDINGS remediated to EXACT parity (findings F1–F4, `docs/remediation-plan-session-33.md`): **the desktop footer pill's growth is SCROLL-LINKED and CONTINUOUS** — the live's pill renders the COMPACT model while the footer is offscreen (506×96, gap 8, r-28, pad 8/10, links 74×78 r-18, icons 20px, labels 11px) and interpolates LINEARLY with the footer's visible fraction p (fit to ±0.02 across 10 sampled scroll positions at 1280×900: gap 8+4p, pad (8+4p)/(10+6p), radius 28+6p, links 74+18p × 78+14p with radius 18+6p, icons 20+4p, labels 11+1p) reaching the GROWN model when the footer is fully visible (646×118, gap 12, r-34, pad 12px 16px, links 92×92 **r-24**, icons 24px, labels 12px) and compacting back when it leaves — the per-frame updates smoothed by 120ms linear transitions (the pill: gap/padding/border-radius; the link: width/height/border-radius composed with the 300ms hover transform/background/color/box-shadow list); below md the pill NEVER grows (the static 3-col model, `transition: none`); replicated via the `--footer-p` CSS var written by SiteFooter's rAF-throttled passive scroll listener (a client component now — SSR renders p=0, the live's own initial compact state) + the md+ arbitrary-value calc classes + the `footer-pill-transition`/`footer-link-transition` globals.css utilities (the link's md override sits UNLAYERED, the press-shrink mechanism); **the links' VIOLET hover at both breakpoints** — `transform: translateY(-12px) scale(1.1)` composed into ONE matrix (`matrix(1.1, 0, 0, 1.1, 0, -12)`) over the #571AFF fill with white text + the `0 16px 34px rgba(87,26,255,0.28)` glow, the svg carrying its own hover `scale: 1.1` with `transition-transform duration-300` — written as the unguarded `footer-link-hover` utility (NOT v4's separate translate/scale utilities, which would escape the transform transition entry and read differently in the computed style; NOT v4's media-wrapped group-hover, which would not apply on touch-capable probes where the live's own unguarded classes do); **the pill's soft `0 2px 12px rgba(14,14,14,0.08)` shadow** at both breakpoints; the icons' **stroke-width 2.1** (was 1.8) + the labels' **tracking-[-0.01em]** + the grown link radius **24px** (was 18). En-route lessons: an offscreen element can render a DIFFERENT model than the visible one — sweep scroll-POSITIONS, not just breakpoints (the first live read of the footer at page-top read 506×96 and looked like a reversion; the in-view read shows the growth — the live's pill was caught MID-INTERPOLATION at 537px, exposing the continuous driver); Chrome's computed `transition` shorthand serializes in SECONDS (`0.12s`, not `120ms`); Chrome's INITIAL transition value is `all` — an element with no transition rule reads "all", so the live's explicit mobile `transition: none` needs the clone's explicit `transition-none`; a lingering E2E hover's 1.1 scale inflates later mid-transition measurements (move the pointer off + settle first). Non-gaps re-verified: every session-24→32 surface (the hero vh-model at both breakpoints, the vibe, the parallax, the planner, the band, the category cards, the browse/detail/map/404s, the legal row, the MOBILE pill static + exact). Gates: 42 unit + 27 smoke + **76 E2E** (the rewritten footer contract: the compact-at-load + the transition lists + the shadow + the stroke/tracking + the grown + the link-radius-24 + the hover matrix + the half-visibility interpolation midpoint gap 10 + the mobile static model) — all green; 66 screenshots incl. the session-33 set (the compact pill, the mid-growth interpolation, the grown pill, the violet hover, the mobile footer with the shadow).
 - `[v2.11]` Session 32 the mobile-nav link-group + the desktop footer-pill parity — the deployed mirror (running the SESSION-31 code, verified by DOM signature: the vh-model hero h1 y=319 at 1280×900 with the radius string, the centered vibe 1203 @x=38, the showcase parallax matrix(1.16), the hydration-clean generic 404) audited ALL GREEN (zero console errors swept across 11 pages; the mobile navbar end-to-end at 390; the favourites + booking round-trips; NO bugs found) and the live source re-measured with TWO DRIFTS remediated to EXACT parity (findings F1–F2, `docs/remediation-plan-session-32.md`): **the mobile tab-bar's middle link group is now SHRINK-WRAPPED** — the live's group carries `min-w-0 mr-2` with NO `flex-1`, so the four text links sit at x=121/192/222/259 at 390 (was 125/196/226/263 — the flex-1-centered model) and 246/317/347/384 at 640; the nav's justify-between distributes the freed space into the two outer gaps; the `no-scrollbar` overflow safety valve stays; every nav link now carries the live's `press-shrink` touch feedback (the `@utility` + unlayered `:active` rule in globals.css: `transition: transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.18s` + `scale(0.97)` on press) with the 200ms color transition MOVED to the label span (the live's own split — two `transition` shorthands on one element would collide and silently drop one); the live's invisible deltas (44px min-height tap targets on links/buttons, the nav h-12 at y=2 inside the same 52px border-box header) recorded as measured non-gaps (the clone's h-full links already exceed 44px); **the desktop footer pill GREW at md+** — 646×118 (was 506×96) with radius 34 (was 28), pad 12px 16px (was 8/10), gap 12 (was 8), the links 92×92 tiles (was 74×78) carrying 24px icons (was 20) over 12px/600 labels (was 11px) in ONE row of six — while the MOBILE pill (<md) is UNCHANGED and verified EXACT (the 3-col grid, max-w 390, r-28, pad 8/10, gap 8, the 104×78 tiles at 390 / 117×78 at 640). En-route lessons: a platform stylesheet can SWAP across breakpoints (the live's desktop CSS carries the press-shrink rules while the mobile sheet reads CORS-blocked — measure the RENDERED geometry, not the source rules); a link-walk-up measurement can land on a padded inner div (the live's category cards measure 263×215 only at the ARTICLE level — an inner 229×211 div reads 4px off); Tailwind's `transition-colors` and a custom `transition` utility on the SAME element are competing shorthands — split them across the anchor and the label span like the live does. Gates: 42 unit + 27 smoke + **76 E2E** (the new shrink-wrapped position tests at 390/640 + the press-shrink class/transition contract + the updated footer test) — all green; 61 screenshots incl. the session-32 set (the shrink-wrap nav at 390/640, the grown 646×118 footer pill, the unchanged mobile footer).
@@ -61,7 +62,7 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 
 | Layer | Technology | Version | Key Rationale |
 |-------|-----------|---------|---------------|
-| Web framework | Next.js (App Router) | ^16.3.6 | Server components for data-heavy views; route handlers for the API; `output: "standalone"` for a single-process deploy |
+| Web framework | Next.js (App Router) | ^16.3.6 | Server components for data-heavy views; route handlers for the API; `next start` single-process deploy (npm runtime, `serverExternalPackages`) |
 | UI runtime | React | ^19.3.0 | Server components by default; no `forwardRef` era |
 | Language | TypeScript | ^5.9.3 | `strict: true` (one deliberate exception: `noImplicitAny: false`) |
 | Styling | Tailwind CSS | ^4.3.3 | CSS-first configuration — no `tailwind.config.*`; measured design tokens as `@theme` variables |
@@ -101,9 +102,9 @@ ROAM is a production-grade, self-hosted clone of `activity-map.base44.app` — a
 - **Consequences:** No password reset / MFA / OAuth (reference parity — not in scope). Sessions are stateless: logout is cookie clearing; revocation requires rotating `AUTH_SECRET`. The limiter is in-memory → single-node only.
 - **Alternatives Rejected:** Auth.js v5 (provider machinery unused); JWTs in localStorage (XSS-exposed, no httpOnly benefit).
 
-**ADR-004: `output: "standalone"` with schema-anchored SQLite resolution**
+**ADR-004: schema-anchored SQLite resolution (npm `next start` runtime)**
 
-- **Context:** The production contract is one process (`bun .next/standalone/server.js`) + one SQLite file. Next's standalone output `chdir`s into `.next/standalone`, and the Next tracer **copies `prisma/schema.prisma` into that folder** — a naive CWD-based path rule would resolve the database against the build output.
+- **Context:** The production contract is one process (`npm run start` → `next start` with `serverExternalPackages: ["@prisma/client", "prisma"]`) + one SQLite file. The standalone history remains load-bearing: Next's tracer **copies `prisma/schema.prisma` into `.next/standalone`** during a build, and the resolver must never anchor against build output — a naive CWD-based path rule would resolve the database against the wrong tree.
 - **Decision:** `src/lib/db-path.ts` resolves relative `file:` URLs against the first "anchor" directory that contains `prisma/schema.prisma` (mirroring the Prisma CLI's own rule), with candidates: chunk-derived root (skipped inside `.next/standalone` subtrees) → detected in-repo standalone root → CWD. Plus two hardening rules: quote-stripping (some `.env` loaders pass `KEY="value"` through) and single-exit function forms (the Turbopack production minifier demonstrably dropped a `return repo` from a multi-return variant of `standaloneRepoRoot`).
 - **Rationale:** Verified by three real incidents during the build (§7, §10) and pinned by 17 unit checks.
 - **Consequences:** `db-path.ts` is load-bearing infra — changes must extend `tests/db-path.test.ts`. Deployed copies outside the repo should use an absolute `DATABASE_URL`.
@@ -142,7 +143,7 @@ flowchart TB
     subgraph Client
         B[Browser — desktop / 390px mobile]
     end
-    subgraph App["Single process — bun .next/standalone/server.js :3000"]
+    subgraph App["Single process — next start :3000 (npm runtime)"]
         RSC[Next.js server components<br/>route group (app) + /login]
         API[API route handlers<br/>/api/auth · /api/places · /api/favourites · /api/bookings · /api/health]
         LIB[lib seams<br/>auth · db-path · filters · places · rate-limit]
@@ -449,7 +450,7 @@ Field naming mirrors the reference app's entity API (Eat / Stay / Do / SavedPlac
 **Map-demo rows (session 3).** The live map page renders a hardcoded 9-place array (the browse entities carry no coordinates). The seed therefore inserts 9 rows with `status: "map"` (`map-*` slugs, real lat/lng extracted from the live bundle) from `prisma/data/map.json`; `listMapPlaces(userId)` in `src/lib/places.ts` feeds the map page only those rows, and they resolve on `/place/[slug]` like any place. Browse views and category-card counts are unaffected — the `status: "published"` filter excludes both home-only and map rows.
 
 - **No connection pooling** — SQLite via a single Prisma client singleton (`globalThis`-cached in dev to survive HMR; fresh instance in production).
-- **Migrations:** intentionally none. `bun run db:push` applies the schema; `bun run db:seed` is idempotent (wipes domain tables, reseeds from `prisma/data/*.json`, recreates the demo user).
+- **Migrations:** intentionally none. `npm run db:push` applies the schema; `npm run db:seed` is idempotent (wipes domain tables, reseeds from `prisma/data/*.json`, recreates the demo user).
 - **Backups:** the entire state is one file — `db/custom.db` (git-ignored). Production guidance in `docs/DEPLOYMENT.md` §4: absolute path on a persisted volume + file-level backup.
 
 ---
@@ -553,24 +554,24 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 
 ### 7.2 Test Patterns
 
-- **E2E runs against the production build** (`bun .next/standalone/server.js` on :3100) with its own scratch database (`db/e2e.db`, schema-pushed + seeded by `tests/e2e/global-setup.ts`) — never the dev server, never the dev database.
+- **E2E runs against the production build** (`npx next start` on :3100) with its own scratch database (`db/e2e.db`, schema-pushed + seeded by `tests/e2e/global-setup.ts`) — never the dev server, never the dev database.
 - **Shared auth state:** the `setup` project signs in once and saves the cookie to `tests/e2e/.auth/user.json`; specs consume it as Playwright `storageState`. This exists *because* of the rate limiter — per-test logins would trip it mid-suite. `auth.spec.ts` opts out (empty storageState) to test the logged-out surface.
 - **Failure-class pinning:** `mobile-navigation.spec.ts` encodes the five Tailwind v4 mobile-nav failure classes as assertions, including a bounding-box overlap detector (class D: "no nav element is covered by a neighbour") and viewport sweeps at 390 / 640 / 1280.
 - **Single worker** (`workers: 1`): specs share one seeded SQLite file — parallelization requires database isolation first.
 
 ### 7.3 Coverage Thresholds
 
-No numeric coverage gate is configured; the contract is structural: the three pure seams (`db-path`, `filters`, `planner`) must carry tests for every behavior added. The verification gate (lint → typecheck → 42 unit → build → 27 smoke → 35 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists).
+No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`) must carry tests for every behavior added. The verification gate (lint → typecheck → 48 unit → build → 27 smoke → 76 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists).
 
 ### 7.4 Pre-PR / Pre-Deploy Checklist
 
 ```bash
-bun run lint          # eslint .
-bun run typecheck     # tsc --noEmit
-bun run test          # 42 unit checks
-bun run build         # standalone assembly
+npm run lint          # eslint .
+npm run typecheck     # tsc --noEmit
+npm run test          # 48 unit checks
+npm run build         # next build (Turbopack)
 ./scripts/smoke-test.sh   # 27 API checks against a fresh production server
-bun run test:e2e      # 35 browser checks (chromium, production build)
+npm run test:e2e      # 76 browser checks (chromium, production build on :3100)
 ```
 
 ---
@@ -580,12 +581,12 @@ bun run test:e2e      # 35 browser checks (chromium, production build)
 ### 8.1 Production Build
 
 ```bash
-bun install
-bun run build   # next build + cp .next/static & public/ into .next/standalone/
-bun run start   # NODE_ENV=production DATABASE_URL=file:../db/custom.db bun .next/standalone/server.js
+npm install
+npm run build   # next build (Turbopack; no standalone assembly step)
+npm run start   # NODE_ENV=production DATABASE_URL=file:../db/custom.db next start
 ```
 
-Output: a self-contained `.next/standalone/` tree (server.js + traced deps + the copied `prisma/schema.prisma` that the db-path resolver deliberately ignores in favor of the repo anchor). Always start from the repo root via the scripts — the working directory is part of the SQLite resolution contract.
+Output: the standard `.next/` production tree served by `next start` (the npm scripts pin `DATABASE_URL` inline so a stray parent `.env` or exported shell var can never hijack the resolution — session 35's reproduced hijack). Always start from the repo root via the scripts — the working directory is part of the SQLite resolution contract.
 
 ### 8.2 Environment Variables
 
@@ -600,7 +601,7 @@ The dev/start/smoke scripts pin `DATABASE_URL` explicitly so a stray parent-dire
 
 ### 8.3 Docker Configuration
 
-None by design — the standalone build IS the container story: copy the repo, `bun install && bun run build`, run `server.js` under any process supervisor. For a container, mount the database volume and set an absolute `DATABASE_URL` (see `docs/DEPLOYMENT.md` §4).
+None by design — the standard `next build` output IS the deploy story: copy the repo, `npm install && npm run build`, run `npm run start` under any process supervisor. For a container, mount the database volume and set an absolute `DATABASE_URL` (see `docs/DEPLOYMENT.md` §4).
 
 ### 8.4 CI/CD Pipeline
 
@@ -614,10 +615,10 @@ No hosted CI (no `.github/workflows`). The local gate (§7.4) is the only gate; 
 
 ```bash
 git clone https://github.com/nordeim/activity-map.git && cd activity-map
-bun install
+npm install
 cp .env.example .env
-bun run db:push && bun run db:seed
-bun run dev            # http://localhost:3000 — login: sepnetflix2023@outlook.com / $Abcd1234
+npm run db:push && npm run db:seed
+npm run dev            # http://localhost:3000 — login: sepnetflix2023@outlook.com / $Abcd1234
 ```
 
 ### 9.2 Common Commands
@@ -643,8 +644,8 @@ See the table in `AGENTS.md` (single source for the command list): dev / build /
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
-| LOW | Scaffold dependencies unused by `src/` (zustand, z-ai-web-dev-sdk, @radix-ui/*, class-variance-authority, tailwindcss-animate) | Larger install footprint; zero runtime effect | Open — prune in a dependency-hygiene pass |
-| LOW | `NEXT_PUBLIC_SITE_URL` is declared in `.env.example` but unused by app code | Slight `.env` noise | Open — wire into metadata or remove |
+| LOW | Scaffold dependencies unused by `src/` (zustand, class-variance-authority, tailwindcss-animate; the earlier z-ai-web-dev-sdk + @radix-ui/* sets were already pruned by the session-34 operator commit) | Larger install footprint; zero runtime effect | **Resolved session 36** — the 3 leftovers pruned (`npm remove`, zero src imports verified first) |
+| LOW | `NEXT_PUBLIC_SITE_URL` is declared in `.env.example` but unused by app code | Slight `.env` noise | **Stale — resolved earlier**: `src/lib/auth.ts`'s `cookieSecureFlag()` reads it (session 34/35); set to the deployed URL in production |
 | LOW | In-memory rate limiter is per-process | A multi-process deployment would not share buckets | Accepted (single-node design); swap for Redis before scaling out |
 | INFO | Login rate limiter applies to the demo account too | Rapid manual testing can self-throttle (429) | Accepted — E2E shares one login via storageState for exactly this reason |
 | INFO | `noImplicitAny: false` | Weaker inference safety than full strict | Kept intentionally (scaffold default, documented) |

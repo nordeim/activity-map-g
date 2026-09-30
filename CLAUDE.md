@@ -6,7 +6,7 @@ IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 
 A production-grade, self-hosted clone of `activity-map.base44.app`: an authenticated city guide for Augsburg with a trip-planner home page, Eat / Stay / Do browse views, place detail with booking, an interactive Leaflet map, favourites, and a profile with trips and bookings. Maintained by nordeim; cloned and rebuilt to be locally deployable with zero external services.
 
-**Tech Stack**: Next.js 16 (App Router, standalone output), React 19, TypeScript 5, Tailwind CSS 4 (CSS-first), Prisma 6 + SQLite, Leaflet, Vitest, Playwright. Fonts: Libre Baskerville (display serif) + Inter (UI sans AND nav — re-measured session 3; the live app dropped Poppins).
+**Tech Stack**: Next.js 16 (App Router, npm `next start` runtime), React 19, TypeScript 5, Tailwind CSS 4 (CSS-first), Prisma 6 + SQLite, Leaflet, Vitest, Playwright. Fonts: Libre Baskerville (display serif) + Inter (UI sans AND nav — re-measured session 3; the live app dropped Poppins).
 
 ## Core Identity & Purpose
 
