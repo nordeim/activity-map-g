@@ -8,8 +8,11 @@ export async function GET() {
     await db.$queryRaw`SELECT 1`;
     return NextResponse.json({ ok: true, data: { status: "healthy" } });
   } catch {
+    // Envelope contract: failures use { ok: false, error } like every other
+    // route (remediated from a data-shaped variance — see
+    // docs/findings_to_validate_and_update.md).
     return NextResponse.json(
-      { ok: false, data: { status: "unhealthy" } },
+      { ok: false, error: "unhealthy" },
       { status: 503 },
     );
   }
