@@ -62,13 +62,13 @@ npm notice run activity-map@1.0.0 build
 npm notice run next build
 ▲ Next.js 16.3.7 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 141ms
+✓ Running next.config.ts took 80ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 26.0s
-✓ Finished TypeScript in 12.0s    
-✓ Collecting page data using 3 workers in 1444ms    
-✓ Generating static pages using 3 workers (14/14) in 667ms
+✓ Compiled successfully in 22.8s
+✓ Finished TypeScript in 13.0s    
+✓ Collecting page data using 3 workers in 1473ms    
+✓ Generating static pages using 3 workers (14/14) in 534ms
 Turbopack build encountered 1 warning:
 ./src/lib/db-path.ts:159:16
 Warning: Dynamic filesystem access causes tracing of the whole project
@@ -107,7 +107,7 @@ Import traces:
     ./src/app/api/auth/login/route.ts
 
 
-✓ Finalizing page optimization in 39ms    
+✓ Finalizing page optimization in 24ms    
 
 Route (app)
 ┌ ƒ /
@@ -137,7 +137,6 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
-
 
 $ npm run start
 npm notice run activity-map@1.0.0 start
