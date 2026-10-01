@@ -262,10 +262,18 @@ test.describe("place detail", () => {
     await expect(requestLine).toBeVisible();
     await expect(requestLine).toHaveCSS("font-size", "14px");
     await expect(requestLine).toHaveCSS("color", "rgb(136, 133, 128)");
-    for (const field of ["Name", "Surname", "Dates", "Time", "Phone", "Email", "Message"]) {
+    // Session-53 re-measure (v2.22): the live's Dates/Time fields are
+    // PICKER-TRIGGER BUTTONS ("Choose dates" / "Choose time" — the live's
+    // form renders type="button" triggers that open a date-range calendar
+    // and a 29-slot time list; the free-text inputs were clone invention).
+    const datesTrigger = page.getByRole("button", { name: /^Choose dates/ });
+    const timeTrigger = page.getByRole("button", { name: /^Choose time/ });
+    await expect(datesTrigger).toBeVisible();
+    await expect(timeTrigger).toBeVisible();
+    for (const field of ["Name", "Surname", "Phone", "Email", "Message"]) {
       await expect(page.getByLabel(field, { exact: false }).first()).toBeVisible();
     }
-    await expect(page.getByRole("button", { name: "Book Now" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Book Now", exact: true })).toBeVisible();
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect(formAside).toHaveCSS("border-radius", "28px");
     await expect(formAside).toHaveCSS("border-top-color", "rgba(14, 14, 14, 0.08)");
@@ -293,6 +301,99 @@ test.describe("place detail", () => {
     await expect(nameLabel).toHaveCSS("color", "rgb(58, 58, 58)");
     const nameInputBorder = await nameField.evaluate((el) => getComputedStyle(el).borderTopColor);
     expect(nameInputBorder).toBe("rgb(221, 219, 213)");
+  });
+
+  test("the booking date/time picker popovers render the live's measured chrome (session 53)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/place/courtyard-stay", { waitUntil: "domcontentloaded" });
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // The TRIGGERS are the live's picker buttons: 44px, 16px radii, the
+    // #DDDBD5 border, the calendar/clock + chevron icons, and the #888580
+    // placeholder spans while empty.
+    const datesTrigger = page.getByRole("button", { name: /^Choose dates/ });
+    const timeTrigger = page.getByRole("button", { name: /^Choose time/ });
+    for (const trigger of [datesTrigger, timeTrigger]) {
+      await expect(trigger).toBeVisible();
+      await expect(trigger).toHaveCSS("height", "44px");
+      await expect(trigger).toHaveCSS("border-radius", "16px");
+      await expect(trigger).toHaveCSS("border-top-color", "rgb(221, 219, 213)");
+      const icons = trigger.locator("svg");
+      await expect(icons).toHaveCount(2);
+    }
+    const datesPlaceholder = datesTrigger.locator("span").first();
+    await expect(datesPlaceholder).toHaveCSS("color", "rgb(136, 133, 128)");
+
+    // The CALENDAR popover: cream bg, r-24, the #DDDBD5 hairline, the
+    // 0 20px 48 /0.14 shadow, the month select, the S M T W T F S row,
+    // and 42 day cells.
+    await datesTrigger.click();
+    const calendar = page.locator("[data-booking-calendar]");
+    await expect(calendar).toBeVisible();
+    await expect(calendar).toHaveCSS("background-color", "rgb(248, 247, 244)");
+    await expect(calendar).toHaveCSS("border-radius", "24px");
+    await expect(calendar).toHaveCSS("border-top-color", "rgb(221, 219, 213)");
+    const popShadow = await calendar.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(popShadow).toContain("48px");
+    await expect(calendar.locator("select")).toBeVisible();
+    for (const wd of ["S", "M", "T", "W", "F"]) {
+      await expect(calendar.getByText(wd, { exact: true }).first()).toBeVisible();
+    }
+    const dayCells = calendar.locator("button[data-day]");
+    await expect(dayCells).toHaveCount(42);
+
+    // The past-day contract (date-robust): every cell whose data-date is
+    // before today is DISABLED; every other cell is enabled.
+    const dates = await dayCells.evaluateAll((cells) => cells.map((c) => c.getAttribute("data-date") ?? ""));
+    const disableds = await dayCells.evaluateAll((cells) => cells.map((c) => (c as HTMLButtonElement).disabled));
+    dates.forEach((d, i) => {
+      if (d < todayIso) expect(disableds[i]).toBe(true);
+      else expect(disableds[i]).toBe(false);
+    });
+
+    // The chevron rotates 180° while the popover is open.
+    const chevron = datesTrigger.locator("svg").nth(1);
+    const chevronClass = await chevron.getAttribute("class");
+    expect(chevronClass).toContain("rotate-180");
+
+    // Range semantics, on a FUTURE month (all its days are enabled — the
+    // test can never time-rot): select the next month, click day 5 → the
+    // "— select end date" intermediate; click day 7 → the complete label
+    // + the popover CLOSES.
+    const monthSelect = calendar.locator("select");
+    await monthSelect.selectOption({ index: 1 });
+    const dayBtn = (n: number) => calendar.locator(`button[data-day="${n}"]`);
+    await dayBtn(5).first().click();
+    await expect(datesTrigger).toContainText("select end date");
+    await expect(calendar).toBeVisible();
+    await dayBtn(7).first().click();
+    await expect(datesTrigger).toContainText(/— .* 7/);
+    await expect(calendar).toHaveCount(0);
+    // The completed range renders the endpoints violet + the in-range tint.
+    await datesTrigger.click();
+    await expect(dayBtn(5).first()).toHaveClass(/bg-\[#571AFF\]/);
+    await expect(dayBtn(6).first()).toHaveClass(/bg-\[#F0E9FF\]/);
+    await page.keyboard.press("Escape");
+    await expect(calendar).toHaveCount(0);
+
+    // The TIME list: 29 slots from 08:00 to 22:00, 40px h-10 cells; a
+    // click selects (the check icon) + closes; the trigger shows the
+    // chosen time.
+    await timeTrigger.click();
+    const timeList = page.locator("[data-booking-time-list]");
+    await expect(timeList).toBeVisible();
+    await expect(timeList).toHaveCSS("background-color", "rgb(248, 247, 244)");
+    const slots = timeList.locator("button");
+    await expect(slots).toHaveCount(29);
+    await expect(slots.first()).toHaveText("08:00");
+    await expect(slots.last()).toHaveText("22:00");
+    const slotH = await slots.first().evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    expect(slotH).toBe(40);
+    await timeList.getByRole("button", { name: "19:00", exact: true }).click();
+    await expect(timeList).toHaveCount(0);
+    await expect(timeTrigger).toContainText("19:00");
   });
 
   test("photo overlays: the white rating pill on the photo, no Map button (session 8)", async ({ page }) => {
@@ -391,21 +492,46 @@ test.describe("place detail", () => {
     // calendar-day classification (a same-day reservation must land under
     // Upcoming, never Past). A hardcoded future date would re-rot the day
     // the clock passes it; "today" can never cross itself.
+    // Session-53 (v2.22): the Dates/Time values come from the PICKER
+    // popovers (the live's trigger buttons), not free-text fills.
     const today = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
     await page.goto("/place/courtyard-stay");
     await page.getByLabel("Name", { exact: true }).fill("Ada");
     await page.getByLabel("Surname", { exact: true }).fill("Lovelace");
-    await page.getByLabel("Dates", { exact: true }).fill(todayIso);
-    await page.getByLabel("Time", { exact: true }).fill("19:00");
+    // The date-range picker: open the calendar, click today twice (a
+    // single-day range — deterministic across the midnight boundary).
+    await page.getByRole("button", { name: /^Choose dates/ }).click();
+    const todayCell = page.locator(`[data-booking-calendar] button[data-date="${todayIso}"]`);
+    await todayCell.click();
+    await todayCell.click();
+    await expect(page.getByRole("button", { name: /select end date/ })).toHaveCount(0);
+    // The time picker: open the list, click 19:00.
+    await page.getByRole("button", { name: /^Choose time/ }).click();
+    await page.locator("[data-booking-time-list]").getByRole("button", { name: "19:00", exact: true }).click();
     await page.getByLabel("Email", { exact: true }).fill("ada@example.com");
-    await page.getByRole("button", { name: "Book Now" }).click();
-    await expect(page.getByText(/Request sent/)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Book Now", exact: true }).click();
+    // Session-53 (v2.22): the live's success note is a PLAIN centered
+    // 12px/600 #2A6B3A line (no background pill) with the copy "Your
+    // booking request for <place> has been sent." — and the form RESETS
+    // (the picker placeholders return).
+    const successNote = page.locator("aside#book-now-card p[role=status]");
+    await expect(successNote).toBeVisible({ timeout: 15_000 });
+    await expect(successNote).toHaveCSS("font-size", "12px");
+    await expect(successNote).toHaveCSS("font-weight", "600");
+    await expect(successNote).toHaveCSS("color", "rgb(42, 107, 58)");
+    await expect(successNote).toHaveText(/Your booking request for Courtyard Stay has been sent/);
+    const noteBg = await successNote.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(noteBg).toBe("rgba(0, 0, 0, 0)");
+    await expect(page.getByRole("button", { name: /^Choose dates/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Choose time/ })).toBeVisible();
+    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("");
 
     await page.goto("/profile");
     await expect(page.getByText("My bookings")).toBeVisible();
     await expect(page.getByText("Courtyard Stay")).toBeVisible();
+    expect(todayIso).toBeTruthy();
   });
 
   test("the mobile detail header sits at the live's 112px contract with the 36px Back pill (session-24)", async ({ page }) => {

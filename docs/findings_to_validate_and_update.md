@@ -198,3 +198,59 @@ Also noted (left unchanged, judged acceptable): `AGENTS.md`'s install row "npm i
 - **F3 (LOW)**: the document titles — the live renders "Activity Map" (home/login) and "<Short> | Activity Map" on every subpage (the map's "Discover", the detail's STATIC "Place Page" — never the place name); the mirror rendered "ROAM — Augsburg City Guide" / "X · ROAM". Remediated: the layout template + every page's metadata aligned; pinned by the new `tests/e2e/titles.spec.ts` (8 checks).
 - Gate arithmetic moved to **92 unit (+5 identity-seam checks) · 31 smoke · 92 E2E (+8 title pins, the flipped guest/auth pins)** — all executed green in the session (92/92 · 31/31 · 92/92); 17 screenshots re-captured (the new 17-guest-profile capture).
 - Process note: the identity surface now has TWO stable halves — the AUTHENTICATED contract (the demo account name, re-measured every session because it oscillates upstream) and the ANONYMOUS contract ("Explorer" + "Your Roam account" + the user icon — first measured v2.21, treat as the reference until it drifts).
+
+### Post-audit addendum (v2.22 — the booking-form picker parity: the Dates/Time popovers + the success note)
+
+The session-54 dual-site audit (the redeployed v2.21 mirror vs the live source) verified
+every previously-pinned surface EXACT — the mobile navigation menu geometry + taps at 390
+on BOTH sites (121/192/222/259 + icons 304/330/356 + the 52px cream-glass bar — NO
+Tailwind v4 regression), the identity contracts UNCHANGED (the FIFTH authenticated
+measurement held "sepnetflix2023" + the email subtitle + the "S" initial; the anonymous
+"Explorer" + "Your Roam account" + the user-icon avatar surfaces intact — the
+oscillation did not recur), the 11-route title sweep, the grown 646×118 footer pill,
+the Eat/Stay/Do chip sets, the 82px/1150×460 detail, the login card, zero console
+errors on both sites, and the favourites + booking round-trips live on the mirror —
+and found ONE gap (the only remediation of the session):
+
+- **F1 (MED) — the booking form's Dates/Time fields.** The live renders
+  PICKER-TRIGGER BUTTONS (44px rounded-2xl, the calendar-days/clock 16px/1.8 icon +
+  a chevron-down 15px/2 that rotates 180° while open, the violet hover border +
+  glow) that open POPOVERS carrying the shared chrome (cream #F8F7F4, r-24, the
+  #DDDBD5 hairline, the `0 20px 48 /0.14` shadow, 12px padding — phones UP via
+  `bottom-[calc(100%+8px)]`, md+ DOWN via `md:bottom-auto md:top-[calc(100%+8px)]`,
+  anchored to the relative label): a DATE-RANGE calendar (a white rounded-2xl month
+  row wrapping a 36px rounded-full month SELECT listing the current month + 11
+  forward; the 10px S M T W T F S weekday row; the 42-cell Sunday-first day grid —
+  past days disabled in #C8C6C0, next-month trailing days in white/60 muted, range
+  endpoints on the violet #571AFF with the `0 10 22 /0.24` glow, in-range days on
+  the #F0E9FF tint; first click = start → the trigger reads "Thu 15 Oct — select
+  end date"; second = end → "Thu 15 Oct — Sat 17 Oct" + the popover CLOSES; the
+  hidden 1×1 pointer-events-none opacity-0 input carries "2026-10-15 to
+  2026-10-17", required) and a 29-slot TIME list (08:00 → 22:00, 30-minute steps,
+  `grid gap-1` of `flex h-10 items-center justify-between rounded-2xl px-3
+  font-inter text-sm` buttons — the selected slot violet + a 15px check icon). The
+  mirror rendered plain free-text `<input>`s (a clone invention). **F1b (LOW)** —
+  the success note: the live renders a PLAIN centered 12px/600 #2A6B3A line ("Your
+  booking request for <place> has been sent." — no background pill) and the form
+  RESETS after success; the mirror rendered an emerald-50 pill with a different
+  copy and no reset.
+- Remediation (TDD): the client-safe pure seam `src/lib/booking-picker.ts`
+  (`buildTimeSlots`, `formatBookingDateLabel`/`formatBookingRangeLabel`,
+  `bookingRangeValue`/`parseBookingRangeValue`, `buildBookingCalendar`,
+  `bookingMonthOptions` — pinned by `tests/booking-picker.test.ts`'s 21 checks) +
+  the new `BookingDatePicker`/`BookingTimePicker` components wired into
+  `BookingForm` (the POST now sends the range's OWN startDate/endDate — the old
+  code sent the same string twice; the note + the reset match the live).
+- En-route measurement traps (recorded for the next audit): the live's time-list
+  popover is ~1270px tall — taller than the viewport — so only an element-level
+  `locator.screenshot()` documents it completely; the popover anchors to the LABEL
+  (not the trigger), so `bottom-[calc(100%+8px)]` opens it above the whole field
+  block; the footer pill read mid-transition (637×117) settles to the 646×118
+  contract after the 120ms transition; and the live's SPA client-side navigation
+  leaves a STALE document.title behind (an eat→place client nav left "Eat |
+  Activity Map" on the place page — the DIRECT-load title is the canonical
+  contract).
+- Gate arithmetic moved to **113 unit (+21 booking-picker checks) · 31 smoke ·
+  93 E2E** — all executed green in the session (113/113 · 31/31 · 93/93); 19
+  screenshots re-captured via `scripts/capture-screens-session54.mjs` (the new
+  18-booking-date-picker + 19-booking-time-picker captures document the popovers).

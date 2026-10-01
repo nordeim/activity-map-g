@@ -12,11 +12,21 @@
 // Now" submit (a full pill, unchanged). Submitting posts to
 // /api/bookings (guests stay server-clamped; the request fields are
 // persisted on the Booking row).
+//
+// Session-53 (v2.22): the Dates/Time fields are the live's PICKER
+// TRIGGER buttons (BookingDatePicker + BookingTimePicker — a date-range
+// calendar popover and a 29-slot time list; the free-text inputs were
+// clone invention), the success note is the live's PLAIN centered
+// 12px/600 #2A6B3A line (no background pill), and the form RESETS after
+// a successful submit (the placeholders return).
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { PlaceCategory } from "@/types";
+import { BookingDatePicker } from "./BookingDatePicker";
+import { BookingTimePicker } from "./BookingTimePicker";
+import { isoDate, type BookingRange } from "@/lib/booking-picker";
 
 export interface BookablePlace {
   id: string;
@@ -38,8 +48,8 @@ export function BookingForm({ place }: { place: BookablePlace }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
-  const [dates, setDates] = useState("");
-  const [time, setTime] = useState("");
+  const [range, setRange] = useState<BookingRange>({ start: null, end: null });
+  const [time, setTime] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -57,8 +67,10 @@ export function BookingForm({ place }: { place: BookablePlace }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           placeId: place.id,
-          startDate: dates || null,
-          endDate: dates || null,
+          // Session-53 (v2.22): the range picker's own endpoints — the
+          // start and the END (the old form sent the same string twice).
+          startDate: range.start ? isoDate(range.start) : null,
+          endDate: range.end ? isoDate(range.end) : null,
           guests: 2,
           name,
           surname,
@@ -75,7 +87,17 @@ export function BookingForm({ place }: { place: BookablePlace }) {
         return;
       }
       setStatus("done");
-      setNote("Request sent — see it under Profile → My bookings.");
+      // Session-53: the live's success copy (a plain centered line — see
+      // the note render below).
+      setNote(`Your booking request for ${place.name} has been sent.`);
+      // Session-53: the live's form RESETS after a successful submit.
+      setName("");
+      setSurname("");
+      setRange({ start: null, end: null });
+      setTime(null);
+      setPhone("");
+      setEmail("");
+      setMessage("");
       router.refresh();
     } catch {
       setStatus("error");
@@ -100,11 +122,11 @@ export function BookingForm({ place }: { place: BookablePlace }) {
   // (was a 2-column 48px grid); the Dates/Time pickers carry the 600-weight
   // #888580 "Choose …" placeholder text like the live's picker buttons.
   // Session-18 re-measure: the field corners are 16px radii (the live moved
-  // off rounded-full); the textarea matches at 16px.
+  // off rounded-full); the textarea matches at 16px. Session-53: the
+  // Dates/Time rows moved into the picker components (label-wrapped
+  // trigger buttons + popovers).
   const field =
     "flex h-11 w-full items-center rounded-[16px] border border-[#DDDBD5] bg-white px-5 text-sm font-medium text-ink outline-none transition placeholder:text-black/35 focus:border-roam/50";
-  const pickerField =
-    "flex h-11 w-full items-center rounded-[16px] border border-[#DDDBD5] bg-white px-5 text-sm font-medium text-ink outline-none transition placeholder:font-semibold placeholder:text-[#888580] focus:border-roam/50";
   // Session-28 re-measure: the live's labels are 12px/600 #3A3A3A with
   // the asterisk INLINE in the same color (no violet span).
   const label = "mb-1.5 block text-xs font-semibold text-[#3a3a3a]";
@@ -152,34 +174,8 @@ export function BookingForm({ place }: { place: BookablePlace }) {
             autoComplete="family-name"
           />
         </div>
-        <div>
-          <label className={label} htmlFor="booking-dates">
-            Dates*
-          </label>
-          <input
-            id="booking-dates"
-            aria-label="Dates"
-            className={pickerField}
-            value={dates}
-            onChange={(e) => setDates(e.target.value)}
-            placeholder="Choose dates"
-            required
-          />
-        </div>
-        <div>
-          <label className={label} htmlFor="booking-time">
-            Time*
-          </label>
-          <input
-            id="booking-time"
-            aria-label="Time"
-            className={pickerField}
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            placeholder="Choose time"
-            required
-          />
-        </div>
+        <BookingDatePicker range={range} onChange={setRange} />
+        <BookingTimePicker value={time} onChange={setTime} />
         <div>
           <label className={label} htmlFor="booking-phone">
             Phone
@@ -238,8 +234,8 @@ export function BookingForm({ place }: { place: BookablePlace }) {
           role="status"
           className={
             status === "error"
-              ? "mt-4 rounded-xl bg-red-50 px-3 py-2 text-center text-xs text-red-700"
-              : "mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-center text-xs text-emerald-700"
+              ? "mt-4 text-center text-xs font-semibold text-red-700"
+              : "mt-4 text-center text-xs font-semibold text-[#2A6B3A]"
           }
         >
           {note}
