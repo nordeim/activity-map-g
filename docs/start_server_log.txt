@@ -29,6 +29,7 @@ $ grep -v '^#' .env
 DATABASE_URL="file:../db/custom.db"
 NEXT_PUBLIC_SITE_URL=https://activity-map.jesspete.shop
 AUTH_SECRET="e77406c188557954e0a2342a51e9a7b660c17505809ec6539f31fff63f4f74c5"
+NEXT_PUBLIC_CARTO_KEY=cb1_465p_1_988c53d611811b5d4bdb6b32
 
 $ npm run db:push
 npm notice run activity-map@1.0.0 db:push
@@ -62,13 +63,13 @@ npm notice run activity-map@1.0.0 build
 npm notice run next build
 ▲ Next.js 16.3.7 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 39ms
+✓ Running next.config.ts took 50ms
 
   Creating an optimized production build ...
 ✓ Compiled successfully in 11.1s
-✓ Finished TypeScript in 7.3s    
-✓ Collecting page data using 3 workers in 850ms    
-✓ Generating static pages using 3 workers (14/14) in 356ms
+✓ Finished TypeScript in 7.9s    
+✓ Collecting page data using 3 workers in 802ms    
+✓ Generating static pages using 3 workers (14/14) in 417ms
 Turbopack build encountered 1 warning:
 ./src/lib/db-path.ts:159:16
 Warning: Dynamic filesystem access causes tracing of the whole project
@@ -107,7 +108,7 @@ Import traces:
     ./src/app/api/auth/login/route.ts
 
 
-✓ Finalizing page optimization in 24ms    
+✓ Finalizing page optimization in 7ms    
 
 Route (app)
 ┌ ƒ /
