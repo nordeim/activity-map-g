@@ -3,20 +3,22 @@ DATABASE_URL="file:../db/custom.db"
 NEXT_PUBLIC_SITE_URL=https://activity-map.jesspete.shop
 AUTH_SECRET="e77406c188557954e0a2342a51e9a7b660c17505809ec6539f31fff63f4f74c5"
 
+$ rm -rf .next/ db/
+
 $ npm install
 npm notice run activity-map@1.0.0 postinstall
 npm notice run prisma generate
 Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 347ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 565ms
 
 Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
 
-Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
 
 
-up to date, audited 436 packages in 4s
+up to date, audited 436 packages in 9s
 
 163 packages are looking for funding
   run `npm fund` for details
@@ -37,9 +39,13 @@ Datasource "db": SQLite database "custom.db" at "file:../db/custom.db"
 
 SQLite database custom.db created at file:../db/custom.db
 
-🚀  Your database is now in sync with your Prisma schema. Done in 1.59s
+🚀  Your database is now in sync with your Prisma schema. Done in 1.58s
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 334ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 626ms
+
+$ ls -l db/
+total 68
+-rw-r--r-- 1 pete pete 65536 Oct  1 08:25 custom.db
 
 $ npm run db:seed
 npm notice run activity-map@1.0.0 db:seed
@@ -50,22 +56,22 @@ seeded 42 places (eat/stay/do) → file:../db/custom.db
 seeded 27 home-only places (route/sights/restaurants, status "home")
 seeded 9 map demo places (status "map")
 
-$ ls -l db
+$ ls -l db/
 total 120
--rw-r--r-- 1 pete pete 118784 Oct  1 05:36 custom.db
+-rw-r--r-- 1 pete pete 118784 Oct  1 08:25 custom.db
 
 $ npm run build
 npm notice run activity-map@1.0.0 build
 npm notice run next build
 ▲ Next.js 16.3.7 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 50ms
+✓ Running next.config.ts took 76ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 8.9s
-✓ Finished TypeScript in 8.2s    
-✓ Collecting page data using 3 workers in 728ms    
-✓ Generating static pages using 3 workers (14/14) in 319ms
+✓ Compiled successfully in 34.2s
+✓ Finished TypeScript in 13.4s    
+✓ Collecting page data using 3 workers in 3.3s    
+✓ Generating static pages using 3 workers (14/14) in 825ms
 Turbopack build encountered 1 warning:
 ./src/lib/db-path.ts:159:16
 Warning: Dynamic filesystem access causes tracing of the whole project
@@ -104,7 +110,7 @@ Import traces:
     ./src/app/api/auth/login/route.ts
 
 
-✓ Finalizing page optimization in 8ms    
+✓ Finalizing page optimization in 9ms    
 
 Route (app)
 ┌ ƒ /
@@ -141,6 +147,6 @@ npm notice run NODE_ENV=production DATABASE_URL=file:../db/custom.db next start 
 ▲ Next.js 16.3.7
 - Local:         http://localhost:3000
 - Network:       http://192.168.1.2:3000
-✓ Ready in 163ms
-✓ Running next.config.ts took 58ms
+✓ Ready in 219ms
+✓ Running next.config.ts took 82ms
 
