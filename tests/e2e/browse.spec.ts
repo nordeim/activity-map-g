@@ -1022,6 +1022,27 @@ test.describe("map view", () => {
     expect(page.locator(".leaflet-popup")).toHaveCount(0);
   });
 
+  // Session-63: the provider deprecated anonymous CARTO raster access —
+  // keyless tile URLs now return the "API KEY REQUIRED" watermark
+  // placeholder. The /map Voyager basemap must carry the operator's key
+  // (docs/carto_key.txt) as the ?key= param on every Leaflet tile src.
+  test("the Leaflet basemap tiles carry the CARTO key (session 63)", async ({ page }) => {
+    await page.goto("/map");
+    const tiles = page.locator("img.leaflet-tile");
+    await tiles.first().waitFor({ state: "attached", timeout: 15_000 });
+    const srcs = await tiles.evaluateAll((els) =>
+      Array.from(els)
+        .filter((el) => (el as HTMLImageElement).src.includes("basemaps.cartocdn.com"))
+        .slice(0, 8)
+        .map((el) => (el as HTMLImageElement).src),
+    );
+    expect(srcs.length).toBeGreaterThan(0);
+    for (const s of srcs) {
+      expect(s).toContain("basemaps.cartocdn.com/rastertiles/voyager/");
+      expect(s).toContain("?key=cb1_465p_1_988c53d611811b5d4bdb6b32");
+    }
+  });
+
   test("the map search shell is the live's sticky command center (session-24)", async ({ page }) => {
     await page.goto("/map");
     // Session-24 re-measure: the live REDESIGNED the map's filter area

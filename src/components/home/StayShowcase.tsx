@@ -70,9 +70,14 @@ export function StayShowcase({ stays }: { stays: PlaceDTO[] }) {
       const gridR = ul.getBoundingClientRect();
 
       // The middle column: rises to −0.2 × its own height as the grid
-      // traverses the viewport (p=0 with the grid top 38px above the
-      // viewport bottom; p=1 with the grid bottom 38px below the top).
-      const p = clamp01((vh - 38 - gridR.top) / (gridR.height + vh - 76));
+      // traverses the viewport. Session-63 re-fit (a 5-point parked curve
+      // on the live, the grid top verified at each sample): NO traversal
+      // inset — the zero crossing sits at gridTop ≈ vh and the slope is
+      // 0.2 × colH / (vh + gridH) exactly (the session-62 ±38px inset fit
+      // diverged from the live by up to ~3.4px in the mid-ramp states;
+      // the p=0/p=1 states are inset-insensitive, which is why the old
+      // checks passed on both models).
+      const p = clamp01((vh - gridR.top) / (gridR.height + vh));
       const colH = cols[1].getBoundingClientRect().height; // translateY keeps height
       cols[1].style.transform = p > 0 ? `translateY(${(-0.2 * colH * p).toFixed(2)}px)` : "";
 

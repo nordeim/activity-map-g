@@ -40,6 +40,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Coffee, Utensils, Palette, Martini, Leaf, MapPin } from "lucide-react";
 import { cn, priceRangeSymbols } from "@/lib/utils";
+import { withCartoKey } from "@/lib/carto";
 import type { PlaceDTO } from "@/types";
 
 // Session-27: each stop carries the live's PER-STOP category icon in its
@@ -147,7 +148,9 @@ function routePointAt(fraction: number): Pt {
 
 // The 5×5 Carto light_nolabels z14 tile grid (session-60: the live's
 // 8697-8701 × 5642-5646 cell range, 502px cells at a 500px step — the 2px
-// overlap hides the tile seams).
+// overlap hides the tile seams). Session-63: every href carries the
+// operator's CARTO key (src/lib/carto.ts) — keyless URLs serve the
+// provider's "API KEY REQUIRED" watermark placeholder.
 const TILE_ZOOM = 14;
 const TILE_X0 = 8697;
 const TILE_Y0 = 5642;
@@ -159,7 +162,9 @@ const TILES: Array<{ href: string; x: number; y: number }> = Array.from(
     const ix = i % 5;
     const iy = Math.floor(i / 5);
     return {
-      href: `https://a.basemaps.cartocdn.com/light_nolabels/${TILE_ZOOM}/${TILE_X0 + ix}/${TILE_Y0 + iy}.png`,
+      href: withCartoKey(
+        `https://a.basemaps.cartocdn.com/light_nolabels/${TILE_ZOOM}/${TILE_X0 + ix}/${TILE_Y0 + iy}.png`,
+      ),
       x: -500 + ix * TILE_STEP,
       y: -500 + iy * TILE_STEP,
     };

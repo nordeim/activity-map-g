@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { withCartoKey } from "@/lib/carto";
 import type { PlaceDTO } from "@/types";
 
 const AUSGBURG_CENTER: L.LatLngExpression = [48.3713, 10.8982];
@@ -49,12 +50,18 @@ export function LeafletCanvas({
       attributionControl: true,
       scrollWheelZoom: true,
     });
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 19,
-    }).addTo(map);
+    // Session-63: the Voyager basemap carries the operator's CARTO key
+    // (src/lib/carto.ts) — the provider's anonymous raster access is
+    // deprecated (keyless URLs serve the "API KEY REQUIRED" watermark).
+    L.tileLayer(
+      withCartoKey("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"),
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+      },
+    ).addTo(map);
     mapRef.current = map;
     return () => {
       map.remove();

@@ -547,6 +547,15 @@ test.describe("home content parity (session 2)", () => {
     expect(tileInfo.count).toBe(25);
     expect(tileInfo.firstHref).toContain("basemaps.cartocdn.com/light_nolabels/14/");
     expect(tileInfo.firstHref).toContain(".png");
+    // Session-63: the provider deprecated anonymous raster access — every
+    // tile href must carry the operator's CARTO key (docs/carto_key.txt) as
+    // the ?key= param, else Carto serves the "API KEY REQUIRED" watermark
+    // placeholder. Verified keyed: the 5×5 grid returns real imagery.
+    expect(tileInfo.firstHref).toContain("?key=cb1_465p_1_988c53d611811b5d4bdb6b32");
+    const allKeyed = await mapSvg.locator("image").evaluateAll((els) =>
+      els.every((el) => (el.getAttribute("href") ?? "").includes("?key=")),
+    );
+    expect(allKeyed).toBe(true);
     // The base path is DASHED (strokeDasharray 10 8) at 15% ink; the
     // progress path is the same geometry in solid #141413 whose
     // dashoffset tracks the trap scroll.
@@ -907,8 +916,13 @@ test.describe("home content parity (session 2)", () => {
     expect(Math.round(visualBox!.height)).toBeGreaterThanOrEqual(700);
     // The mobile map carries the same 25-tile grid + the two paths.
     await expect(mobileVisual).toHaveAttribute("viewBox", "0 0 1500 1500");
-    const mobileTiles = await mobileVisual.locator("image").evaluateAll((els) => els.length);
-    expect(mobileTiles).toBe(25);
+    const mobileTiles = await mobileVisual.locator("image").evaluateAll((els) => ({
+      count: els.length,
+      firstHref: els[0] ? (els[0].getAttribute("href") ?? "") : "",
+    }));
+    expect(mobileTiles.count).toBe(25);
+    // Session-63: the mobile map's tiles carry the CARTO key too.
+    expect(mobileTiles.firstHref).toContain("?key=cb1_465p_1_988c53d611811b5d4bdb6b32");
     const mobilePaths = await mobileVisual.locator("g > path").evaluateAll((els) => els.length);
     expect(mobilePaths).toBe(2);
     // The mobile g does NOT pan (identity) while the head advances.
@@ -1408,6 +1422,57 @@ test.describe("home content parity (session 2)", () => {
       expect(state.cardT.every(Boolean)).toBe(true);
       expect(state.midT).toBe(true);
     }
+  });
+
+  // Session-63 re-measure: the middle column's RAMP. A 5-point parked
+  // curve fit on the live (the grid top VERIFIED at each sample) pinned
+  // ty = −0.2 × colH × clamp01((vh − gridTop)/(vh + gridH)) — the zero
+  // crossing at gridTop ≈ vh and the slope 0.2×colH/(vh+gridH) EXACT, i.e.
+  // NO traversal inset. The v2.26 driver carried a ±38px inset (the
+  // session-62 fit) which diverges from the live by up to ~3.4px in the
+  // MID-ramp states (gridTop=400 @ vh=800: −49.65 vs the live's −53.01).
+  // This pin is self-calibrating: the expected ty is computed from the
+  // page's own measured geometry at a parked mid-ramp position.
+  test("the middle column's ramp matches the live's no-inset traversal (session 63)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const grid = page.locator("#stay-showcase ul").first();
+
+    // Walk the scroll past the grid first (the lazy-image layout shifts —
+    // never trust a position read before the images above settle).
+    const walkTo = async (y: number) => {
+      await page.evaluate((v) => window.scrollTo(0, v), y);
+      await page.waitForTimeout(450);
+    };
+    const gridDocY = async () =>
+      grid.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    await walkTo((await gridDocY()) + 2000);
+    await walkTo((await gridDocY()) - 300); // park: the grid top at viewport y=300
+
+    const state = await grid.evaluate((el) => {
+      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+      const midT = getComputedStyle(cols[1]).transform;
+      const midTy = midT === "none" ? 0 : parseFloat(midT.split(",")[5]);
+      const r = el.getBoundingClientRect();
+      return {
+        midTy,
+        top: r.top,
+        gridH: r.height,
+        colH: cols[1].getBoundingClientRect().height,
+        vh: window.innerHeight,
+      };
+    });
+    // The live's measured model: p = (vh − top)/(vh + gridH) — no inset.
+    const p = Math.max(0, Math.min(1, (state.vh - state.top) / (state.vh + state.gridH)));
+    const expected = -0.2 * state.colH * p;
+    // Sanity: we actually parked in the engaged mid-ramp zone (not at rest
+    // or settled, where the two models are indistinguishable).
+    expect(p).toBeGreaterThan(0.05);
+    expect(p).toBeLessThan(0.5);
+    expect(state.midTy).toBeLessThan(-20);
+    // The pin: within ±1.5px of the no-inset model (the inset model reads
+    // ~2.5-3.5px off at these depths).
+    expect(Math.abs(state.midTy - expected)).toBeLessThanOrEqual(1.5);
   });
 
   // Session-61 re-measure: the live's stay-card heart is RESPONSIVE —

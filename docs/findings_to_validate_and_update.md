@@ -435,3 +435,57 @@ Validated findings this session (all remediated, TDD-first):
   at the measured grid position — `scripts/capture-screens-session61.mjs`);
   the E2E/production layout differs from the dev-server layout for the
   same reason (probe per environment, never reuse doc positions).
+
+## v2.27 addendum — session 64 (the CARTO-key basemaps + the no-inset fan ramp)
+
+Audited against the operator's REDEPLOYED v2.26 mirror (fresh build +
+re-seeded db, `docs/start_server_log.txt`) plus the operator's NEW
+`docs/carto_key.txt` (the account's CARTO Basemaps API key). The mobile
+navigation menu (the standing focus) re-verified EXACT at 390 on BOTH sites
+(every tab-bar anchor 44px tall, the taps green — no Tailwind v4
+regression); the identity's ninth measurement held "sepnetflix2023"; every
+v2.26 surface re-verified (the fan structure/settled state, the responsive
+hearts, the desktop nav); zero console errors.
+
+Validated findings this session (all remediated, TDD-first):
+
+- **The CARTO raster tiles need the account key**: the provider deprecated
+  anonymous access — keyless `basemaps.cartocdn.com` URLs return a 2049B
+  4-bit "API KEY REQUIRED" watermark placeholder (mostly blank). The LIVE's
+  route SVG hrefs remain keyless (`hasKey: false`, verified today), so both
+  sites render the watermarked map; the operator's key
+  (`cb1_465p_1_988c53d611811b5d4bdb6b32`, committed non-secret) restores the
+  real imagery. Empirically verified keyed: Berlin z13 → 9994B/28 colors
+  (real streets); the route's own 5×5 grid → 24 real tiles (3074-21551B)
+  with only the NW corner (8697/5642) a legitimately featureless 103B solid
+  — the grid deliberately renders farmland NNE of Augsburg (the true city
+  center sits at z14 x=8688/y=5670, so the showcase window was never the
+  literal city). Remediated via the new `src/lib/carto.ts` seam
+  (`CARTO_KEY` overridable through `NEXT_PUBLIC_CARTO_KEY`, defaulting to
+  the committed key so keyless-env production builds still get clean tiles;
+  `withCartoKey()` appends `?key=`/`&key=` with Leaflet's `{s}/{z}/{x}/{y}{r}`
+  placeholders intact) applied at BOTH tile sites: `RecommendedRoute`'s
+  25-tile `light_nolabels` grid and `LeafletCanvas`'s Voyager layer.
+  `.env.example` documents the override; ADR-006 updated.
+- **The middle fan column's ramp carries NO traversal inset**: a 5-point
+  parked curve fit on the live (the grid top VERIFIED at each sample, after
+  the documented walk-then-park lazy-load protocol) pins
+  `ty = −0.2 × colH × clamp01((vh − gridTop)/(vh + gridH))` — the zero
+  crossing at gridTop ≈ 799.6 (vh=800) and the slope 0.13266 =
+  0.2×1576/2376 EXACT at every point. The v2.26 driver's session-62
+  ±38px-inset fit diverges up to ~3.4px in the mid-ramp states (gridTop=400
+  @ vh=800: −49.65 vs the live's −53.01); the p=0/p=1 states are
+  inset-insensitive, which is why the session-62 "centered"/"settled" checks
+  passed on BOTH models (the lesson: verification points must separate the
+  candidate formulas, not sit on their shared fixed points). The outer
+  cards' phases were verified EXACT to 4 decimals (no change).
+- Gate arithmetic: **117 unit (+4: the carto seam) · 31 smoke · 102 E2E**
+  (+2 new tests: the Leaflet tile-key + the self-calibrating no-inset
+  mid-ramp fan; the route-desktop/mobile tile-key pins extend the existing
+  route specs in place) —
+  all executed green; 20 screenshots re-captured via
+  `scripts/capture-screens-session63.mjs` (the map captures now document
+  the real keyed basemaps — the pixel palette's keyed land tone
+  (238,243,238) replaces the watermark era's blank (250,250,248); the
+  mobile-map capture's tile-wait threshold corrected to 4: a 390 viewport
+  shows only ~6 z14 tiles, the desktop's 12 does not apply).
