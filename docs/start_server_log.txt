@@ -11,14 +11,14 @@ npm notice run prisma generate
 Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 368ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 298ms
 
 Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
 
 Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
 
 
-up to date, audited 436 packages in 5s
+up to date, audited 436 packages in 6s
 
 163 packages are looking for funding
   run `npm fund` for details
@@ -39,14 +39,14 @@ Datasource "db": SQLite database "custom.db" at "file:../db/custom.db"
 
 SQLite database custom.db created at file:../db/custom.db
 
-🚀  Your database is now in sync with your Prisma schema. Done in 1.53s
+🚀  Your database is now in sync with your Prisma schema. Done in 1.60s
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 281ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 430ms
 
 
-$ ls -l db
+$ ls -l db/
 total 68
--rw-r--r-- 1 pete pete 65536 Oct  1 09:33 custom.db
+-rw-r--r-- 1 pete pete 65536 Oct  1 10:22 custom.db
 
 $ npm run db:seed
 npm notice run activity-map@1.0.0 db:seed
@@ -57,22 +57,22 @@ seeded 42 places (eat/stay/do) → file:../db/custom.db
 seeded 27 home-only places (route/sights/restaurants, status "home")
 seeded 9 map demo places (status "map")
 
-$ ls -l db
+$ ls -l db/
 total 120
--rw-r--r-- 1 pete pete 118784 Oct  1 09:33 custom.db
+-rw-r--r-- 1 pete pete 118784 Oct  1 10:22 custom.db
 
 $ npm run build
 npm notice run activity-map@1.0.0 build
 npm notice run next build
 ▲ Next.js 16.3.7 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 64ms
+✓ Running next.config.ts took 118ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 19.6s
-✓ Finished TypeScript in 11.1s    
-✓ Collecting page data using 3 workers in 1920ms    
-✓ Generating static pages using 3 workers (14/14) in 669ms
+✓ Compiled successfully in 29.9s
+✓ Finished TypeScript in 17.3s    
+✓ Collecting page data using 3 workers in 2.2s    
+✓ Generating static pages using 3 workers (14/14) in 525ms
 Turbopack build encountered 1 warning:
 ./src/lib/db-path.ts:159:16
 Warning: Dynamic filesystem access causes tracing of the whole project
@@ -111,7 +111,7 @@ Import traces:
     ./src/app/api/auth/login/route.ts
 
 
-✓ Finalizing page optimization in 8ms    
+✓ Finalizing page optimization in 68ms    
 
 Route (app)
 ┌ ƒ /
@@ -149,6 +149,6 @@ npm notice run NODE_ENV=production DATABASE_URL=file:../db/custom.db next start 
 ▲ Next.js 16.3.7
 - Local:         http://localhost:3000
 - Network:       http://192.168.1.2:3000
-✓ Ready in 199ms
-✓ Running next.config.ts took 68ms
+✓ Ready in 408ms
+✓ Running next.config.ts took 78ms
 
