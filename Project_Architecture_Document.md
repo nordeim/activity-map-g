@@ -770,3 +770,64 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 - **Failure classes A–E** — the five Tailwind v4 mobile-nav failure modes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) pinned by the E2E suite.
 - **Envelope** — the API response shape `{ ok: true, data } | { ok: false, error }`.
 - **StorageState** — Playwright's saved-authentication file (`tests/e2e/.auth/user.json`) shared across specs to avoid rate-limited re-login.
+
+
+## Revision v2.29 — session 68: the /map frame + events chip + search status pill
+
+The dual-site audit on the redeployed v2.28 mirror (the mirror verified
+running v2.28: the keyed light_nolabels z15 tiles) found FIVE gaps, all on
+the /map surface — the live evolved its map search UI:
+
+1. **The search STATUS PILL (F1)** — submitting a query renders a violet
+   pill inside the shell card, below the search pill: the row
+   `mt-2 flex items-center gap-2 flex-wrap`, the pill `inline-flex
+   items-center gap-1.5` with the 11×11 lucide-sparkles icon + 12px/600
+   `#571AFF` text (lh 18px), bg `#F0EAFF`, the 1px `#D8CAFF` border,
+   radius 12, pad 5/10 → 30px tall. The live's PENDING text is the
+   deterministic template `Searching for {query}-related options in
+   Augsburg.`; its RESOLVED text is LLM-generated per query ("Looking for
+   places with a nice garden." / "Finding a great hotel in Augsburg.") —
+   non-replicable with a local deterministic search, so the clone carries
+   the live's own template while the query is active (documented
+   divergence). While a query is active the shell card RESTRUCTURES to a
+   COLUMN at every breakpoint: the search pill and the status row share one
+   `w-full md:flex-1` wrapper, the filter button drops below (the desktop
+   card grows 66 → 164, mobile 138 → 176); the clear button restores the
+   rest layout.
+2. **The canvas FRAME (F2)** — the live's frame is
+   `overflow-hidden rounded-[32px] border border-white/70 bg-white
+   shadow-[0_18px_44px_rgba(14,14,14,0.10)]` (radius 28px on phones) with
+   the frame BOX at 1216×622 / 358×312 so the inner canvas is the live's
+   exact 1214×620 / 356×310. The clone's `rounded-3xl border-black/5
+   shadow-card h-[620px]` left the canvas 2px short.
+3. **The pills→canvas gaps (F3)** — the live's 32px md / 44px phones (the
+   heading section's pb retargeted; the search section's mb-2 removed; the
+   mobile pills-row mt 14 → 26 so the pills land at the live's y=409 and
+   the frame at the live's y=497 — measured EXACT [16,497,358,312]).
+4. **The "0 events · N places" chip (F4)** — the live's in-canvas status
+   chip at top-right: `absolute right-3 top-3 z-[400]` white rounded-full
+   pill (px-3 py-1.5, the 6px ink dot, the
+   `0 1px 3px /0.05 + 0 4px 16px /0.07` shadow, 12px/600 #141413) — the
+   live's own text does NOT pluralize-check ("0 events · 1 places"
+   measured) and the count updates with every filter.
+5. **The mobile search pill collapse (F5, a real bug)** — the clone's
+   mobile search pill rendered 34px: the row's `flex-1` sets
+   `flex-basis: 0%` which OVERRIDES `h-12` for the main axis in the
+   parent's flex COLUMN on phones (the content floor = the 32px icon cell
+   + 2px border) with a 20px input. The live's row renders 48px with a
+   44px input. Fix: the WRAPPER carries `w-full md:flex-1` (no
+   flex-basis override at mobile), the row keeps `h-12`, the input gets
+   `h-11`. THE TRAP: `flex-1` + a height utility conflict in the column
+   direction — pin heights with content or wrappers, never with flex-1.
+   Also: the pills row LEFT-ALIGNS at mobile (`justify-start
+   md:justify-center`) — the live's overflowing row starts at x=16 with
+   Sights clipped right, while justify-center center-clips both ends
+   leaving the first pill unreachable.
+
+TDD: R0 5 RED pins (the frame chrome + the exact inner canvas, the events
+chip + its filter updates, the status pill + the card restructure, the
+48px mobile search pill, the pills→canvas gaps) → R1 GREEN (MapExplorer:
+the white frame, the chip, the status pill, the F5 wrapper fix, the
+spacing retarget, the pills-row left-align) → the mobile frame verified
+EXACT ([16,497,358,312] both sites) → 21 screenshots + docs → the full
+gate: lint 0 · typecheck · 117 unit · 31 smoke · 114/114 E2E (109 → 114).

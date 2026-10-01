@@ -566,3 +566,37 @@ zoom model):
   centroid is off-center too), and the maxZoom pin re-designed around
   Leaflet's DISABLED control state (a 5th click on the capped control
   times out — the first RED run surfaced it as a test timeout).
+
+
+## v2.29 addendum — session 68 (the /map frame + events chip + search status pill)
+
+Validated on the live + the remediated tree:
+
+- The live's /map search is now ASYNC/LLM-POWERED: Enter submits → the
+  violet "Searching for {query}-related options in Augsburg." pill
+  renders (persisted while the search runs — "brass" never resolved in
+  15s) → the pill's text swaps to an LLM-generated intent line
+  ("Looking for places with a nice garden.", "Finding a great hotel in
+  Augsburg.", "Finding places with beautiful garden settings." — per
+  query, per run) and the results filter. The resolved line is
+  NON-REPLICABLE (deterministic local haystack); the clone carries the
+  live's own pending template while the query is active. The
+  viewport-resize RESETS the live's search state (a re-mount).
+- The live's canvas frame: `rounded-[32px] md / 28px phones +
+  border-white/70 + bg-white + 0 18px 44px /0.10` — the clone's
+  rounded-3xl/border-black/5/shadow-card was the session-12 contract,
+  superseded.
+- The "0 events · N places" chip: the live's own text has NO
+  pluralize-check ("0 events · 1 places" measured at 390) and the count
+  updates with every filter ("0 events · 3 places" after Restaurants).
+- F5 (the mobile search pill): `flex-1` on a row inside a flex COLUMN
+  sets flex-basis: 0% which OVERRIDES the height utility for the main
+  axis — the row collapsed to its min-content floor (34px). The fix
+  pattern: move `flex-1` to a WRAPPER (`w-full md:flex-1`) so the height
+  utility applies on the row, and/or pin the height with the CONTENT
+  (the input's h-11). This is the third sighting of a
+  responsive-flexbox-silently-kills-a-utility bug class on this project
+  (the earlier two: the hero z-index cap, the oklab serialization).
+- The pills row at mobile: LEFT-aligned overflow (the live's first pill
+  at x=16, Sights clipped right, scrollable) — justify-center
+  center-clips both ends in Chromium (the first pill unreachable).

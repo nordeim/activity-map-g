@@ -137,7 +137,12 @@ export function MapExplorer({
           graph-paper texture at 40% opacity — and the live's textured
           block WRAPS the search bar + the filter pills too (section
           h≈413 at 1280), like the browse views. */}
-      <section className="relative overflow-visible px-4 pb-[22px] pt-[60px] md:px-8 md:pb-8 md:pt-24">
+      {/* Session-68 (v2.29): the bottom padding retargeted to the live's
+          measured pill→frame gaps — 44px on phones / 32px at md (the live's
+          own pills row carries its py-8 and ends flush at the frame; the
+          v2.28 tree rendered 22px mobile / 40px desktop with the frame up
+          to 40px high). */}
+      <section className="relative overflow-visible px-4 pb-[44px] pt-[60px] md:px-8 md:pb-8 md:pt-24">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(20,20,19,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(20,20,19,0.055)_1px,transparent_1px)] [background-size:18px_18px]"
@@ -164,12 +169,34 @@ export function MapExplorer({
               ORIGINAL search pill (h-48, r-full, black/5 border, cream/55)
               + the 56px cream/55 filter button; the category pills render
               below as a centered scrollable row. Session-18's textured
-              heading section wraps it all (live parity). */}
-          <section className="mb-2">
+              heading section wraps it all (live parity). Session-68: the
+              mb-2 is GONE — the live's pills row ends flush at the frame
+              (its own py-8 carries the desktop gap). */}
+          <section>
             <div className="map-filter-shell sticky top-[10px] z-30 md:top-24">
             <div className="rounded-[30px] border border-white/70 bg-white/92 p-2.5 shadow-[0_8px_22px_rgba(0,0,0,0.10)] md:rounded-[34px] md:bg-white/78 md:p-2">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="flex h-12 w-full flex-1 items-center gap-2 rounded-full border border-black/5 bg-[rgba(248,247,244,0.55)] px-2 shadow-none md:w-auto">
+            {/* Session-68 (v2.29): while a query is SUBMITTED the live
+                restructures this container to a COLUMN at every
+                breakpoint (the filter button drops below the search pill;
+                the desktop card grows 66 → 164) — the md:flex-row only
+                applies at rest. The live's own structure: the search pill
+                + the status row share ONE w-full wrapper, the filter
+                button follows as a sibling. */}
+            <div
+              className={cn(
+                "flex flex-col gap-3",
+                !submittedQuery.trim() && "md:flex-row md:items-center",
+              )}
+            >
+          {/* Session-68 (F5 fix): the search row's OLD `flex-1` set
+              flex-basis: 0% which OVERRIDES h-12 for the main axis inside
+              the parent's flex COLUMN on phones — the row collapsed to
+              34px (the 32px icon cell + 2px border) with a 20px input.
+              The live's row renders 48px with a 44px input. Fix: the
+              WRAPPER carries the mobile-safe w-full / md:flex-1 and the
+              row itself keeps h-12 + the input's own h-11. */}
+          <div className="w-full md:flex-1">
+          <div className="map-search-row flex h-12 w-full items-center gap-2 rounded-full border border-black/5 bg-[rgba(248,247,244,0.55)] px-2 shadow-none">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-roam text-white">
               <Sparkles className="h-4 w-4" strokeWidth={1.8} aria-hidden />
             </span>
@@ -184,7 +211,7 @@ export function MapExplorer({
               }}
               placeholder="Try: romantic hotels with a pool"
               aria-label="Search the map"
-              className="w-full bg-transparent text-sm font-medium text-ink outline-none placeholder:text-black/40"
+              className="h-11 w-full bg-transparent text-sm font-medium text-ink outline-none placeholder:text-black/40"
             />
             {inputText ? (
               <button
@@ -202,6 +229,24 @@ export function MapExplorer({
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
             ) : null}
+          </div>
+          {/* Session-68 (v2.29): the live's search STATUS PILL — while a
+              query is SUBMITTED a violet pill renders INSIDE the search
+              wrapper, directly BELOW the search pill (the live's pending
+              template text; its resolved text is LLM-generated,
+              non-replicable — documented divergence). Chrome measured on
+              the live: the row mt-2 flex items-center gap-2 flex-wrap; the
+              pill inline-flex gap-1.5 (6px), the 11×11 sparkles icon +
+              12px/600 #571AFF text (lh 18px), bg #F0EAFF, the 1px #D8CAFF
+              border, radius 12, pad 5/10 → 30px tall. */}
+          {submittedQuery.trim() ? (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="map-search-status inline-flex items-center gap-1.5 rounded-xl border border-[#D8CAFF] bg-[#F0EAFF] px-2.5 py-[5px] text-xs font-semibold leading-[18px] text-[#571AFF]">
+                <Sparkles className="h-[11px] w-[11px]" strokeWidth={2} aria-hidden />
+                Searching for {submittedQuery.trim()}-related options in Augsburg.
+              </span>
+            </div>
+          ) : null}
           </div>
           <div className="flex shrink-0 justify-center md:justify-end">
           <button
@@ -222,7 +267,15 @@ export function MapExplorer({
             rgba(14,14,14,0.08) + #555550. Session-24 re-measure: weight
             600, 44px min-height touch targets on phones, a centered
             non-wrapping scrollable row at gap-2 below the shell. */}
-        <div className="no-scrollbar mt-[14px] flex items-center justify-center gap-2 overflow-x-auto md:mt-[52px]">
+        {/* Session-68 (v2.29): the mobile mt bumped 14 → 26 so the pills
+            land at the live's y (the live's pills row renders its own 8px
+            pad + the taller F5-fixed shell above; measured: pills y 409,
+            frame y 497 on both sites). Session-68: the row is
+            LEFT-ALIGNED at mobile (the live's overflowing row starts at
+            x=16 with Sights clipped right — scrollable; justify-center
+            center-clipped BOTH ends, leaving the first pill unreachable)
+            and centered from md where the content fits. */}
+        <div className="no-scrollbar mt-[26px] flex items-center justify-start gap-2 overflow-x-auto md:mt-[52px] md:justify-center">
           {FILTERS.map(({ label, value, icon: Icon }) => (
             <button
               key={value}
@@ -251,10 +304,31 @@ export function MapExplorer({
           (measured at 1280). Session-65 re-measure: the live's MOBILE canvas
           is a FIXED 356×310 (measured at 390×{700,844,1000} — height never
           moves), not the clone's 62vh — below md the canvas is a fixed
-          310px-tall card. */}
+          310px-tall card. Session-68 (v2.29) — the FRAME re-measured on the
+          live: `overflow-hidden rounded-[32px] border border-white/70
+          bg-white shadow-[0_18px_44px_rgba(14,14,14,0.10)]` with radius
+          28px on phones, and the frame BOX heights 312/622 (the border
+          included) so the inner canvas lands at the live's exact
+          356×310 / 1214×620 — the old rounded-3xl + border-black/5 +
+          shadow-card + h-[620px] left the canvas 2px short. */}
       <section className="relative">
-        <div className="h-[310px] overflow-hidden rounded-3xl border border-black/5 shadow-card md:h-[620px]">
+        <div className="map-canvas-frame relative h-[312px] overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_18px_44px_rgba(14,14,14,0.10)] md:h-[622px] md:rounded-[32px]">
           <LeafletCanvas places={visible} activeSlug={focusVisible} />
+          {/* Session-68 (v2.29): the live's canvas status chip —
+              "0 events · N places" at top-right INSIDE the canvas (the
+              live's own data carries an events entity type the clone does
+              not model, so the events count is always 0 — matching the
+              live's rendered text; the places count is the visible set,
+              updating with every filter/search change). Chrome measured on
+              the live: absolute top-3 right-3 z-[400] white rounded-full
+              pill (px-3 py-1.5) + the 0 1px 3px /0.05 + 0 4px 16px /0.07
+              shadow, 12px/600 #141413. */}
+          <span className="map-events-chip absolute right-3 top-3 z-[400] flex items-center gap-2 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-xs font-semibold leading-[18px] text-[#141413] shadow-[0_1px_3px_rgba(14,14,14,0.05),0_4px_16px_rgba(14,14,14,0.07)]">
+            <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#0E0E0E]" />
+            {/* The live's own text does NOT pluralize-check ("0 events ·
+                1 places" measured on the live) — match it exactly. */}
+            0 events · {visible.length} places
+          </span>
         </div>
 
         {/* The live's bottom stats overlay: Augsburg center · N places ·

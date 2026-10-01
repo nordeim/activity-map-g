@@ -892,7 +892,9 @@ test.describe("map view", () => {
     // The nine demo pins plot as dot markers (session 3 parity — the
     // browse entities never appear on the live map).
     await expect(page.locator(".roam-marker")).toHaveCount(9);
-    await expect(page.getByText("9 places")).toBeVisible();
+    // Session-68: the bottom stats pill's "9 places" is now joined by the
+    // canvas events chip ("0 events · 9 places") — scope to the stats row.
+    await expect(page.getByText("9 places", { exact: true })).toBeVisible();
     await expect(page.getByText("Places on the map")).toBeVisible();
 
     // Session-30 re-measure (F4): the live's pins are 12px dots — a 12px
@@ -1005,7 +1007,8 @@ test.describe("map view", () => {
     // The Hotels pill narrows the canvas.
     await page.getByRole("button", { name: "Hotels", exact: true }).click();
     await expect(page.locator(".roam-marker")).toHaveCount(3);
-    await expect(page.getByText("3 places")).toBeVisible();
+    // Session-68: exact match — the events chip also renders the count.
+    await expect(page.getByText("3 places", { exact: true })).toBeVisible();
 
     // Session-29 re-measure (F7): the map stats pills carry NO shadow
     // (was the 0 6px 16px /0.08 shadow).
@@ -1200,7 +1203,9 @@ test.describe("map view", () => {
     await search.fill("garden");
     await page.waitForTimeout(700);
     await expect(page.locator(".roam-marker")).toHaveCount(9);
-    await expect(page.getByText("9 places")).toBeVisible();
+    // Session-68: exact match — the events chip also renders "9 places"
+    // inside its "0 events · 9 places" text.
+    await expect(page.getByText("9 places", { exact: true })).toBeVisible();
     // Enter submits the query ("garden" → Ember Garden on our haystack).
     await search.press("Enter");
     await expect(page.locator(".roam-marker")).toHaveCount(1);
@@ -1323,6 +1328,177 @@ test.describe("map view", () => {
     await clear.click();
     await expect(page.locator(".roam-marker")).toHaveCount(9);
     await expect(search).toHaveValue("");
+  });
+
+  // ---------------------------------------------------------------------
+  // Session 68 (v2.29): the /map frame chrome + the events chip + the
+  // search status pill — the live evolved its map search UI since v2.28.
+  // Measured on the live: the canvas frame is
+  // rounded-[32px] md / 28px phones + border-white/70 + bg-white + the
+  // 0 18px 44px /0.10 shadow (frame box 1216×622 / 358×312 so the inner
+  // canvas is 620/310 EXACT); a "0 events · N places" white pill sits
+  // top-right INSIDE the canvas; submitting a query renders a violet
+  // status pill inside the shell card ("Searching for {query}-related
+  // options in Augsburg." while the live's async search runs — its
+  // resolved text is LLM-generated, non-replicable) and the card
+  // RESTRUCTURES to a column [search, status, filter].
+  // ---------------------------------------------------------------------
+
+  test("the /map canvas frame is the live's 32px white chrome with the exact inner canvas (session 68)", async ({ page }) => {
+    await page.goto("/map");
+    const frame = page.locator(".map-canvas-frame");
+    await expect(frame).toBeVisible();
+    // Desktop 1280: radius 32, the white/70 hairline, bg white, the exact
+    // 0 18px 44px /0.10 shadow — and the inner leaflet canvas 620 tall
+    // (the v2.28 wrapper's h-[620px] left the canvas 618 — 2px short).
+    await expect(frame).toHaveCSS("border-radius", "32px");
+    // α-blended colors serialize as oklab() in Chromium — assert the
+    // parsed alpha (the 1px white/70 hairline) instead of the string.
+    const borderAlpha = await frame.evaluate((el) => {
+      const m = getComputedStyle(el).borderTopColor.match(/\/\s*([\d.]+)\)$/);
+      return m ? parseFloat(m[1]) : -1;
+    });
+    expect(borderAlpha).toBeGreaterThan(0.6);
+    expect(borderAlpha).toBeLessThan(0.8);
+    const bg = await frame.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(bg).toBe("rgb(255, 255, 255)");
+    const shadow = await frame.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(shadow).toContain("18px");
+    expect(shadow).toContain("44px");
+    expect(shadow).toContain("rgba(14, 14, 14, 0.1)");
+    const frameBox = await frame.boundingBox();
+    expect(Math.round(frameBox!.width)).toBe(1216);
+    expect(Math.round(frameBox!.height)).toBe(622);
+    const canvas = page.locator(".leaflet-container");
+    const canvasBox = await canvas.boundingBox();
+    expect(Math.round(canvasBox!.width)).toBe(1214);
+    expect(Math.round(canvasBox!.height)).toBe(620);
+    // Phones 390: radius 28 and the 356×310 inner canvas (frame 358×312).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/map");
+    await expect(frame).toHaveCSS("border-radius", "28px");
+    const mFrameBox = await frame.boundingBox();
+    expect(Math.round(mFrameBox!.width)).toBe(358);
+    expect(Math.round(mFrameBox!.height)).toBe(312);
+    const mCanvasBox = await page.locator(".leaflet-container").boundingBox();
+    expect(Math.round(mCanvasBox!.width)).toBe(356);
+    expect(Math.round(mCanvasBox!.height)).toBe(310);
+  });
+
+  test("the /map canvas carries the live's 0-events chip top-right, updating with filters (session 68)", async ({ page }) => {
+    await page.goto("/map");
+    // The live's chip: "0 events · 9 places" at 12px/600 #141413 in a
+    // white rounded-full pill (px-3 py-1.5) at top-3 right-3 INSIDE the
+    // canvas — the live's own data carries an events entity type the
+    // clone does not model, so the events count is always 0 (matching
+    // the live's rendered text) while the places count is the visible set.
+    const chip = page.locator(".map-events-chip");
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveText("0 events · 9 places");
+    await expect(chip).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    const chipBox = await chip.boundingBox();
+    const canvasBox = await page.locator(".leaflet-container").boundingBox();
+    expect(chipBox!.x).toBeGreaterThan(canvasBox!.x + canvasBox!.width - 180);
+    expect(chipBox!.y).toBeGreaterThan(canvasBox!.y + 8);
+    expect(chipBox!.y).toBeLessThan(canvasBox!.y + 24);
+    // The chip's count UPDATES with the filter (the live: Restaurants →
+    // "0 events · 3 places").
+    await page.getByRole("button", { name: "Restaurants", exact: true }).click();
+    await expect(page.locator(".roam-marker")).toHaveCount(3);
+    await expect(chip).toHaveText("0 events · 3 places");
+  });
+
+  test("the /map search renders the live's violet status pill while a query is active (session 68)", async ({ page }) => {
+    await page.goto("/map");
+    const search = page.getByLabel("Search the map");
+    // TYPING alone never renders the pill (the live: "brass" typed + 2s →
+    // nothing; only the SUBMITTED query carries the status pill).
+    await search.fill("garden");
+    await page.waitForTimeout(500);
+    await expect(page.locator(".map-search-status")).toHaveCount(0);
+    // Enter submits → the violet pill renders INSIDE the shell card with
+    // the live's deterministic pending template: "Searching for
+    // garden-related options in Augsburg." (the live's resolved text is
+    // LLM-generated — non-replicable; our deterministic search carries
+    // the live's own template while the query is active).
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(1);
+    const pill = page.locator(".map-search-status");
+    await expect(pill).toBeVisible();
+    await expect(pill).toContainText("Searching for garden-related options in Augsburg.");
+    await expect(pill).toHaveCSS("background-color", "rgb(240, 234, 255)");
+    await expect(pill).toHaveCSS("color", "rgb(87, 26, 255)");
+    await expect(pill).toHaveCSS("font-size", "12px");
+    await expect(pill).toHaveCSS("font-weight", "600");
+    await expect(pill).toHaveCSS("border-radius", "12px");
+    const pillBox = await pill.boundingBox();
+    expect(Math.round(pillBox!.height)).toBe(30);
+    // The pill carries the live's 11px sparkles icon.
+    const icon = pill.locator("svg");
+    await expect(icon).toBeVisible();
+    const iconBox = await icon.boundingBox();
+    expect(Math.round(iconBox!.width)).toBe(11);
+    // The pill sits INSIDE the shell card (the card grows with it: the
+    // live's desktop card 66 → 164) — the row's top is below the search
+    // pill and above the category pills.
+    const card = page.locator(".map-filter-shell > div").first();
+    const cardBox = await card.boundingBox();
+    const searchBox = await search.boundingBox();
+    expect(pillBox!.y).toBeGreaterThan(searchBox!.y + searchBox!.height - 4);
+    expect(pillBox!.y + pillBox!.height).toBeLessThan(cardBox!.y + cardBox!.height + 2);
+    expect(Math.round(cardBox!.height)).toBeGreaterThan(100);
+    // The pill PERSISTS while the query is active; the clear button
+    // removes it (and restores the rest layout).
+    await page.getByRole("button", { name: "Clear search" }).click();
+    await expect(page.locator(".map-search-status")).toHaveCount(0);
+    await expect(page.locator(".roam-marker")).toHaveCount(9);
+    const restCard = await card.boundingBox();
+    expect(Math.round(restCard!.height)).toBe(66);
+  });
+
+  test("the /map mobile search pill is the live's 48px with the 44px input (session 68)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/map");
+    // F5 (the flex-1 collapse): the search row carries flex-1, whose
+    // flex-basis: 0% OVERRIDES h-12 for the main axis in the parent's
+    // flex COLUMN on phones — the row collapsed to 34px (the 32px icon
+    // cell + 2px border) with a 20px input. The live's row renders 48px
+    // with a 44px input (content-driven). The fix: w-full md:flex-1 +
+    // the input's own h-11.
+    const search = page.getByLabel("Search the map");
+    const searchBox = await search.boundingBox();
+    expect(Math.round(searchBox!.height)).toBe(44);
+    const row = page.locator(".map-search-row");
+    const rowBox = await row.boundingBox();
+    expect(Math.round(rowBox!.height)).toBe(48);
+    // The shell card lands at the live's mobile height (138 = 48 search
+    // + 12 gap + 56 filter + 20 pad + 2 border).
+    const card = page.locator(".map-filter-shell > div").first();
+    const cardBox = await card.boundingBox();
+    expect(Math.abs(Math.round(cardBox!.height) - 138)).toBeLessThanOrEqual(2);
+  });
+
+  test("the /map pills→canvas gaps match the live's measured layout (session 68)", async ({ page }) => {
+    await page.goto("/map");
+    // Desktop: the live's pill bottom → frame top ≈ 32px (the pills row's
+    // own py-8 ends flush at the frame; the v2.28 tree's extra mb-2 left
+    // a 40px gap and the frame 10px low).
+    const allPills = page.getByRole("button", { name: "All Places", exact: true });
+    const frame = page.locator(".map-canvas-frame");
+    const pillBox = await allPills.boundingBox();
+    const frameBox = await frame.boundingBox();
+    const desktopGap = frameBox!.y - (pillBox!.y + pillBox!.height);
+    expect(desktopGap).toBeGreaterThanOrEqual(30);
+    expect(desktopGap).toBeLessThanOrEqual(34);
+    // Phones: the live's gap ≈ 44px (pills end 453 → frame 497) — the
+    // v2.28 tree rendered 30px with the frame 40px high.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/map");
+    const mPillBox = await allPills.boundingBox();
+    const mFrameBox = await frame.boundingBox();
+    const mobileGap = mFrameBox!.y - (mPillBox!.y + mPillBox!.height);
+    expect(mobileGap).toBeGreaterThanOrEqual(42);
+    expect(mobileGap).toBeLessThanOrEqual(46);
   });
 });
 
