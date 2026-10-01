@@ -215,6 +215,117 @@ test.describe("browse views", () => {
     await expect(page).toHaveURL(/\/eat\?people=4$/);
   });
 
+  test("the browse search pill is the live's 54px min-height pill with the 44px input (session 70)", async ({ page }) => {
+    // Session-70 finding F3a — the REAL BUG: `h-[54px] md:h-auto` collapsed
+    // the pill to its 20px input floor at desktop (the F5 trap family).
+    // The live's pill is `min-h-[54px]` → [39,323,720,54] at every
+    // breakpoint, input 44px.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/eat");
+    const pill = page.locator(".browse-planner-card .browse-search-pill");
+    await expect(pill).toBeVisible();
+    const pillBox = await pill.boundingBox();
+    expect(Math.round(pillBox!.height)).toBe(54);
+    const input = pill.getByLabel("Search places");
+    const inputBox = await input.boundingBox();
+    expect(Math.round(inputBox!.height)).toBe(44);
+    // The pill never collapses on phones either (min-h holds).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/eat");
+    const mPill = page.locator(".browse-planner-card .browse-search-pill");
+    const mPillBox = await mPill.boundingBox();
+    expect(Math.round(mPillBox!.height)).toBe(54);
+    const mInputBox = await mPill.getByLabel("Search places").boundingBox();
+    expect(Math.round(mInputBox!.height)).toBe(44);
+  });
+
+  test("the browse pill chrome is the live's bordered inset-shadow pill (session 70)", async ({ page }) => {
+    // Session-70 finding F3b: the live's search pill at desktop —
+    // rounded-full, the 1px black/5 border, px-5, the inset white
+    // highlight. At mobile the live's own CSS caps the radius at 22px.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/eat");
+    const pill = page.locator(".browse-planner-card .browse-search-pill");
+    const radius = await pill.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+    expect(radius).toBeGreaterThan(1000);
+    await expect(pill).toHaveCSS("border-top-width", "1px");
+    // The oklab serialization gotcha (AGENTS.md): Chromium may render
+    // rgba(0,0,0,0.05) as oklab(0 0 0 / 0.05) — assert the alpha, not the
+    // literal string.
+    const borderColor = await pill.evaluate((el) => getComputedStyle(el).borderTopColor);
+    expect(borderColor).toMatch(/0\.05\)|rgba\(0, 0, 0, 0\.05\)/);
+    await expect(pill).toHaveCSS("padding-left", "20px");
+    const shadow = await pill.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(shadow).toContain("inset");
+    // The date pill carries the same family at desktop (full-round).
+    const datePill = page.locator(".browse-planner-card .browse-date-pill");
+    const dRadius = await datePill.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+    expect(dRadius).toBeGreaterThan(1000);
+    const dBorderColor = await datePill.evaluate((el) => getComputedStyle(el).borderTopColor);
+    expect(dBorderColor).toMatch(/0\.05\)|rgba\(0, 0, 0, 0\.05\)/);
+    const dShadow = await datePill.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(dShadow).toContain("inset");
+    // Mobile: both pills cap at the live's 22px radius.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/eat");
+    const mSearch = page.locator(".browse-planner-card .browse-search-pill");
+    const mRadius = await mSearch.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+    expect(mRadius).toBe(22);
+    const mDate = page.locator(".browse-planner-card .browse-date-pill");
+    const mDRadius = await mDate.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+    expect(mDRadius).toBe(22);
+  });
+
+  test("the browse row matches the live's combined date/people geometry (session 70)", async ({ page }) => {
+    // Session-70 finding F3c: the live wraps [date, people] in ONE
+    // `relative z-50 flex flex-col gap-2 sm:flex-row` block so the search
+    // pill lands at ~720px and the date pill (min-w-238) + people
+    // (min-w-108) ride together; the row gaps are 12px (gap-3).
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/stay");
+    const pill = page.locator(".browse-planner-card .browse-search-pill");
+    const pillBox = await pill.boundingBox();
+    expect(Math.round(pillBox!.width)).toBeGreaterThanOrEqual(710);
+    expect(Math.round(pillBox!.width)).toBeLessThanOrEqual(730);
+    const datePill = page.locator(".browse-planner-card .browse-date-pill");
+    const dateBox = await datePill.boundingBox();
+    expect(Math.round(dateBox!.width)).toBe(238);
+    const people = page.locator(".browse-planner-card .browse-people-pill");
+    const peopleBox = await people.boundingBox();
+    expect(Math.round(peopleBox!.width)).toBe(108);
+    // The row gap between the pill and the combined block is 12px.
+    const block = page.locator(".browse-planner-card .browse-combined-block");
+    const blockBox = await block.boundingBox();
+    expect(Math.round(blockBox!.x - (pillBox!.x + pillBox!.width))).toBe(12);
+    // The block itself is one flex row at desktop with an 8px inner gap.
+    expect(Math.round(dateBox!.height)).toBe(54);
+    expect(Math.round(peopleBox!.x - (dateBox!.x + dateBox!.width))).toBe(8);
+    // Mobile: the block stacks at gap-2 (8px) inside the card's gap-3 (12px).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/stay");
+    const mDate = page.locator(".browse-planner-card .browse-date-pill");
+    const mPeople = page.locator(".browse-planner-card .browse-people-pill");
+    const mDateBox = await mDate.boundingBox();
+    const mPeopleBox = await mPeople.boundingBox();
+    expect(Math.round(mPeopleBox!.y - (mDateBox!.y + mDateBox!.height))).toBe(8);
+  });
+
+  test("the browse grids open on the live's current card order (session 70)", async ({ page }) => {
+    // Session-70 finding F5: the live's entity order changed since the
+    // seed capture — the first cards are now Design Wine Bar (eat),
+    // Brass & Marble (stay) and Historic Sight (do); the sets and the
+    // rating-descending structure are otherwise identical.
+    await page.goto("/eat");
+    const firstEat = page.locator("article").first();
+    await expect(firstEat).toContainText("Design Wine Bar");
+    await page.goto("/stay");
+    const firstStay = page.locator("article").first();
+    await expect(firstStay).toContainText("Brass & Marble");
+    await page.goto("/do");
+    const firstDo = page.locator("article").first();
+    await expect(firstDo).toContainText("Historic Sight");
+  });
+
   test("eat card photos render 300px on mobile, 372px on desktop (session 8)", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/eat");
@@ -1499,6 +1610,33 @@ test.describe("map view", () => {
     const mobileGap = mFrameBox!.y - (mPillBox!.y + mPillBox!.height);
     expect(mobileGap).toBeGreaterThanOrEqual(42);
     expect(mobileGap).toBeLessThanOrEqual(46);
+  });
+
+  test("the /map search-resolved zero state is the live's WHITE no-places-found card (session 70)", async ({ page }) => {
+    await page.goto("/map");
+    // Session-70 re-measure: when the live's async search RESOLVES with
+    // zero results, the list's empty state becomes a WHITE CARD —
+    // `rounded-[28px] bg-white py-14 text-center` — carrying "No places
+    // found" at 20px Libre Baskerville ink (lh 28). The plain muted
+    // "No places" p is the PENDING/no-query presentation only.
+    const search = page.getByLabel("Search the map");
+    await search.fill("castle-no-match");
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(0);
+    const emptyCard = page.locator("#places-list .map-empty-card");
+    await expect(emptyCard).toBeVisible();
+    await expect(emptyCard).toHaveText("No places found");
+    await expect(emptyCard).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    const radius = await emptyCard.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+    expect(radius).toBeGreaterThanOrEqual(28);
+    expect(radius).toBeLessThanOrEqual(32);
+    const padY = await emptyCard.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
+    expect(padY).toBe(56); // py-14
+    // The serif ink line: 20px Libre Baskerville at #0E0E0E.
+    await expect(emptyCard.locator("p")).toHaveCSS("font-size", "20px");
+    await expect(emptyCard.locator("p")).toHaveCSS("color", "rgb(14, 14, 14)");
+    const family = await emptyCard.locator("p").evaluate((el) => getComputedStyle(el).fontFamily);
+    expect(family).toContain("Libre Baskerville");
   });
 });
 

@@ -380,9 +380,29 @@ export function MapExplorer({
           </span>
         </div>
         {visible.length === 0 ? (
-          /* Session-65: the live's 0-result state renders a "No places"
-             line (the live: brass + Restaurants active → "No places"). */
-          <p className="py-10 text-center text-sm text-muted">No places</p>
+          submittedQuery.trim() ? (
+            /* Session-70 (v2.30): the live's search-RESOLVED zero state —
+             * a WHITE CARD (rounded-[28px] bg-white py-14 text-center,
+             * [32,1370,1216,166] at desktop) carrying "No places found" at
+             * 20px Libre Baskerville ink #0E0E0E (lh 28). The live renders
+             * this once its async search resolves with no results; the
+             * plain muted "No places" line below is its PENDING/no-query
+             * presentation — our deterministic search resolves instantly,
+             * so a submitted query keys the card. */
+            <div
+              className="map-empty-card rounded-[28px] bg-white py-14 text-center"
+              role="status"
+            >
+              <p className="font-serif text-xl leading-7 text-ink">
+                No places found
+              </p>
+            </div>
+          ) : (
+            /* Session-65: the live's 0-result state renders a "No places"
+             * line while no query is submitted (the pending/no-query
+             * presentation). */
+            <p className="py-10 text-center text-sm text-muted">No places</p>
+          )
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((place) => (

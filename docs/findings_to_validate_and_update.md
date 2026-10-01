@@ -600,3 +600,40 @@ Validated on the live + the remediated tree:
 - The pills row at mobile: LEFT-aligned overflow (the live's first pill
   at x=16, Sights clipped right, scrollable) — justify-center
   center-clips both ends in Chromium (the first pill unreachable).
+
+## v2.30 addendum — session 70 (the browse pill + the zero state + the card order)
+
+Validated on the live + the remediated tree:
+
+- The browse planner's search pill is `min-h-[54px]` on the live (54px at
+  every breakpoint, 44px input, 720px wide at desktop). The clone's
+  `h-[54px] md:h-auto` had silently collapsed to the 20px input floor at
+  md+ since v2.24 — the desktop twin of the session-68 F5 flex-basis
+  trap, invisible to card-level probes. THE RULE: pin pill heights with
+  `min-h-*` + the content height, never `md:h-auto`.
+- The live's browse row: [date, people] ride in ONE
+  `relative z-50 flex flex-col gap-2 sm:flex-row` block (the date pill
+  `min-h-[54px] min-w-[238px] rounded-full border border-black/5 px-5
+  py-2`, the people `min-w-[108px] flex-col justify-center`, 12px row
+  gaps) — the pill chrome family is the 1px black/5 hairline + the cream
+  /55 bg + px-5 + the `inset 0 1px 0 white/0.70` highlight + the
+  violet-border hover set.
+- The live's own CSS overrides its class strings (its pill classes say
+  `rounded-full` but COMPUTE 22px at mobile; its card says `p-1.5` but
+  computes 10px at mobile) — always measure the COMPUTED value, not the
+  class string.
+- The live's /map zero state has TWO presentations: while the async
+  search is PENDING (or no query) the plain `py-10 text-center text-sm
+  text-muted` "No places" line; once the search RESOLVES with zero
+  results a WHITE card `rounded-[28px] bg-white py-14 text-center` with
+  "No places found" at 20px Libre Baskerville ink.
+- The live's PENDING pill text is LLM-generated per query ("brass
+  related listings" vs "castle-related options" — both observed); only
+  the dominant family is deterministic enough to pin.
+- The live's place URLs became MongoDB ObjectIds
+  (`/place/6a53554b67474954f64e3cd6`); slug URLs 404 upstream. The clone
+  keeps slugs — a documented divergence (readable, stable, load-bearing
+  for the home/map deep links + the E2E corpus).
+- The live's browse entity order changed (the SETS and the
+  rating-descending structure are identical; the tie order is not) —
+  fixed by re-ordering the seed JSON to the live's sequences.
