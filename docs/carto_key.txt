@@ -1,0 +1,19 @@
+Here is your CARTO Basemaps API key:
+cb1_465p_1_988c53d611811b5d4bdb6b32
+What to do with it depends on which of our two basemap services you
+use.
+Raster (PNG) basemaps — this is the service showing the "API key
+required" watermark today. Add the key to your tile URL as a key
+parameter and the watermark goes away:
+https://basemaps.cartocdn.com/rastertiles/voyager/
+{z}/{x}/{y}.png?key=cb1_465p_1_988c53d611811b5d4bdb6b
+32
+If the watermark is still there afterwards, force-refresh — your browser
+and our CDN both cache map tiles, so an old one can linger for a
+moment.
+Vector basemaps — nothing to change today. The key requirement is
+coming to vector as well, but it is not live yet and we will tell you before it
+is. The key above is already yours for when it happens.
+Setup instructions for both: carto.com/basemaps/apikey
+Manage your key any time — restrictions, alias, or revoking it — from
+your dashboard. Sign in with this email address, no password needed.
