@@ -27,6 +27,14 @@ import { Check, ChevronDown, Clock } from "lucide-react";
 import { buildTimeSlots } from "@/lib/booking-picker";
 import { cn } from "@/lib/utils";
 
+// Session-55 re-measure (v2.23): the live's picker chrome contract —
+// * The TRIGGER carries NO aria-label/aria-expanded (its accessible name
+//   is the wrapping label's text, "Time*"); the hidden input is NOT
+//   readOnly.
+// * The popover container carries NO font-inter (the live's doesn't —
+//   the slot buttons carry their own).
+// * The unselected slot's hover shadow is 0.12 (was 0.08).
+
 const SLOTS = buildTimeSlots();
 
 export function BookingTimePicker({
@@ -64,8 +72,6 @@ export function BookingTimePicker({
       Time*
       <button
         type="button"
-        aria-label="Choose time"
-        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className="mt-2 flex h-11 w-full items-center justify-between rounded-2xl border border-[#DDDBD5] bg-white px-4 text-left text-sm text-ink outline-none transition-all duration-200 hover:border-[#571AFF] hover:shadow-[0_8px_22px_rgba(87,26,255,0.10)] focus:border-[#571AFF] focus:shadow-[0_8px_22px_rgba(87,26,255,0.14)]"
       >
@@ -81,21 +87,21 @@ export function BookingTimePicker({
           />
         </span>
       </button>
-      {/* The live's 1×1 hidden input carrying the time value (required). */}
+      {/* The live's 1×1 hidden input carrying the time value (required,
+          not readOnly — the live's contract). */}
       <input
         type="text"
         name="time"
         tabIndex={-1}
         aria-hidden
         value={value ?? ""}
-        readOnly
         required
         className="pointer-events-none absolute bottom-0 left-0 h-px w-px opacity-0"
       />
       {open ? (
         <div
           data-booking-time-list
-          className="absolute bottom-[calc(100%+8px)] left-1/2 z-[30000] w-full -translate-x-1/2 rounded-[24px] border border-[#DDDBD5] bg-[#F8F7F4] p-3 font-inter shadow-[0_20px_48px_rgba(14,14,14,0.14)] md:bottom-auto md:top-[calc(100%+8px)]"
+          className="absolute bottom-[calc(100%+8px)] left-1/2 z-[30000] w-full -translate-x-1/2 rounded-[24px] border border-[#DDDBD5] bg-[#F8F7F4] p-3 shadow-[0_20px_48px_rgba(14,14,14,0.14)] md:bottom-auto md:top-[calc(100%+8px)]"
         >
           <div className="grid gap-1">
             {SLOTS.map((slot) => {
@@ -108,7 +114,7 @@ export function BookingTimePicker({
                     "flex h-10 items-center justify-between rounded-2xl px-3 font-inter text-sm transition-all duration-200",
                     selected
                       ? "bg-[#571AFF] text-white shadow-[0_10px_22px_rgba(87,26,255,0.22)]"
-                      : "bg-white text-ink hover:bg-black hover:text-white hover:shadow-[0_10px_22px_rgba(14,14,14,0.08)]",
+                      : "bg-white text-ink hover:bg-black hover:text-white hover:shadow-[0_10px_22px_rgba(14,14,14,0.12)]",
                   )}
                   onClick={() => {
                     onChange(slot);

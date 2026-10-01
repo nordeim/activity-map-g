@@ -254,3 +254,42 @@ and found ONE gap (the only remediation of the session):
   93 E2E** — all executed green in the session (113/113 · 31/31 · 93/93); 19
   screenshots re-captured via `scripts/capture-screens-session54.mjs` (the new
   18-booking-date-picker + 19-booking-time-picker captures document the popovers).
+
+---
+
+## v2.23 addendum (session 56 — the booking-picker chrome re-alignment)
+
+**Reviewed tree:** `22d2ba4` (v2.22) on the redeployed mirror, audited
+2026-10-01 against the live source (`docs/remediation-plan-session-55.md`).
+
+- The v2.22 picker LOGIC verified exact end-to-end on both sites: the range
+  semantics (mid-pick "Thu 15 Oct — select end date" → "Thu 15 Oct — Sat 17
+  Oct" + the hidden "2026-10-15 to 2026-10-17"), the reopen-with-range
+  highlights (violet endpoints + the `#F0E9FF` tint, October anchored), the
+  single-day collapse, the 19:00 selection + check, the plain
+  12px/600 `#2A6B3A` success note (the live's copy, 16px top margin), the
+  form reset, the 29-slot list, the 42-cell grid, the 12-option month select.
+- Five CHROME gaps closed (F1–F5): the month row's TWO-CHILD layout (the
+  `relative flex-1` wrapper with the absolute pointer-events-none chevron
+  inset right-5 + the calendar-days icon at the END, stroke 2, no `relative`
+  on the row); the font-bold select with the violet hover/focus borders; the
+  `font-bold uppercase tracking-[0.12em]` weekday row; the `0 10 22 /0.12`
+  day-cell + time-slot hover shadows; and the ARIA + font contract (no
+  aria-label/aria-expanded on the triggers — the label-derived
+  "Dates*"/"Time*" names; the form's `font-inter`; NO font-inter on the
+  popover containers; the hidden inputs not readOnly).
+- **The E2E pin-masking bug**: the v2.22 `aria-label="Choose dates"` made
+  `getByRole({ name: /^Choose dates/ })` match regardless of the trigger's
+  VISIBLE text — the reset pin could never fail on a visual reset
+  regression. The pins now use the anchored regexes `/^Dates\*/`/`/^Time\*/`
+  (resolvable both closed AND open — the accessible name EXPANDS with the
+  label's popover text while open, so exact-match queries time out mid-test)
+  and the reset is asserted VISUALLY (`toHaveText("Choose dates")`).
+- Accepted equivalences documented (F6, not remediated): the month option
+  VALUE format (the live's 0-based non-padded "2026-9" vs the mirror's
+  "2026-10"); the live's heart/avatar are BUTTONs vs the mirror's links;
+  the token-name classes (text-roam-* vs the mirror's tokens) — every one
+  computes identical.
+- Gate arithmetic stable at **113 unit · 31 smoke · 93 E2E** — all executed
+  green (the picker pins extended in place); 19 screenshots re-captured via
+  `scripts/capture-screens-session56.mjs`.

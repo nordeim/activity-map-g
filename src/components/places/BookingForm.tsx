@@ -144,7 +144,9 @@ export function BookingForm({ place }: { place: BookablePlace }) {
         Send your booking request for {place.name}.
       </p>
 
-      <form id="book-now" onSubmit={submit} className="mt-6 space-y-4">
+      {/* Session-55 re-measure (v2.23): the live's form carries font-inter
+          (the form-level font contract). */}
+      <form id="book-now" onSubmit={submit} className="mt-6 space-y-4 font-inter">
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label className={label} htmlFor="booking-name">

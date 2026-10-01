@@ -263,11 +263,13 @@ test.describe("place detail", () => {
     await expect(requestLine).toHaveCSS("font-size", "14px");
     await expect(requestLine).toHaveCSS("color", "rgb(136, 133, 128)");
     // Session-53 re-measure (v2.22): the live's Dates/Time fields are
-    // PICKER-TRIGGER BUTTONS ("Choose dates" / "Choose time" — the live's
-    // form renders type="button" triggers that open a date-range calendar
-    // and a 29-slot time list; the free-text inputs were clone invention).
-    const datesTrigger = page.getByRole("button", { name: /^Choose dates/ });
-    const timeTrigger = page.getByRole("button", { name: /^Choose time/ });
+    // PICKER-TRIGGER BUTTONS (the live's form renders type="button" triggers
+    // that open a date-range calendar and a 29-slot time list; the free-text
+    // inputs were clone invention). Session-55 re-measure (v2.23): the
+    // triggers carry NO aria-label — their accessible names are "Dates*" /
+    // "Time*" derived from the wrapping labels (the live's contract).
+    const datesTrigger = page.getByRole("button", { name: /^Dates\*/ });
+    const timeTrigger = page.getByRole("button", { name: /^Time\*/ });
     await expect(datesTrigger).toBeVisible();
     await expect(timeTrigger).toBeVisible();
     for (const field of ["Name", "Surname", "Phone", "Email", "Message"]) {
@@ -303,7 +305,7 @@ test.describe("place detail", () => {
     expect(nameInputBorder).toBe("rgb(221, 219, 213)");
   });
 
-  test("the booking date/time picker popovers render the live's measured chrome (session 53)", async ({ page }) => {
+  test("the booking date/time picker popovers render the live's measured chrome (session 55)", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/place/courtyard-stay", { waitUntil: "domcontentloaded" });
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -312,9 +314,11 @@ test.describe("place detail", () => {
 
     // The TRIGGERS are the live's picker buttons: 44px, 16px radii, the
     // #DDDBD5 border, the calendar/clock + chevron icons, and the #888580
-    // placeholder spans while empty.
-    const datesTrigger = page.getByRole("button", { name: /^Choose dates/ });
-    const timeTrigger = page.getByRole("button", { name: /^Choose time/ });
+    // placeholder spans while empty. Session-55 (v2.23): the accessible
+    // names are the LABEL texts ("Dates*" / "Time*") — the live's triggers
+    // carry no aria-label/aria-expanded of their own.
+    const datesTrigger = page.getByRole("button", { name: /^Dates\*/ });
+    const timeTrigger = page.getByRole("button", { name: /^Time\*/ });
     for (const trigger of [datesTrigger, timeTrigger]) {
       await expect(trigger).toBeVisible();
       await expect(trigger).toHaveCSS("height", "44px");
@@ -325,6 +329,17 @@ test.describe("place detail", () => {
     }
     const datesPlaceholder = datesTrigger.locator("span").first();
     await expect(datesPlaceholder).toHaveCSS("color", "rgb(136, 133, 128)");
+
+    // Session-55 re-measure (v2.23): the live's triggers carry NO
+    // aria-label/aria-expanded of their own — the accessible names come
+    // from the wrapping labels ("Dates*" / "Time*").
+    await expect(datesTrigger).not.toHaveAttribute("aria-label");
+    await expect(datesTrigger).not.toHaveAttribute("aria-expanded");
+    await expect(timeTrigger).not.toHaveAttribute("aria-label");
+    await expect(timeTrigger).not.toHaveAttribute("aria-expanded");
+    // The live's form carries font-inter (the form-level font contract).
+    const formClass = await page.locator("form#book-now").getAttribute("class");
+    expect(formClass).toContain("font-inter");
 
     // The CALENDAR popover: cream bg, r-24, the #DDDBD5 hairline, the
     // 0 20px 48 /0.14 shadow, the month select, the S M T W T F S row,
@@ -343,6 +358,61 @@ test.describe("place detail", () => {
     }
     const dayCells = calendar.locator("button[data-day]");
     await expect(dayCells).toHaveCount(42);
+
+    // Session-55 re-measure (v2.23): the MONTH ROW — exactly two children:
+    // a `relative flex-1` wrapper (the month select + an ABSOLUTE
+    // pointer-events-none chevron inside it) and the calendar-days icon
+    // (stroke 2) at the row's END. The select is font-bold (700) with the
+    // violet hover/focus borders and NO aria-label. The weekday row is
+    // 700/uppercase/1.2px tracking. The popover container carries NO
+    // font-inter (the live's popovers don't).
+    const monthRow = calendar.locator(":scope > div").first();
+    const monthRowInfo = await monthRow.evaluate((row) => {
+      const kids = Array.from(row.children);
+      const wrapper = kids[0] ?? null;
+      const sel = wrapper?.querySelector("select") ?? null;
+      const chev = wrapper?.querySelector("svg.lucide-chevron-down") ?? null;
+      const calIcon = kids[kids.length - 1] ?? null;
+      const chevCs = chev ? getComputedStyle(chev) : null;
+      const selCs = sel ? getComputedStyle(sel) : null;
+      return {
+        kidCount: kids.length,
+        wrapperCls: wrapper?.getAttribute("class") ?? "",
+        lastKidIsCalIcon:
+          calIcon?.tagName === "svg" && (calIcon.getAttribute("class") ?? "").includes("calendar-days"),
+        calIconStroke: calIcon?.getAttribute("stroke-width") ?? "",
+        chevInsideWrapper: !!chev,
+        chevPosition: chevCs?.position ?? "",
+        chevPointerEvents: chevCs?.pointerEvents ?? "",
+        chevRightInset:
+          chev && sel
+            ? Math.round(sel.getBoundingClientRect().right - chev.getBoundingClientRect().right)
+            : -1,
+        selWeight: selCs?.fontWeight ?? "",
+        selCls: sel?.getAttribute("class") ?? "",
+        selAria: sel?.getAttribute("aria-label") ?? null,
+      };
+    });
+    expect(monthRowInfo.kidCount).toBe(2);
+    expect(monthRowInfo.wrapperCls).toContain("relative");
+    expect(monthRowInfo.wrapperCls).toContain("flex-1");
+    expect(monthRowInfo.lastKidIsCalIcon).toBe(true);
+    expect(monthRowInfo.calIconStroke).toBe("2");
+    expect(monthRowInfo.chevInsideWrapper).toBe(true);
+    expect(monthRowInfo.chevPosition).toBe("absolute");
+    expect(monthRowInfo.chevPointerEvents).toBe("none");
+    expect(monthRowInfo.chevRightInset).toBe(20);
+    expect(monthRowInfo.selWeight).toBe("700");
+    expect(monthRowInfo.selCls).toContain("font-bold");
+    expect(monthRowInfo.selCls).toContain("hover:border-[#571AFF]");
+    expect(monthRowInfo.selCls).toContain("focus:border-[#571AFF]");
+    expect(monthRowInfo.selAria).toBeNull();
+    const calClass = await calendar.getAttribute("class");
+    expect(calClass).not.toContain("font-inter");
+    const weekdayRow = calendar.locator(":scope > div").nth(1);
+    await expect(weekdayRow).toHaveCSS("font-weight", "700");
+    await expect(weekdayRow).toHaveCSS("text-transform", "uppercase");
+    await expect(weekdayRow).toHaveCSS("letter-spacing", "1.2px");
 
     // The past-day contract (date-robust): every cell whose data-date is
     // before today is DISABLED; every other cell is enabled.
@@ -385,6 +455,10 @@ test.describe("place detail", () => {
     const timeList = page.locator("[data-booking-time-list]");
     await expect(timeList).toBeVisible();
     await expect(timeList).toHaveCSS("background-color", "rgb(248, 247, 244)");
+    // Session-55 re-measure (v2.23): the live's popover containers carry NO
+    // font-inter (the slot buttons carry their own).
+    const timeListClass = await timeList.getAttribute("class");
+    expect(timeListClass).not.toContain("font-inter");
     const slots = timeList.locator("button");
     await expect(slots).toHaveCount(29);
     await expect(slots.first()).toHaveText("08:00");
@@ -502,13 +576,17 @@ test.describe("place detail", () => {
     await page.getByLabel("Surname", { exact: true }).fill("Lovelace");
     // The date-range picker: open the calendar, click today twice (a
     // single-day range — deterministic across the midnight boundary).
-    await page.getByRole("button", { name: /^Choose dates/ }).click();
+    // Session-55 (v2.23): the trigger's accessible name is the LABEL text
+    // ("Dates*") — the trigger's VISIBLE text is asserted separately.
+    const datesTrigger = page.getByRole("button", { name: /^Dates\*/ });
+    const timeTrigger = page.getByRole("button", { name: /^Time\*/ });
+    await datesTrigger.click();
     const todayCell = page.locator(`[data-booking-calendar] button[data-date="${todayIso}"]`);
     await todayCell.click();
     await todayCell.click();
-    await expect(page.getByRole("button", { name: /select end date/ })).toHaveCount(0);
+    await expect(datesTrigger).not.toContainText("select end date");
     // The time picker: open the list, click 19:00.
-    await page.getByRole("button", { name: /^Choose time/ }).click();
+    await timeTrigger.click();
     await page.locator("[data-booking-time-list]").getByRole("button", { name: "19:00", exact: true }).click();
     await page.getByLabel("Email", { exact: true }).fill("ada@example.com");
     await page.getByRole("button", { name: "Book Now", exact: true }).click();
@@ -524,8 +602,12 @@ test.describe("place detail", () => {
     await expect(successNote).toHaveText(/Your booking request for Courtyard Stay has been sent/);
     const noteBg = await successNote.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(noteBg).toBe("rgba(0, 0, 0, 0)");
-    await expect(page.getByRole("button", { name: /^Choose dates/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Choose time/ })).toBeVisible();
+    // Session-55 (v2.23): the reset pins are now VISUAL — the triggers'
+    // placeholder texts must RETURN (the accessible names are the static
+    // label texts, so only a text assertion can fail on a visual reset
+    // regression — the v2.22 aria-label pins could not).
+    await expect(datesTrigger).toHaveText("Choose dates");
+    await expect(timeTrigger).toHaveText("Choose time");
     await expect(page.getByLabel("Name", { exact: true })).toHaveValue("");
 
     await page.goto("/profile");

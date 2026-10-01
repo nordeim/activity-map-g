@@ -44,6 +44,17 @@ import {
 } from "@/lib/booking-picker";
 import { cn } from "@/lib/utils";
 
+// Session-55 re-measure (v2.23): the live's picker chrome contract —
+// * The TRIGGER carries NO aria-label/aria-expanded (its accessible name
+//   is the wrapping label's text, "Dates*"); the hidden input is NOT
+//   readOnly.
+// * The MONTH ROW is two children: a `relative flex-1` wrapper (the
+//   font-bold month select + the ABSOLUTE pointer-events-none chevron
+//   inset right-5) and the calendar-days icon (stroke 2) at the END.
+// * The WEEKDAY row is font-bold UPPERCASE tracking-[0.12em].
+// * The popover container carries NO font-inter (the live's doesn't).
+// * The in-month day-cell hover shadow is 0.12 (was 0.08).
+
 export function BookingDatePicker({
   range,
   onChange,
@@ -96,7 +107,7 @@ export function BookingDatePicker({
     if (!cell.inMonth) return cn(base, "bg-white/60 text-muted hover:bg-black hover:text-white");
     return cn(
       base,
-      "bg-white text-ink hover:bg-black hover:text-white hover:shadow-[0_10px_22px_rgba(14,14,14,0.08)]",
+      "bg-white text-ink hover:bg-black hover:text-white hover:shadow-[0_10px_22px_rgba(14,14,14,0.12)]",
     );
   }
 
@@ -128,8 +139,6 @@ export function BookingDatePicker({
       Dates*
       <button
         type="button"
-        aria-label="Choose dates"
-        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className="mt-2 flex h-11 w-full items-center justify-between rounded-2xl border border-[#DDDBD5] bg-white px-4 text-left text-sm text-ink outline-none transition-all duration-200 hover:border-[#571AFF] hover:shadow-[0_8px_22px_rgba(87,26,255,0.10)] focus:border-[#571AFF] focus:shadow-[0_8px_22px_rgba(87,26,255,0.14)]"
       >
@@ -145,42 +154,51 @@ export function BookingDatePicker({
           />
         </span>
       </button>
-      {/* The live's 1×1 hidden input carrying the range value (required). */}
+      {/* The live's 1×1 hidden input carrying the range value (required,
+          not readOnly — the live's contract). */}
       <input
         type="text"
         name="dates"
         tabIndex={-1}
         aria-hidden
         value={bookingRangeValue(range)}
-        readOnly
         required
         className="pointer-events-none absolute bottom-0 left-0 h-px w-px opacity-0"
       />
       {open ? (
         <div
           data-booking-calendar
-          className="absolute bottom-[calc(100%+8px)] left-1/2 z-[30000] w-full -translate-x-1/2 rounded-[24px] border border-[#DDDBD5] bg-[#F8F7F4] p-3 font-inter shadow-[0_20px_48px_rgba(14,14,14,0.14)] md:bottom-auto md:top-[calc(100%+8px)]"
+          className="absolute bottom-[calc(100%+8px)] left-1/2 z-[30000] w-full -translate-x-1/2 rounded-[24px] border border-[#DDDBD5] bg-[#F8F7F4] p-3 shadow-[0_20px_48px_rgba(14,14,14,0.14)] md:bottom-auto md:top-[calc(100%+8px)]"
         >
-          <div className="relative mb-3 flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2 text-ink">
-            <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden />
-            <select
-              aria-label="Select month"
-              value={monthValue}
-              onChange={(e) => {
-                const [y, m] = e.target.value.split("-").map(Number);
-                setMonth(new Date(y, m - 1, 1));
-              }}
-              className="h-9 w-full appearance-none rounded-full border border-[#DDDBD5] bg-[#F8F7F4] px-3 pr-12 font-inter text-sm text-ink outline-none"
-            >
-              {options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="h-[15px] w-[15px] shrink-0" strokeWidth={2} aria-hidden />
+          {/* Session-55 re-measure (v2.23): the live's month row — a
+              relative flex-1 wrapper (the font-bold select + the absolute
+              pointer-events-none chevron inset right-5) and the
+              calendar-days icon (stroke 2) at the row's END. */}
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2 text-ink">
+            <div className="relative flex-1">
+              <select
+                value={monthValue}
+                onChange={(e) => {
+                  const [y, m] = e.target.value.split("-").map(Number);
+                  setMonth(new Date(y, m - 1, 1));
+                }}
+                className="h-9 w-full appearance-none rounded-full border border-[#DDDBD5] bg-[#F8F7F4] px-3 pr-12 font-inter text-sm font-bold text-ink outline-none transition-all duration-200 hover:border-[#571AFF] focus:border-[#571AFF]"
+              >
+                {options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-5 top-1/2 h-[15px] w-[15px] -translate-y-1/2"
+                strokeWidth={2}
+                aria-hidden
+              />
+            </div>
+            <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
           </div>
-          <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted">
+          <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
             {BOOKING_WEEKDAY_LABELS.map((wd, i) => (
               <span key={i}>{wd}</span>
             ))}
