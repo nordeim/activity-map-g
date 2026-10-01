@@ -141,6 +141,27 @@ test.describe("mobile navigation", () => {
     expect(h).toBeLessThanOrEqual(52.5);
   });
 
+  test("the tab-bar links render 44px tap targets (session 61)", async ({ page }) => {
+    // Session-61 re-measure: the live's tab-bar anchors render h-11
+    // (44px) FULL-HEIGHT touch targets — the four text links AND the three
+    // right-cluster icon links all measure 44px tall (the clone rendered
+    // 18px content-height links: same visual text position, 2.4× smaller
+    // tap zones).
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    const heights = await nav
+      .getByRole("link")
+      .evaluateAll((els) =>
+        els
+          .filter((el) => el instanceof HTMLElement && el.offsetParent !== null)
+          .map((el) => Math.round(el.getBoundingClientRect().height)),
+      );
+    expect(heights.length).toBeGreaterThanOrEqual(7);
+    for (const h of heights) {
+      expect(h).toBeGreaterThanOrEqual(43);
+      expect(h).toBeLessThanOrEqual(45);
+    }
+  });
+
   test("the text links sit at the live's shrink-wrapped positions (session-32)", async ({ page }) => {
     // Session-32 re-measure: the live's middle link group is now
     // SHRINK-WRAPPED (`min-w-0 mr-2`, no flex-1) — the four text links sit

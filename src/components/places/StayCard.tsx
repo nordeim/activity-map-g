@@ -28,17 +28,21 @@ export function StayCard({ place, home = false }: { place: PlaceDTO; home?: bool
                * below the viewport → 0 centered → negative above; NO hover
                * zoom/brightness — the live's transform/filter sit still on
                * hover). The /stay BROWSE variant keeps its plain fill +
-               * the session-6 hover model (verified: transform none there). */
+               * the session-6 hover model (verified: transform none there).
+               * Session-61: the live's parallax is DESKTOP-ONLY — on phones
+               * the home imgs compute transform: none at every scroll (the
+               * 118% fill is pure layout). The initial transform therefore
+               * lives in an md-gated ARBITRARY-PROPERTY class (Tailwind v4's
+               * translate/scale utilities emit the individual properties —
+               * the arbitrary form pins the composed `transform`); the
+               * useParallax listener (also md-gated) overrides it inline
+               * per frame from md up. */
               <img
                 src={place.coverImageUrl}
                 alt={place.name}
                 loading="lazy"
                 data-parallax="1.16"
-                className="h-[118%] w-full object-cover"
-                style={{
-                  transform: "translateY(8%) scale(1.16)",
-                  transition: "transform 260ms ease-out",
-                }}
+                className="h-[118%] w-full object-cover md:[transform:translateY(8%)_scale(1.16)] md:transition-transform md:duration-[260ms] md:ease-out"
               />
             ) : (
               <img
@@ -58,6 +62,8 @@ export function StayCard({ place, home = false }: { place: PlaceDTO; home?: bool
             className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/[0.96]"
           />
 
+          {/* The heart: the SaveButton's own responsive chrome (session-61:
+              44px below md, 36px from md) — positioned 16px inset. */}
           <SaveButton
             placeId={place.id}
             initialSaved={place.saved ?? false}
@@ -79,10 +85,25 @@ export function StayCard({ place, home = false }: { place: PlaceDTO; home?: bool
           -30px from md, the pills row mt-14px with the 18px/220-260ms
           reveal (was mt-3/300ms/16px). */}
           <div className="absolute bottom-[18px] left-[18px] right-[18px] text-white transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] md:bottom-[-30px] md:group-hover:-translate-y-12">
-            <h3 className="text-[24px] font-medium leading-tight tracking-[-0.03em] text-white md:text-lg">
+            {/* Session-61 re-measure: the line-heights are
+                VARIANT-SPECIFIC — the HOME cards render lh 1.5 (36px mob
+                / 27px dsk on the h3; the p 18.6px mob / 18px dsk) while
+                the /stay BROWSE cards keep leading-tight (30/22.5) and
+                the p's text-xs default at md (16px). */}
+            <h3
+              className={cn(
+                "text-[24px] font-medium tracking-[-0.03em] text-white md:text-lg",
+                home ? "leading-normal" : "leading-tight",
+              )}
+            >
               {place.name}
             </h3>
-            <p className="mt-2 flex justify-between gap-3 text-xs text-white/70">
+            <p
+              className={cn(
+                "mt-2 flex justify-between gap-3 text-xs leading-[1.55] text-white/70",
+                home ? "md:leading-normal" : "md:leading-4",
+              )}
+            >
               <span className="truncate">{place.address ?? place.neighborhood ?? "Augsburg"}</span>
               <span className="shrink-0">
                 {home ? (

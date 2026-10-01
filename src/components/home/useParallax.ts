@@ -11,6 +11,11 @@
 // above (measured on the live at 1280×900: +35.9px far-below, ~0
 // centered, −32.1 above — slope ≈ 0.05×distance, clamped ±8%).
 //
+// Session-61 re-measure: the live's parallax is DESKTOP-ONLY — at 390 the
+// stay imgs AND the sights imgs compute transform: none at every scroll
+// position. The listener therefore no-ops below md (and clears any stale
+// desktop transforms on the way out).
+//
 // The element's `data-parallax` attribute carries its scale factor
 // ("1.16" for the stay imgs, "" for the scale-less sights wrappers); the
 // base `translateY(8%)` renders in the initial SSR markup (no hydration
@@ -30,6 +35,13 @@ export function useParallax<T extends HTMLElement>() {
 
     const apply = () => {
       raf = null;
+      // Session-61: desktop-only — below md the live computes none.
+      if (window.innerWidth < 768) {
+        root.querySelectorAll<HTMLElement>("[data-parallax]").forEach((el) => {
+          el.style.transform = "";
+        });
+        return;
+      }
       const vh = window.innerHeight;
       root.querySelectorAll<HTMLElement>("[data-parallax]").forEach((el) => {
         const r = el.getBoundingClientRect();

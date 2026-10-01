@@ -585,11 +585,16 @@ test.describe("place detail", () => {
     // encoded the clone's own drift (the AGENTS.md "36px black/45 disc"
     // was right all along); verified on BOTH the browse cards and the
     // detail hero.
+    // Session-61 re-measure: the live has SINCE GONE RESPONSIVE — at 390
+    // the heart now renders 44×44 (h-11) on EVERY surface (the detail
+    // hero, the /eat + /stay browse cards, the home showcase cards);
+    // 36×36 survives from md up. The pin flips to the live's current
+    // mobile contract.
     const heart = page.getByRole("button", { name: "Save to favourites" }).first();
     const heartBox = await heart.boundingBox();
     expect(heartBox).not.toBeNull();
-    expect(Math.round(heartBox!.width)).toBe(36);
-    expect(Math.round(heartBox!.height)).toBe(36);
+    expect(Math.round(heartBox!.width)).toBe(44);
+    expect(Math.round(heartBox!.height)).toBe(44);
   });
 
   test("detail page container: max-w-6xl rounded-36 card, no border (session 10)", async ({ page }) => {

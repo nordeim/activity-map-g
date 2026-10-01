@@ -123,10 +123,11 @@ export function Navbar({ userEmail = "" }: { userEmail?: string }) {
         >
           {/* Wordmark — the live app's image logo (icon + wordmark sprite,
               /images/roam-logo.png), two-span crop: 18px/62px on mobile,
-              25.6px/88px from md (measured). */}
+              25.6px/88px from md (measured). Session-61: the mobile anchor
+              renders the live's h-11 (44px) full-height tap target. */}
           <Link
             href="/"
-            className="press-shrink flex h-8 shrink-0 items-center md:ml-1"
+            className="press-shrink flex h-11 shrink-0 items-center md:ml-1 md:h-8"
             aria-label="ROAM home"
           >
             <span aria-hidden className="relative block h-[18px] w-[18px] shrink-0 overflow-hidden md:h-[25.6px] md:w-[25.6px]">
@@ -168,8 +169,12 @@ export function Navbar({ userEmail = "" }: { userEmail?: string }) {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "press-shrink font-nav flex h-full shrink-0 items-center whitespace-nowrap text-[12px] tracking-[-0.01em] md:text-[13px] md:tracking-[0.01em]",
-                    "md:h-auto md:rounded-full md:px-4 md:py-2",
+                    // Session-61: h-11 (44px) mobile tap targets — the
+                    // live's full-height anchors (the clone rendered 18px
+                    // content-height links); the text position is unchanged
+                    // (items-center in the 51px nav).
+                    "press-shrink font-nav flex h-11 shrink-0 items-center whitespace-nowrap text-[12px] tracking-[-0.01em] md:h-auto md:text-[13px] md:tracking-[0.01em]",
+                    "md:rounded-full md:px-4 md:py-2",
                     active
                       ? "font-bold text-ink md:bg-[rgba(14,14,14,0.08)]"
                       : "font-medium text-[rgba(14,14,14,0.4)] hover:text-ink md:text-[#555550] md:hover:bg-black/[0.04] md:hover:text-ink",
@@ -209,7 +214,7 @@ export function Navbar({ userEmail = "" }: { userEmail?: string }) {
               href="/map"
               aria-label="Map"
               className={cn(
-                "press-shrink flex h-full w-[18px] items-center justify-center md:hidden",
+                "press-shrink flex h-11 w-[18px] items-center justify-center md:hidden",
                 isActive("/map") ? "text-ink" : "text-ink hover:opacity-70",
               )}
             >
@@ -219,7 +224,7 @@ export function Navbar({ userEmail = "" }: { userEmail?: string }) {
               href="/favourites"
               aria-label="Favourites"
               className={cn(
-                "press-shrink flex h-full w-[18px] items-center justify-center md:h-9 md:w-9 md:rounded-full md:bg-[#0e0e0e]/[0.07]",
+                "press-shrink flex h-11 w-[18px] items-center justify-center md:h-9 md:w-9 md:rounded-full md:bg-[#0e0e0e]/[0.07]",
                 isActive("/favourites")
                   ? "text-ink"
                   : "text-ink hover:opacity-70 md:hover:bg-[#0e0e0e]/[0.12]",
@@ -238,7 +243,7 @@ export function Navbar({ userEmail = "" }: { userEmail?: string }) {
               href="/profile"
               aria-label="Profile"
               className={cn(
-                "press-shrink flex h-full w-[18px] items-center justify-center md:h-9 md:w-9 md:rounded-full md:bg-ink",
+                "press-shrink flex h-11 w-[18px] items-center justify-center md:h-9 md:w-9 md:rounded-full md:bg-ink",
                 isActive("/profile")
                   ? "text-ink md:text-white"
                   : "text-ink hover:opacity-70 md:text-white md:hover:opacity-90",

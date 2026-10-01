@@ -36,6 +36,18 @@ test.describe("home content parity (session 2)", () => {
     await expect(planner).toHaveCSS("border-radius", "30px");
     const plannerShadow = await planner.evaluate((el) => getComputedStyle(el).boxShadow);
     expect(plannerShadow).toContain("rgba(14, 14, 14, 0.16)");
+
+    // Session-61 re-measure: the live's mobile planner card is
+    // rgba(255,255,255,0.94) (not /95) and its shadow carries a 1px white
+    // INSET top highlight (inset 0 1px 0 rgba(255,255,255,0.94)) on top of
+    // the 0 16 34 drop shadow.
+    const plannerBg = await planner.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const alphaMatch = /(?:\/\s*|,\s*)(0\.9\d)/.exec(plannerBg);
+    expect(alphaMatch).not.toBeNull();
+    expect(parseFloat(alphaMatch![1])).toBeGreaterThanOrEqual(0.93);
+    expect(parseFloat(alphaMatch![1])).toBeLessThanOrEqual(0.95);
+    expect(plannerShadow).toContain("inset");
+    expect(plannerShadow).toContain("rgba(255, 255, 255, 0.94)");
   });
 
   test("hero geometry: taller photo, content positions match the live (session 10)", async ({ page }) => {
@@ -1276,6 +1288,195 @@ test.describe("home content parity (session 2)", () => {
     });
     expect(sightsWrapper.wrapperH).toBeGreaterThanOrEqual(Math.round(sightsWrapper.cardH * 1.25));
     expect(sightsWrapper.wrapperH).toBeLessThanOrEqual(Math.round(sightsWrapper.cardH * 1.4));
+  });
+
+  // Session-61 re-measure: the live's home stay grid became a STAGGERED
+  // FANNING grid on desktop — three column wrappers (the middle column
+  // rises with scroll to −0.2 × its own height) and the outer columns'
+  // cards fanning rotate(∓6°) about their bottom-LEFT corner plus
+  // translateX(∓38px) as each card traverses the viewport. Mobile (390):
+  // flat — the whole effect is md+ only. Verified on the live at
+  // 1280×900: the settled col1 card0 rect spans [−78, 341] (w 418) and
+  // col3 card0 spans [836, 1255] (w 418); the middle column settles at
+  // ty = −315.24 (= −0.2 × 1576px column).
+  test("the stay grid FANS + STAGGERS on desktop scroll (session 61)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const grid = page.locator("#stay-showcase ul").first();
+
+    // At load (the grid far below the fold): the fan is at rest — every
+    // transform identity, the twelve wrappers + three columns in place.
+    const atRest = await grid.evaluate((el) => {
+      const cards = [...el.querySelectorAll("[data-fan-card]")] as HTMLElement[];
+      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+      return {
+        fanCards: cards.length,
+        cols: cols.length,
+        cardT: cards[0] ? getComputedStyle(cards[0]).transform : "missing",
+        midT: cols[1] ? getComputedStyle(cols[1]).transform : "missing",
+      };
+    });
+    expect(atRest.fanCards).toBe(12);
+    expect(atRest.cols).toBe(3);
+    expect(atRest.cardT).toBe("none");
+    expect(atRest.midT).toBe("none");
+
+    // Centered scroll: the fan ENGAGES — the middle column rises, the
+    // outer cards rotate (progressively — top cards ahead), the middle
+    // column's own cards stay flat.
+    await grid.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(800);
+    const engaged = await grid.evaluate((el) => {
+      const deg = (t: string) => {
+        if (t === "none") return 0;
+        const m = t.match(/^matrix\(([^,]+),\s*([^,]+)/);
+        if (!m) return 0;
+        return (Math.asin(parseFloat(m[2])) * 180) / Math.PI;
+      };
+      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+      const outer = [...el.querySelectorAll('[data-fan-card="0"], [data-fan-card="2"]')] as HTMLElement[];
+      const inner = [...el.querySelectorAll('[data-fan-card="1"]')] as HTMLElement[];
+      const midT = getComputedStyle(cols[1]).transform;
+      const midTy = midT === "none" ? 0 : parseFloat(midT.split(",")[5]);
+      return {
+        midTy,
+        outerRots: outer.map((c) => Math.round(Math.abs(deg(getComputedStyle(c).transform)) * 100) / 100),
+        innerRots: inner.map((c) => Math.round(Math.abs(deg(getComputedStyle(c).transform)) * 100) / 100),
+      };
+    });
+    expect(engaged.midTy).toBeLessThan(-40);
+    expect(Math.max(...engaged.outerRots)).toBeGreaterThan(1);
+    expect(Math.max(...engaged.outerRots)).toBeLessThan(6);
+    expect(Math.max(...engaged.innerRots)).toBe(0);
+
+    // Deep scroll (the section fully above the viewport): the SETTLED
+    // state — every outer card at ±6°, the middle column at
+    // −0.2 × its column height, col1's first card leaning LEFT past the
+    // grid's edge (rect x < 0, width ≈ 418).
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(800);
+    const settled = await grid.evaluate((el) => {
+      const deg = (t: string) => {
+        if (t === "none") return 0;
+        const m = t.match(/^matrix\(([^,]+),\s*([^,]+)/);
+        if (!m) return 0;
+        return (Math.asin(parseFloat(m[2])) * 180) / Math.PI;
+      };
+      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+      const outer = [...el.querySelectorAll('[data-fan-card="0"], [data-fan-card="2"]')] as HTMLElement[];
+      const midT = getComputedStyle(cols[1]).transform;
+      const midTy = midT === "none" ? 0 : parseFloat(midT.split(",")[5]);
+      const colH = cols[1].getBoundingClientRect().height;
+      const first = outer[0].getBoundingClientRect();
+      const gridR = el.getBoundingClientRect();
+      return {
+        midTy,
+        colH,
+        outerRots: outer.map((c) => Math.round(Math.abs(deg(getComputedStyle(c).transform)) * 100) / 100),
+        firstCard: { x: Math.round(first.x - gridR.x), w: Math.round(first.width) },
+      };
+    });
+    expect(settled.outerRots.every((r) => Math.abs(r - 6) < 0.2)).toBe(true);
+    expect(settled.midTy).toBeLessThanOrEqual(-0.19 * settled.colH);
+    expect(settled.midTy).toBeGreaterThanOrEqual(-0.21 * settled.colH);
+    expect(settled.firstCard.x).toBeLessThanOrEqual(-70);
+    expect(settled.firstCard.w).toBeGreaterThanOrEqual(410);
+    expect(settled.firstCard.w).toBeLessThanOrEqual(426);
+  });
+
+  test("the stay grid fan is OFF on mobile — flat at every scroll (session 61)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const grid = page.locator("#stay-showcase ul").first();
+    const gridY = await grid.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    // Sweep the whole section — every fan transform stays identity.
+    for (const dy of [0, 400, 1200, 2400, 3600]) {
+      await page.evaluate((y) => window.scrollTo(0, y), gridY - 200 + dy);
+      await page.waitForTimeout(350);
+      const state = await grid.evaluate((el) => {
+        const cards = [...el.querySelectorAll("[data-fan-card]")] as HTMLElement[];
+        const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+        return {
+          cardCount: cards.length,
+          colCount: cols.length,
+          cardT: cards.map((c) => getComputedStyle(c).transform === "none"),
+          midT: cols[1] ? getComputedStyle(cols[1]).transform === "none" : true,
+        };
+      });
+      expect(state.cardCount).toBe(12);
+      expect(state.colCount).toBe(3);
+      expect(state.cardT.every(Boolean)).toBe(true);
+      expect(state.midT).toBe(true);
+    }
+  });
+
+  // Session-61 re-measure: the live's stay-card heart is RESPONSIVE —
+  // 44×44 (h-11) below md, 36×36 (w-9 h-9) from md — both at (16,16)
+  // within the card. The clone rendered 36px at every width.
+  test("the stay-card heart renders 44px on phones, 36px on desktop (session 61)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const heartM = page.locator("#stay-showcase article button").first();
+    const hm = await heartM.boundingBox();
+    expect(hm).not.toBeNull();
+    expect(Math.round(hm!.width)).toBe(44);
+    expect(Math.round(hm!.height)).toBe(44);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const heartD = page.locator("#stay-showcase article button").first();
+    const hd = await heartD.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const card = el.closest("article")!.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x - card.x), y: Math.round(r.y - card.y) };
+    });
+    expect(hd.w).toBe(36);
+    expect(hd.h).toBe(36);
+    expect(hd.x).toBe(16);
+    expect(hd.y).toBe(16);
+  });
+
+  // Session-61 re-measure: the live's showcase parallax is DESKTOP-ONLY —
+  // at 390 the stay-card home images and the sights images compute
+  // transform: none at every scroll position (the 118% fill is pure
+  // layout). The clone ran the 1.16 zoom + the ty parallax at mobile too.
+  test("the showcase image parallax is desktop-only (session 61)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const stayImg = page.locator("#stay-showcase article img").first();
+    const sightsImg = page.locator("#highlighted-sights article img").first();
+    const stayY = await page.locator("#stay-showcase").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    for (const dy of [0, 800, 2000, 4000, 6000]) {
+      await page.evaluate((y) => window.scrollTo(0, y), stayY - 300 + dy);
+      await page.waitForTimeout(350);
+      expect(await stayImg.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+      expect(await sightsImg.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+    }
+  });
+
+  // Session-61 re-measure: the live's card line-heights — the HOME cards'
+  // h3 renders 24px/36px (lh 1.5) on phones and 18px/27px (lh 1.5) on
+  // desktop, the meta p 12px/18.6px (lh 1.55) on phones and 12px/18px
+  // (lh 1.5) on desktop. (The /stay BROWSE variant keeps leading-tight +
+  // the 16px p — variant-specific, pinned in browse.spec.)
+  test("the stay-card typography carries the live's 1.5 line-heights (session 61)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const titleM = page.locator("#stay-showcase article h3").first();
+    const metaM = page.locator("#stay-showcase article p").first();
+    await expect(titleM).toHaveCSS("font-size", "24px");
+    await expect(titleM).toHaveCSS("line-height", "36px");
+    await expect(metaM).toHaveCSS("font-size", "12px");
+    await expect(metaM).toHaveCSS("line-height", "18.6px");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const titleD = page.locator("#stay-showcase article h3").first();
+    const metaD = page.locator("#stay-showcase article p").first();
+    await expect(titleD).toHaveCSS("font-size", "18px");
+    await expect(titleD).toHaveCSS("line-height", "27px");
+    await expect(metaD).toHaveCSS("font-size", "12px");
+    await expect(metaD).toHaveCSS("line-height", "18px");
   });
 
   test("highlighted sights: six cards linking to home-sight place pages", async ({ page }) => {

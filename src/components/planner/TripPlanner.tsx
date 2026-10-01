@@ -85,7 +85,10 @@ export function TripPlanner({
         variant === "glass"
           ? // Session-5: below md a near-opaque white CARD (radius 30, p-2,
             // big soft shadow); from md the frosted GLASS PILL returns.
-            "z-50 w-[calc(100%+16px)] border border-transparent bg-white/95 shadow-[0_16px_34px_rgba(14,14,14,0.16)] md:w-full md:max-w-[548px] md:rounded-full md:border-white/35 md:bg-[#F8F7F4]/35 md:p-1 md:shadow-[0_8px_22px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.42)] md:backdrop-blur-[28px] md:backdrop-saturate-150"
+            // Session-61 re-measure: the live's mobile card is
+            // rgba(255,255,255,0.94) (not /95) and its shadow carries the
+            // 1px white INSET top highlight on top of the 0 16 34 drop.
+            "z-50 w-[calc(100%+16px)] border border-transparent bg-white/94 shadow-[0_16px_34px_rgba(14,14,14,0.16),inset_0_1px_0_rgba(255,255,255,0.94)] md:w-full md:max-w-[548px] md:rounded-full md:border-white/35 md:bg-[#F8F7F4]/35 md:p-1 md:shadow-[0_8px_22px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.42)] md:backdrop-blur-[28px] md:backdrop-saturate-150"
           : "w-full border border-black/5 bg-white/95 p-1.5 shadow-[0_8px_22px_rgba(0,0,0,0.08)]",
         open && "z-[30000]",
         className,

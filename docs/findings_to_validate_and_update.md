@@ -383,3 +383,55 @@ below was re-measured fresh from the live, not restored from memory):
   Carto-map spec; the fan/stop/badge/label pins extended in place) — all
   executed green;
   19 screenshots re-captured via `scripts/capture-screens-session60.mjs`.
+
+## v2.26 addendum — session 62 (the staggered-fanning stay grid + the responsive hearts)
+
+Audited against the operator's REDEPLOYED v2.25 mirror (fresh build +
+re-seeded db, `docs/start_server_log.txt`). The mobile navigation menu (the
+task's standing focus) re-verified EXACT at 390 on both sites — no Tailwind
+v4 regression; the identity's eighth measurement held "sepnetflix2023". The
+hero image verified SHA-256-identical (the VLM's "different composition"
+claim was a misjudgment — disproven by the hash). The Carto route tiles now
+return the provider's "API KEY REQUIRED" watermark placeholder (a 2KB
+16-color mostly-blank PNG) IDENTICALLY on both sites — an external
+degradation of the shared public tile URLs, not parity drift; if the live
+ever fixes it upstream (an API key or a provider switch), re-measure.
+
+Validated findings this session (all remediated, TDD-first):
+
+- **The home stay grid = a STAGGERED FANNING grid (md+ only)**: three column
+  wrappers; the middle column's scroll-linked translateY rises to −0.2 × the
+  column height (−315.24px at 1576px); the outer cards fan
+  `rotate(∓6°) + translateX(∓38px)` about `transform-origin: 0 100%`, each
+  phased by its own viewport traversal `(vh − top)/(vh + height)` (the row
+  pitch 399 staggers the phases). Settled col-1 card-0 rect [−78, 341] w418;
+  col-3 [836, 1255] w418; matrix ±0.104528 = ±6.000°. Phones: `transform:
+  none` at EVERY scroll position. (Earlier "39px/49px heart" and "card 563px
+  image" desktop readings were rotation-inflated rect artifacts — always
+  measure at a rest scroll or via offsetTop.)
+- **The card hearts are RESPONSIVE**: 44×44 (h-11) below md / 36×36 (w-9)
+  from md, always inset (16,16) — measured on the live's home stay cards,
+  the /stay AND /eat browse cards, and the place-detail hero. The
+  session-24 "36×36 everywhere" pin was a desktop-only truth (its dismissal
+  of the session-10 44×44 reading encoded the pre-responsive live).
+- **The showcase parallax is DESKTOP-ONLY**: at 390 the stay-card home imgs
+  AND the sights imgs compute `transform: none` at every scroll (the 118%
+  fill is pure layout). The mirror had run the 1.16 zoom + the ty parallax
+  at mobile too.
+- **The card typography is variant-specific**: the HOME cards render lh 1.5
+  (h3 24/36 mob, 18/27 dsk; the meta 12/18.6 mob, 12/18 dsk) while the
+  /stay BROWSE cards keep leading-tight (30/22.5) and the 16px md meta.
+- **The mobile planner card**: `rgba(255,255,255,0.94)` (not /95) + the
+  shadow's 1px white INSET top highlight over the unchanged 0 16 34 drop.
+- **The mobile tab-bar anchors render 44px full-height tap targets** (the
+  live's inner nav h-12 48px; the same visual text position — the x
+  geometry was already exact).
+- En-route traps recorded for the next audit: the VLM's full-page fan
+  comparisons misjudge when the two screenshots frame different content
+  windows (the mirror's home is ~430px taller above the stays grid — match
+  the GRID's viewport position, not scrollY; the focused-crop comparison
+  and the DOM numbers are the ground truth); the lazy-image layout shifts
+  make fixed scroll captures unreliable (walk the scroll first, then park
+  at the measured grid position — `scripts/capture-screens-session61.mjs`);
+  the E2E/production layout differs from the dev-server layout for the
+  same reason (probe per environment, never reuse doc positions).

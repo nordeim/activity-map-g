@@ -80,7 +80,11 @@ export function SaveButton({
       aria-pressed={saved}
       aria-label={saved ? "Remove from favourites" : "Save to favourites"}
       className={cn(
-        "relative z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-[6px] transition hover:bg-white hover:text-ink",
+        // Session-61 re-measure: the live's floating heart renders 44px
+        // (h-11) below md and 36px (w-9) from md — measured on the home
+        // stay cards, the /stay + /eat browse cards, AND the place-detail
+        // hero (44×44 at 390, 36×36 at 1280, always inset 16px).
+        "relative z-20 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-[6px] transition hover:bg-white hover:text-ink md:h-9 md:w-9",
         className,
       )}
     >
