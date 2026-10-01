@@ -53,7 +53,16 @@ export function MapExplorer({
   initialCategory: PlaceCategory | null;
   planner?: { dates: string | null; guests: string | null };
 }) {
-  const [query, setQuery] = useState("");
+  // Session-65: the live's search is SUBMIT-DRIVEN — typing never filters
+  // ("brass" typed left 9 markers for 2s on the live); only Enter submits.
+  // The input text and the submitted query are SEPARATE states: a pill
+  // click filters within the visible set and, when the intersection is
+  // EMPTY, falls back to the pill-only set (the query resets while the
+  // input text stays stale — "brass" + Restaurants → 3 on the live);
+  // a query submitted while a pill is active is pure AND (brass +
+  // Restaurants active + Enter → 0 "No places").
+  const [inputText, setInputText] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [filter, setFilter] = useState<PlaceCategory | "all">(initialCategory ?? "all");
   const [geoNotice, setGeoNotice] = useState<string | null>(null);
 
@@ -82,17 +91,35 @@ export function MapExplorer({
     };
   }, []);
 
+  const haystack = (place: PlaceDTO) =>
+    [place.name, place.neighborhood, place.subCategory, place.vibeTags.join(" "), place.cuisineTags.join(" "), place.tags.join(" "), place.amenities.join(" ")]
+      .join(" ")
+      .toLowerCase();
+
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = submittedQuery.trim().toLowerCase();
     return places.filter((p) => {
       if (filter !== "all" && p.category !== filter) return false;
       if (!q) return true;
-      return [p.name, p.neighborhood, p.subCategory, p.vibeTags.join(" "), p.cuisineTags.join(" "), p.tags.join(" "), p.amenities.join(" ")]
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
+      return haystack(p).includes(q);
     });
-  }, [places, query, filter]);
+  }, [places, submittedQuery, filter]);
+
+  // Session-65: the live's pill-click model — filter WITHIN the visible
+  // set; an EMPTY intersection falls back to the pill-only set (the
+  // submitted query resets, the input text stays stale).
+  const selectFilter = (value: PlaceCategory | "all") => {
+    if (submittedQuery.trim()) {
+      const q = submittedQuery.trim().toLowerCase();
+      const intersection = places.filter(
+        (p) => (value === "all" || p.category === value) && haystack(p).includes(q),
+      );
+      setFilter(value);
+      if (intersection.length === 0) setSubmittedQuery("");
+    } else {
+      setFilter(value);
+    }
+  };
 
   // Derived: the deep-link focus (?place=slug) only counts when the current
   // filter keeps the place visible (drives the flyTo — session-30: the pin
@@ -148,18 +175,29 @@ export function MapExplorer({
             </span>
             <input
               type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                // Session-65: the live submits the query on Enter (typing
+                // alone never filters).
+                if (e.key === "Enter") setSubmittedQuery(inputText);
+              }}
               placeholder="Try: romantic hotels with a pool"
               aria-label="Search the map"
               className="w-full bg-transparent text-sm font-medium text-ink outline-none placeholder:text-black/40"
             />
-            {query ? (
+            {inputText ? (
               <button
                 type="button"
-                onClick={() => setQuery("")}
+                onClick={() => {
+                  // Session-65: clearing resets BOTH the text and the
+                  // submitted query (the visible set falls back to the pill
+                  // state) — the live's pill-only fallback.
+                  setInputText("");
+                  setSubmittedQuery("");
+                }}
                 aria-label="Clear search"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-black/40 hover:bg-black/5 hover:text-ink"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-black/40 hover:bg-black/5 hover:text-ink"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
@@ -189,7 +227,7 @@ export function MapExplorer({
             <button
               key={value}
               type="button"
-              onClick={() => setFilter(value)}
+              onClick={() => selectFilter(value)}
               aria-pressed={filter === value}
               className={cn(
                 "flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-[10px] text-xs font-semibold transition-all md:min-h-[41px]",
@@ -210,9 +248,12 @@ export function MapExplorer({
       <div className="mx-auto max-w-7xl px-4 pb-24 md:px-8">
 
       {/* Map canvas — session-12: the live's desktop height is 620px
-          (measured at 1280); phones keep the responsive shorter canvas. */}
+          (measured at 1280). Session-65 re-measure: the live's MOBILE canvas
+          is a FIXED 356×310 (measured at 390×{700,844,1000} — height never
+          moves), not the clone's 62vh — below md the canvas is a fixed
+          310px-tall card. */}
       <section className="relative">
-        <div className="h-[62vh] min-h-[420px] overflow-hidden rounded-3xl border border-black/5 shadow-card md:h-[620px]">
+        <div className="h-[310px] overflow-hidden rounded-3xl border border-black/5 shadow-card md:h-[620px]">
           <LeafletCanvas places={visible} activeSlug={focusVisible} />
         </div>
 
@@ -257,30 +298,42 @@ export function MapExplorer({
             <h2 className="font-serif text-4xl tracking-[-0.05em] text-ink">Places on the map</h2>
             <p className="mt-1 text-sm text-muted">Fictional restaurants, hotels and things to do.</p>
           </div>
+          {/* Session-65: the live's list-header COUNT CHIP — the bare count
+              in a white rounded-full pill (px-3 py-1.5, 12px font-semibold)
+              on the right of the header row (reads 0 in the empty state). */}
+          <span className="rounded-full bg-white px-3 py-1.5 font-inter text-xs font-semibold text-ink">
+            {visible.length}
+          </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((place) => (
-            <Link
-              key={place.id}
-              href={`/place/${place.slug}`}
-              className="group rounded-[24px] border border-[rgba(14,14,14,0.08)] bg-white p-4 transition-colors duration-300 hover:border-black/20"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="inline-flex items-center gap-1.5 self-start rounded-full bg-cream px-2.5 py-1 text-xs font-semibold uppercase leading-[18px] tracking-[0.08em] text-[#555550]">
-                  {mapListEyebrow(place)}
+        {visible.length === 0 ? (
+          /* Session-65: the live's 0-result state renders a "No places"
+             line (the live: brass + Restaurants active → "No places"). */
+          <p className="py-10 text-center text-sm text-muted">No places</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {visible.map((place) => (
+              <Link
+                key={place.id}
+                href={`/place/${place.slug}`}
+                className="group rounded-[24px] border border-[rgba(14,14,14,0.08)] bg-white p-4 transition-colors duration-300 hover:border-black/20"
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="inline-flex items-center gap-1.5 self-start rounded-full bg-cream px-2.5 py-1 text-xs font-semibold uppercase leading-[18px] tracking-[0.08em] text-[#555550]">
+                    {mapListEyebrow(place)}
+                  </p>
+                  <p className="shrink-0 text-[13px] text-[#72706C]">
+                    {priceRangeSymbols(place.priceRange ?? 2)}
+                  </p>
+                </div>
+                <p className="text-[15px] font-semibold leading-snug text-ink">{place.name}</p>
+                <p className="mt-2 flex items-center gap-1 truncate text-xs text-[#888580]">
+                  <MapPin className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
+                  {place.neighborhood ?? "Augsburg"}
                 </p>
-                <p className="shrink-0 text-[13px] text-[#72706C]">
-                  {priceRangeSymbols(place.priceRange ?? 2)}
-                </p>
-              </div>
-              <p className="text-[15px] font-semibold leading-snug text-ink">{place.name}</p>
-              <p className="mt-2 flex items-center gap-1 truncate text-xs text-[#888580]">
-                <MapPin className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
-                {place.neighborhood ?? "Augsburg"}
-              </p>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
       </div>
     </main>

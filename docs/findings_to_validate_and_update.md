@@ -489,3 +489,80 @@ Validated findings this session (all remediated, TDD-first):
   (238,243,238) replaces the watermark era's blank (250,250,248); the
   mobile-map capture's tile-wait threshold corrected to 4: a 390 viewport
   shows only ~6 z14 tiles, the desktop's 12 does not apply).
+
+## v2.28 addendum — session 66 (the /map basemap + view model + search semantics)
+
+Audited against the operator's REDEPLOYED v2.27 mirror (fresh build +
+re-seeded db + `NEXT_PUBLIC_CARTO_KEY` in `.env`, `docs/start_server_log.txt`)
+plus the operator's `docs/session_65.md` (the session-64 transcript archive).
+The mobile navigation menu (the standing focus) verified EXACT at 390 on
+BOTH sites — the tab-bar is fixed at the viewport TOP (0, 0, 390, 52; the
+probe's first pass searched the viewport's BOTTOM half and found nothing —
+the bar was always there), the glass and link geometry exact, every anchor
+44px, the taps green — no Tailwind v4 regression; the identity's TENTH
+measurement held "sepnetflix2023". Every v2.27 surface re-verified: the
+mirror's route tiles 50/50 keyed, the /map tiles 24/24 keyed AND loaded
+with the real imagery pixel-verified (1942 distinct colors, the
+(238,243,238) land tone), the fan settled −315.237/−315.34, the mid-ramp
+no-inset delta 0.00 at TWO parked points, the category fan ±18°, the
+hearts, the hero, the booking label, zero mirror console errors; the live
+remains keyless upstream (its route SVG hrefs AND /map tile srcs both
+`hasKey: false`).
+
+Validated findings this session (both on the /map surface, both remediated
+TDD-first — the live's /map canvas was probed at the TILE level for the
+first time; prior sessions pinned the chrome but never the tile URL or the
+zoom model):
+
+- **The basemap + view model (F1)**: the live serves `light_nolabels` z15
+  tiles — the SAME minimal style family as its route map — while the clone
+  served `rastertiles/voyager` (the original "the reference app's
+  carto.com basemap" comment was never verified against the live). The
+  live's initial view is a FITBOUNDS model,
+  `fitBounds(9 places, {padding: [40, 40], maxZoom: 15})`: the zoom is
+  viewport-dependent (z13 @390 canvas 356×310, z14 @640 canvas 396×310,
+  z15 @768+ canvas 702-1278×620 — measured across 11 viewports; the
+  padding pinned by discriminators: canvas 362 → z13 while 366 → z14, the
+  1278-canvas case capped at z15 by the maxZoom), the 9-pin BOUNDS
+  centered (the west/east pins at exactly (w−span)/2 — NOT the centroid:
+  the asymmetric distribution sits ~19px east at 390 on BOTH sites, a
+  probe-side mid-range math error that initially looked like a live-side
+  difference), the view RE-FITTING on every actual filter change (the pane
+  translated −141px after the Restaurants pill; the 390 zoom climbing z13
+  → z14 after the Hotels pill), maxZoom 18 (22 clean zoom-ins from the z0
+  floor), and the mobile canvas a FIXED 356×310 (measured at
+  390×{700, 844, 1000}; the clone had 62vh ≈ 521). Remediated in
+  `LeafletCanvas.tsx`: the keyed `light_nolabels` URL, maxZoom 18, the map
+  created with NO fixed center/zoom, the view set by the mount fit
+  (instant) with later points-changes re-fitting ANIMATED (a
+  didInitialFit ref) — replacing the guard-gated `.pad(0.18)` fit that
+  NEVER FIRED (the fixed z14 view already contained the bounds center, so
+  the guard failed); `MapExplorer.tsx`'s canvas `h-[62vh] min-h-[420px]`
+  → `h-[310px]`.
+- **The search + list semantics (F2)**: the live's query submits on ENTER
+  — typing NEVER filters ("brass" typed + 2s left 9 markers unchanged). A
+  pill click filters WITHIN the visible set with the EMPTY-intersection
+  FALLBACK to the pill-only set (the query resets, the input text stays
+  stale: "brass"+Restaurants → 3 while "garden"+Restaurants → 1); a query
+  submitted while a pill is active is pure AND ("brass"+Restaurants
+  active+Enter → 0 "No places"). The list header carries the bare-count
+  white rounded-full px-3 py-1.5 12px/600 COUNT CHIP; the clear button is
+  the live's 28px (w-7 h-7) disc. Remediated in `MapExplorer.tsx`: the
+  `inputText`/`submittedQuery` state split (Enter submits),
+  `selectFilter`'s within-visible + empty-fallback model, the clear button
+  resetting both + the 28px chrome, the count chip, and the "No places"
+  empty state. (The live's async/fuzzy server-side MATCHING semantics —
+  "garden"→1, "hotel"→3, "ember"→3-or-9 across runs — are documented as
+  un-replicable; the clone's deterministic local haystack match stays.)
+- Gate arithmetic: **117 unit · 31 smoke · 102→109 E2E** (+7 new tests:
+  the fitBounds zoom model, the maxZoom 18 cap, the Enter submission, the
+  pill empty-fallback, the re-fit, the count chip + No-places state, the
+  28px clear; the session-63 tile-key pin re-targeted to light_nolabels
+  in place) — all executed green; 20 screenshots re-captured via
+  `scripts/capture-screens-session65.mjs` (the map captures now document
+  the light_nolabels palette — the (237,237,237) land tone + white
+  roads). Two R0 pins were re-calibrated during GREEN: the centroid
+  centering corrected to the BOUNDS-range midpoint (the live's own
+  centroid is off-center too), and the maxZoom pin re-designed around
+  Leaflet's DISABLED control state (a 5th click on the capped control
+  times out — the first RED run surfaced it as a test timeout).

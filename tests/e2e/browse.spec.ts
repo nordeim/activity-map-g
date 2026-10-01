@@ -1024,8 +1024,10 @@ test.describe("map view", () => {
 
   // Session-63: the provider deprecated anonymous CARTO raster access —
   // keyless tile URLs now return the "API KEY REQUIRED" watermark
-  // placeholder. The /map Voyager basemap must carry the operator's key
+  // placeholder. The /map basemap must carry the operator's key
   // (docs/carto_key.txt) as the ?key= param on every Leaflet tile src.
+  // Session-65 re-measure: the live's /map serves LIGHT_NOLABELS tiles (the
+  // same minimal style family as its route map), not Voyager.
   test("the Leaflet basemap tiles carry the CARTO key (session 63)", async ({ page }) => {
     await page.goto("/map");
     const tiles = page.locator("img.leaflet-tile");
@@ -1038,7 +1040,7 @@ test.describe("map view", () => {
     );
     expect(srcs.length).toBeGreaterThan(0);
     for (const s of srcs) {
-      expect(s).toContain("basemaps.cartocdn.com/rastertiles/voyager/");
+      expect(s).toContain("basemaps.cartocdn.com/light_nolabels/");
       expect(s).toContain("?key=cb1_465p_1_988c53d611811b5d4bdb6b32");
     }
   });
@@ -1081,6 +1083,246 @@ test.describe("map view", () => {
     await expect(page.locator(".map-filter-shell")).toHaveCSS("top", "10px");
     await expect(page.locator(".map-filter-shell > div").first()).toHaveCSS("border-radius", "30px");
     await expect(page.getByRole("button", { name: "All Places", exact: true })).toHaveCSS("height", "44px");
+  });
+
+  // ---------------------------------------------------------------------
+  // Session-65 (v2.28): the /map basemap + view model re-measure. The
+  // live's /map canvas was probed at the TILE level for the first time:
+  // it serves light_nolabels tiles (NOT Voyager) and its initial view is
+  // fitBounds(9 places, {padding: [40, 40], maxZoom: 15}) — the zoom is
+  // VIEWPORT-DEPENDENT (z13 @390 canvas 356×310, z14 @640 canvas 396×310,
+  // z15 @768+ canvas 702-1278 × 620), the 9-pin cluster centered, and the
+  // view RE-FITS on every filter change (the pane translated -141px and
+  // the 390 zoom climbed z13 → z14 after the Hotels pill).
+  // ---------------------------------------------------------------------
+
+  // Reads the homogeneous zoom of every attached CARTO tile (the fit model
+  // renders one zoom at rest; transition tiles fade out within the waits).
+  async function readMapZoom(page: import("@playwright/test").Page): Promise<string[]> {
+    return page.locator("img.leaflet-tile").evaluateAll((els) =>
+      Array.from(els)
+        .map((el) => (el as HTMLImageElement).src.match(/\/(\d+)\/\d+\/\d+(?:@2x)?\.png/)?.[1])
+        .filter((z): z is string => Boolean(z)),
+    );
+  }
+
+  test("the /map initial view is the live's fitBounds model (session 65)", async ({ page }) => {
+    // Desktop 1280: the canvas (≈1214×620) fits the 9-place bounds with the
+    // 40px padding at maxZoom 15 → z15 (the clone's old fixed zoom was 14).
+    await page.goto("/map");
+    await page.locator("img.leaflet-tile").first().waitFor({ state: "attached", timeout: 15_000 });
+    await page.waitForTimeout(800);
+    const desktopZ = await readMapZoom(page);
+    expect(desktopZ.length).toBeGreaterThan(0);
+    expect(new Set(desktopZ).size).toBe(1);
+    expect(desktopZ[0]).toBe("15");
+
+    // The fit centers the BOUNDS (Leaflet's fitBounds model — the live's
+    // mobile pins span [106, 249] in the 356px canvas: the west pin at
+    // (356−143)/2 = 106.65 and the east pin at 249.35, i.e. the pins'
+    // x-range MIDPOINT = the canvas center; the pin CENTROID sits ~19px
+    // east of center on BOTH sites — the 9-pin distribution is asymmetric,
+    // so the centroid is NOT the centering contract).
+    const boundsCentering = await page.evaluate(() => {
+      const canvas = document.querySelector(".leaflet-container");
+      if (!canvas) return null;
+      const cr = canvas.getBoundingClientRect();
+      const pts = Array.from(document.querySelectorAll(".leaflet-marker-icon")).map((m) => {
+        const r = m.getBoundingClientRect();
+        return [r.x + r.width / 2 - cr.x, r.y + r.height / 2 - cr.y];
+      });
+      if (!pts.length) return null;
+      const mid = (arr: number[]) => (Math.min(...arr) + Math.max(...arr)) / 2;
+      return {
+        dx: Math.abs(mid(pts.map((p) => p[0])) - cr.width / 2),
+        dy: Math.abs(mid(pts.map((p) => p[1])) - cr.height / 2),
+      };
+    });
+    expect(boundsCentering).not.toBeNull();
+    expect(boundsCentering!.dx).toBeLessThan(15);
+    expect(boundsCentering!.dy).toBeLessThan(15);
+
+    // Mobile 390: the live's canvas is a FIXED 356×310 (not the clone's old
+    // 62vh ≈ 521) and the fit lands at z13; 640 (396×310) fits z14 — the
+    // live's exact zoom table (both fresh loads, not resizes).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/map");
+    await page.locator("img.leaflet-tile").first().waitFor({ state: "attached", timeout: 15_000 });
+    await page.waitForTimeout(800);
+    const mobileCanvas = await page.evaluate(() => {
+      const canvas = document.querySelector(".leaflet-container");
+      const r = canvas ? canvas.getBoundingClientRect() : null;
+      return r ? { w: Math.round(r.width), h: Math.round(r.height) } : null;
+    });
+    expect(mobileCanvas).not.toBeNull();
+    expect(mobileCanvas!.h).toBeGreaterThanOrEqual(306);
+    expect(mobileCanvas!.h).toBeLessThanOrEqual(314);
+    const mobileZ = await readMapZoom(page);
+    expect(mobileZ.length).toBeGreaterThan(0);
+    expect(new Set(mobileZ).size).toBe(1);
+    expect(mobileZ[0]).toBe("13");
+
+    await page.setViewportSize({ width: 640, height: 844 });
+    await page.goto("/map");
+    await page.locator("img.leaflet-tile").first().waitFor({ state: "attached", timeout: 15_000 });
+    await page.waitForTimeout(800);
+    const midZ = await readMapZoom(page);
+    expect(midZ.length).toBeGreaterThan(0);
+    expect(new Set(midZ).size).toBe(1);
+    expect(midZ[0]).toBe("14");
+  });
+
+  test("the /map zoom controls cap at the live's maxZoom 18 (session 65)", async ({ page }) => {
+    await page.goto("/map");
+    await page.locator("img.leaflet-tile").first().waitFor({ state: "attached", timeout: 15_000 });
+    await page.waitForTimeout(600);
+    // The live's floor is 0 and its cap is 18 (22 clean zoom-ins from z0
+    // never leave 18); the clone's old cap was 19. From the fitted z15,
+    // three clicks reach z18 where Leaflet DISABLES the control.
+    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    for (let i = 0; i < 3; i++) {
+      await zoomIn.click();
+      await page.waitForTimeout(450);
+    }
+    await expect(zoomIn).toHaveClass(/leaflet-disabled/);
+    await page.waitForTimeout(1000);
+    const zs = await readMapZoom(page);
+    expect(zs.length).toBeGreaterThan(0);
+    expect(new Set(zs).size).toBe(1);
+    expect(zs[0]).toBe("18");
+  });
+
+  test("the /map search submits on Enter, not on typing (session 65)", async ({ page }) => {
+    await page.goto("/map");
+    const search = page.getByLabel("Search the map");
+    // TYPING never filters — the live's submitted-query model (typing
+    // "brass" left 9 markers for 2s on the live; only Enter filtered).
+    await search.fill("garden");
+    await page.waitForTimeout(700);
+    await expect(page.locator(".roam-marker")).toHaveCount(9);
+    await expect(page.getByText("9 places")).toBeVisible();
+    // Enter submits the query ("garden" → Ember Garden on our haystack).
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(1);
+    await expect(page.locator("#places-list")).toContainText("Ember Garden");
+    // An EMPTY submit restores the full set (the live's empty+Enter → 9).
+    await search.fill("");
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(9);
+  });
+
+  test("the /map pill click filters within the visible set with the empty-fallback (session 65)", async ({ page }) => {
+    await page.goto("/map");
+    const search = page.getByLabel("Search the map");
+    // "brass" → Brass & Marble (a HOTEL). Restaurants within that visible
+    // set is EMPTY → the live falls back to the pill-only set (3 eats) —
+    // the query resets while the input text stays stale.
+    await search.fill("brass");
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(1);
+    await page.getByRole("button", { name: "Restaurants", exact: true }).click();
+    await expect(page.locator(".roam-marker")).toHaveCount(3);
+    await expect(page.locator("#places-list")).toContainText("Ember Garden");
+    // A query submitted while a pill is active is pure AND — the empty
+    // intersection renders 0 + the "No places" state (the live's exact
+    // behavior: brass+Enter with Restaurants active → "No places").
+    await search.fill("brass");
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(0);
+    await expect(page.locator("#places-list")).toContainText("No places");
+    // A NON-empty intersection keeps the query (the live: "garden" +
+    // Restaurants → 1, Ember Garden).
+    await page.getByRole("button", { name: "All Places", exact: true }).click();
+    await search.fill("garden");
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(1);
+    await page.getByRole("button", { name: "Restaurants", exact: true }).click();
+    await expect(page.locator(".roam-marker")).toHaveCount(1);
+  });
+
+  test("the /map re-fits the view on filter changes (session 65)", async ({ page }) => {
+    await page.goto("/map");
+    await expect(page.locator(".roam-marker")).toHaveCount(9);
+    // The Hotels pill (3 stays) re-fits the canvas to the 3-pin cluster —
+    // the pins' x/y-range MIDPOINT returns to the canvas center (the
+    // fitBounds centering contract — the same asymmetric-distribution
+    // caveat as the initial-view pin).
+    await page.getByRole("button", { name: "Hotels", exact: true }).click();
+    await expect(page.locator(".roam-marker")).toHaveCount(3);
+    await page.waitForTimeout(1400);
+    const boundsCentering = await page.evaluate(() => {
+      const canvas = document.querySelector(".leaflet-container");
+      if (!canvas) return null;
+      const cr = canvas.getBoundingClientRect();
+      const pts = Array.from(document.querySelectorAll(".leaflet-marker-icon")).map((m) => {
+        const r = m.getBoundingClientRect();
+        return [r.x + r.width / 2 - cr.x, r.y + r.height / 2 - cr.y];
+      });
+      if (!pts.length) return null;
+      const mid = (arr: number[]) => (Math.min(...arr) + Math.max(...arr)) / 2;
+      return {
+        dx: Math.abs(mid(pts.map((p) => p[0])) - cr.width / 2),
+        dy: Math.abs(mid(pts.map((p) => p[1])) - cr.height / 2),
+      };
+    });
+    expect(boundsCentering).not.toBeNull();
+    expect(boundsCentering!.dx).toBeLessThan(20);
+    expect(boundsCentering!.dy).toBeLessThan(20);
+
+    // The 390 canvas re-fits its zoom too: the Hotels pill climbs z13 → z14
+    // (the live's exact model — the 3-stay bounds fit the small canvas one
+    // level tighter).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/map");
+    await page.locator("img.leaflet-tile").first().waitFor({ state: "attached", timeout: 15_000 });
+    await page.waitForTimeout(800);
+    const before = await readMapZoom(page);
+    expect(before[0]).toBe("13");
+    await page.getByRole("button", { name: "Hotels", exact: true }).click();
+    await expect(page.locator(".roam-marker")).toHaveCount(3);
+    await page.waitForTimeout(1400);
+    const after = await readMapZoom(page);
+    expect(after.length).toBeGreaterThan(0);
+    expect(new Set(after).size).toBe(1);
+    expect(after[0]).toBe("14");
+  });
+
+  test("the /map list renders the live's count chip and the No-places empty state (session 65)", async ({ page }) => {
+    await page.goto("/map");
+    // The live's list header carries a bare-count white pill (px-3 py-1.5,
+    // 12px font-semibold, rounded-full) on the right of the header row.
+    const chip = page.locator("#places-list span").filter({ hasText: /^\d+$/ }).first();
+    await expect(chip).toHaveText("9");
+    await expect(chip).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    const chipRadius = await chip.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+    expect(chipRadius).toBeGreaterThan(500);
+    // A 0-result state renders the "No places" line + the chip reads 0.
+    const search = page.getByLabel("Search the map");
+    await search.fill("zzz-no-match");
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(0);
+    await expect(page.locator("#places-list")).toContainText("No places");
+    await expect(chip).toHaveText("0");
+  });
+
+  test("the /map clear-search button is the live's 28px chrome (session 65)", async ({ page }) => {
+    await page.goto("/map");
+    const search = page.getByLabel("Search the map");
+    await search.fill("garden");
+    const clear = page.getByRole("button", { name: "Clear search" });
+    await expect(clear).toBeVisible();
+    // The live's clear disc is 28px (w-7 h-7 — the clone's was 24px).
+    const box = await clear.boundingBox();
+    expect(box).not.toBeNull();
+    expect(Math.round(box!.width)).toBe(28);
+    expect(Math.round(box!.height)).toBe(28);
+    // Clearing resets BOTH the text and the submitted query (the visible
+    // set falls back to the pill state — the live's pill-only fallback).
+    await search.press("Enter");
+    await expect(page.locator(".roam-marker")).toHaveCount(1);
+    await clear.click();
+    await expect(page.locator(".roam-marker")).toHaveCount(9);
+    await expect(search).toHaveValue("");
   });
 });
 
