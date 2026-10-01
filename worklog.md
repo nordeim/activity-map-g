@@ -1019,3 +1019,26 @@ Stage Summary:
 - The v2.16/v2.17 range audited: one HIGH functional regression found (deep links bounced to /), one MED process gap (census ≠ pass), one MED security hygiene item (.env tracked) — all remediated with TDD evidence.
 - The deep-link contract now matches the live: any authenticated page's URL returns the first-time visitor to that page through the login-free bootstrap; sign-out renders the guide (was an empty shell on the deployed build).
 - Gates: 75 unit + 31/31 smoke + 84/84 E2E — all green; 16 screenshots; 10 docs aligned; single conventional commit + SSH-wrapper push to main (no branches).
+
+---
+Task ID: 41
+Agent: Super Z (main agent, session 48)
+Task: Session 48 — audit + validate the v2.18 range (66c50de..a358ffb) on the redeployed mirror, then remediate the same-day booking classification + the live's identity/avatar drift (TDD), screenshots, docs, push to main.
+
+Work Log:
+- Workspace refreshed (git pull → eebcfcd: docs/session_47.md + the redeploy server log); every root doc + the session history re-read; the v2.18 gate code reviewed file-by-file. Baseline: lint 0 errors · typecheck ✓ · 75/75 unit · build ✓ · smoke 31/31 · E2E 83/84 — the booking spec failing reproducibly on a tree session 46 had verified 84/84 twice.
+- Root cause: a TIME BOMB. The sandbox crossed UTC midnight mid-session; the spec's hardcoded "2026-10-01" booking aged past the boundary (new Date("2026-10-01") = 00:00 UTC < now). The same INSTANT comparison ships in ProfileView — reproduced LIVE on the deployed mirror: booking "Courtyard Stay" for TODAY 19:00 landed under "Past (1)".
+- Dual-site browser audit: the redeployed mirror confirmed running the v2.18 fixes (fresh /profile, /place/map-brass-marble, /eat, /map deep links all RETURN; sign-out renders the guide as guest; mobile nav EXACT 121/192/222/259 + 304/330/356 + 52px glass at 390 and 433/559/639/727/805 at 1280; zero console errors; no Tailwind v4 regression). The live re-measured: all signatures UNCHANGED except TWO drifts — the profile h1 "Explorer" + the static "Your Roam account" subtitle (the email line gone; the account renamed upstream), and the navbar avatar disc now the white 17px/2 lucide User icon (not an email initial).
+- R0 RED: tests/bookings.test.ts (8 checks — failed on the missing module); the E2E booking spec re-pinned to a runtime-computed TODAY date; the profile/avatar/guest identity pins flipped to the live's current contract.
+- R1 GREEN: the pure isBookingPast(startDate, now) seam (src/lib/bookings.ts — calendar-day ordinal via local parts + Date.UTC; null/invalid never past) wired into ProfileView; the E2E booking spec green (same-day visible under Upcoming).
+- R2 GREEN: seed name "Explorer"; ProfileView subtitle "Your Roam account"; Navbar avatar = the white 17×17 strokeWidth-2 User icon on the black disc (one DOM node via md:[stroke-width:2]; the userEmail prop retired).
+- R3: the smoke booking fixtures → runtime-computed dates (date -d "+7/+9 days"); bash -n clean; 31/31.
+- R4: db reseeded (118784 bytes); 16 screenshots re-captured via scripts/capture-screens-session48.mjs — the profile capture documents the same-day booking under "Upcoming" + the "Explorer" identity.
+- R5: 10+ docs aligned (AGENTS, CLAUDE, README, PAD v2.19 — revision block + the duplicated v2.18 entry deduped, SKILL v1.22.5, findings v2.19 addendum, session_48.md, the plan's execution record, this worklog).
+- R6 final gate: lint 0 errors · typecheck ✓ · 83/83 unit · build ✓ · 31/31 smoke ×2 · 84/84 E2E ×2 — pushed to main via the SSH wrapper.
+
+Stage Summary:
+- The v2.18 range audited and verified LIVE on the redeployment (deep links, sign-out, mobile nav — no Tailwind v4 regression).
+- F1 (HIGH): same-day bookings classified "Past" — fixed with the calendar-day isBookingPast seam (8 unit checks + a deterministic same-day E2E pin; the time-bombed fixtures made runtime-computed).
+- F2/F3: the live's identity/avatar drift re-aligned (seed "Explorer" + "Your Roam account" + the account-agnostic user-icon avatar).
+- Gates: 75→83 unit · 31 smoke · 84 E2E — all green; 16 screenshots; one commit on main (no branches).

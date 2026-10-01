@@ -387,10 +387,17 @@ test.describe("place detail", () => {
   });
 
   test("booking records a request visible on the profile", async ({ page }) => {
+    // Session-48: the booking is for TODAY — a deterministic pin for the
+    // calendar-day classification (a same-day reservation must land under
+    // Upcoming, never Past). A hardcoded future date would re-rot the day
+    // the clock passes it; "today" can never cross itself.
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
     await page.goto("/place/courtyard-stay");
     await page.getByLabel("Name", { exact: true }).fill("Ada");
     await page.getByLabel("Surname", { exact: true }).fill("Lovelace");
-    await page.getByLabel("Dates", { exact: true }).fill("2026-10-01");
+    await page.getByLabel("Dates", { exact: true }).fill(todayIso);
     await page.getByLabel("Time", { exact: true }).fill("19:00");
     await page.getByLabel("Email", { exact: true }).fill("ada@example.com");
     await page.getByRole("button", { name: "Book Now" }).click();
@@ -726,15 +733,16 @@ test.describe("map view", () => {
 test.describe("profile", () => {
   test("renders the profile identity, booking tabs and the empty state", async ({ page }) => {
     await page.goto("/profile");
-    // Session-14 re-measure: the live identity now renders the USERNAME
-    // ("sepnetflix2023") as the 72px h1 with the EMAIL as the 16px #555550
-    // line below it — "Your Roam account" is gone (the two-glass-card
-    // layout itself is unchanged from session 12).
+    // Session-48 re-measure: the live account's identity drifted back — the
+    // live's profile h1 now renders the account NAME ("Explorer") with the
+    // STATIC "Your Roam account" as the 16px #555550 line (the email line
+    // the session-14 measurement captured is gone; the seed follows the
+    // live's current name).
     await expect(page.getByText("Profile", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "sepnetflix2023" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "sepnetflix2023" })).toHaveCSS("font-size", "72px");
-    await expect(page.getByText("sepnetflix2023@outlook.com")).toBeVisible();
-    await expect(page.getByText("Your Roam account")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Explorer" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Explorer" })).toHaveCSS("font-size", "72px");
+    await expect(page.getByText("Your Roam account")).toBeVisible();
+    await expect(page.getByText("sepnetflix2023@outlook.com")).toHaveCount(0);
 
     // Session-16 re-measure: the live's profile is a CHROME-LESS page — no
     // navbar at any breakpoint, no footer — carrying a FULL-PAGE fixed
@@ -746,7 +754,7 @@ test.describe("profile", () => {
     const gridOverlay = page.locator("div.pointer-events-none.fixed.inset-0.opacity-40");
     await expect(gridOverlay).toHaveCount(1);
     await expect(gridOverlay).toHaveCSS("background-size", "18px 18px, 18px 18px");
-    const h1Box = await page.getByRole("heading", { name: "sepnetflix2023" }).boundingBox();
+    const h1Box = await page.getByRole("heading", { name: "Explorer" }).boundingBox();
     expect(h1Box).not.toBeNull();
     expect(h1Box!.y).toBeGreaterThanOrEqual(192);
     expect(h1Box!.y).toBeLessThanOrEqual(214);
@@ -787,7 +795,7 @@ test.describe("profile", () => {
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
     const identity = page.locator("section").first();
     await expect(identity).toHaveCSS("text-align", "center");
-    const h1Box = await page.getByRole("heading", { name: "sepnetflix2023" }).boundingBox();
+    const h1Box = await page.getByRole("heading", { name: "Explorer" }).boundingBox();
     expect(h1Box).not.toBeNull();
     expect(h1Box!.y).toBeGreaterThanOrEqual(155);
     expect(h1Box!.y).toBeLessThanOrEqual(180);

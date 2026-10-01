@@ -102,17 +102,18 @@ async function main() {
   await db.place.deleteMany();
   await db.user.deleteMany();
 
-  // Demo user — mirrors the reference app's login. Session-12 re-measure:
-  // the live account's identity renders the USERNAME ("sepnetflix2023") as
-  // the profile h1 with the EMAIL as the subtitle line; the avatar initial
-  // still derives from the EMAIL ("S").
+  // Demo user — mirrors the reference app's login. Session-48 re-measure:
+  // the live account's identity drifted BACK — the profile h1 renders the
+  // account NAME ("Explorer", the session-12 value; the account showed
+  // "sepnetflix2023" at the session-14 measurement) with the STATIC "Your
+  // Roam account" as the subtitle line. The navbar avatar renders the
+  // account-agnostic lucide User icon (no email-derived initial).
   const demo = await db.user.create({
     data: {
       email: "sepnetflix2023@outlook.com",
-      // Session-14: the live account's identity now renders the USERNAME
-      // as the profile h1 — seeded to match ("Explorer" was the session-12
-      // live value; the account has since changed).
-      name: "sepnetflix2023",
+      // Session-48: seeded to match the live account's CURRENT display name
+      // (the profile h1 renders user.name).
+      name: "Explorer",
       passwordHash: hashPassword("$Abcd1234"),
       avatarColor: "#111111",
     },

@@ -19,10 +19,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh bg-cream">
-      {/* Session-12: the avatar disc initial derives from the EMAIL (the
-          live shows "S" for sepnetflix… while the profile h1 shows the
-          account NAME "Explorer") — so the navbar receives the email. */}
-      {user ? <Navbar userEmail={user.email} /> : null}
+      {/* Session-48: the Navbar is account-agnostic (the live's avatar disc
+          renders the lucide User icon) — no email pass-through needed. */}
+      {user ? <Navbar /> : null}
       {children}
       <SiteFooter />
     </div>

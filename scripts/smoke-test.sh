@@ -100,14 +100,19 @@ if python3 -c "import json,sys; d=json.load(open('/tmp/smoke-places.json')); sys
 fi
 
 # ---- 9. booking: happy path + date-order validation ----
+# Session-48: the booking dates are DYNAMIC (+7/+9 days from today) so the
+# fixture can never rot as the clock advances (the hardcoded 2026-10-01
+# dates silently aged past the live's upcoming/past boundary).
+BK_START=$(date -d "+7 days" +%F)
+BK_END=$(date -d "+9 days" +%F)
 code=$(curl -s -o /tmp/smoke-booking.json -w "%{http_code}" --max-time 10 -b "$CJ" \
   -X POST "$BASE/api/bookings" -H "Content-Type: application/json" \
-  -d "{\"placeId\":\"$PLACE_ID\",\"startDate\":\"2026-10-01\",\"endDate\":\"2026-10-03\",\"guests\":2}")
+  -d "{\"placeId\":\"$PLACE_ID\",\"startDate\":\"$BK_START\",\"endDate\":\"$BK_END\",\"guests\":2}")
 if [ "$code" = "201" ] && grep -q '"ok":true' /tmp/smoke-booking.json; then ok "create booking (201)"; else bad "create booking -> $code $(cat /tmp/smoke-booking.json)"; fi
 
 code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -b "$CJ" \
   -X POST "$BASE/api/bookings" -H "Content-Type: application/json" \
-  -d "{\"placeId\":\"$PLACE_ID\",\"startDate\":\"2026-10-05\",\"endDate\":\"2026-10-01\"}")
+  -d "{\"placeId\":\"$PLACE_ID\",\"startDate\":\"$BK_END\",\"endDate\":\"$BK_START\"}")
 if [ "$code" = "400" ]; then ok "checkout-before-checkin rejected (400)"; else bad "bad date order -> $code"; fi
 
 # ---- 10. remove the favourite ----

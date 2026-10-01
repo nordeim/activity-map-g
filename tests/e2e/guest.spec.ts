@@ -34,7 +34,11 @@ test.describe("guest bootstrap", () => {
   test("the profile renders the guest identity", async ({ page }) => {
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Guest", exact: true })).toBeVisible();
-    await expect(page.getByText("guest@roam.local")).toBeVisible();
+    // Session-48: the subtitle is the live's STATIC "Your Roam account" line
+    // (the email line is gone from the live's profile — same contract for
+    // every account, guest included; the guest identity itself stays pinned
+    // by /api/auth/me above).
+    await expect(page.getByText("Your Roam account")).toBeVisible();
   });
 
   test("signing out returns to the guide as a fresh guest, not the login wall", async ({ page }) => {

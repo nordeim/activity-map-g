@@ -3,12 +3,13 @@
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 **Companion Documents:** `README.md` (user-facing), `AGENTS.md` (compact operator file), `CLAUDE.md` (agent conventions), `docs/DEPLOYMENT.md` (production runbook), `docs/Tailwind-V4-Validation-Report.md` (v4 findings)
-**Last Updated:** 2026-10-01 (v2.18)
+**Last Updated:** 2026-10-01 (v2.19)
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
 #### Revision Block — v1.0 (Tracked Changes)
 
+- `[v2.19]` Calendar-day booking classification + the live's identity/avatar re-alignment (session 48 — the v2.18 audit on the REDEPLOYED mirror). Finding F1 (HIGH): the profile's Upcoming/Past split used an INSTANT comparison (`new Date(startDate).getTime() < Date.now()`), so a reservation made now for TONIGHT flipped to "Past" at 00:00 UTC before the reservation happened — reproduced LIVE on the deployed mirror (a today-19:00 booking landed under "Past (1)") and time-bombed the E2E corpus at the 2026-10-01 UTC midnight boundary (the hardcoded "2026-10-01" booking fixture aged past the boundary; the suite went 84/84 → 83/84 the moment the clock crossed midnight). Remediation: the pure `isBookingPast(startDate, now)` seam (`src/lib/bookings.ts`, NEW — §3.2/§6.2/§7.1) — CALENDAR-DAY comparison (day-ordinal via local parts + Date.UTC; null/invalid never past), pinned by 8 unit checks (`tests/bookings.test.ts`) + a deterministic same-day E2E pin (the booking spec books TODAY, computed at runtime — it can never cross itself); ProfileView's upcoming/past filters route through the seam. Findings F2/F3 (parity drift — the live's account state changed upstream since session 14): the live profile now renders h1 "Explorer" + the STATIC "Your Roam account" 16px line (the email line is gone), and the navbar's black avatar disc renders the white 17×17 strokeWidth-2 lucide `User` icon (account-agnostic — no email initial). Re-aligned: `prisma/seed.ts` name "Explorer", ProfileView's subtitle, Navbar's avatar (one DOM node — the `md:[stroke-width:2]` arbitrary property overrides the presentation attribute from md up; the `userEmail` prop and the `initials()` render retired). F4: the smoke + E2E booking fixtures now use runtime-computed dates (`date -d "+7 days"` / JS `new Date()` — never hardcoded). §7.1/§7.3: 75→**83 unit** (+8 booking checks) / 84 E2E / 31 smoke; §11 line counts refreshed; §12 glossary updated. Verified in this revision: lint 0 errors, typecheck clean, **83/83 unit, 31/31 smoke, 84/84 E2E green** (session 48); 16 screenshots re-captured (`scripts/capture-screens-session48.mjs` — the profile capture documents the same-day booking under Upcoming).
 - `[v2.18]` Deep-link-preserving guest gates (the v2.16/v2.17 audit finding F1: the E2E corpus had never been EXECUTED for those commits — only `--list` — and running it exposed 2 RED guest specs, reproduced on the deployed mirror: a fresh visitor deep-linking to `/profile`, `/eat`, or `/place/<slug>` was bounced to `/`; the live source preserves logged-out deep links). ADR-008 amended: the PATH-AWARE gate — `requireUser("/own-path")` (`src/lib/page-gate.ts`, new) in every authenticated page (home, eat, stay, do, map, favourites, place/[slug], profile) 307s session-less visitors to the bootstrap WITH the page's own path as next; the `(app)`/`(bare)` layouts became CHROME-ONLY (they resolve the session for the Navbar, rendering it only when a user exists — a layout cannot learn the request path, verified: `headers()` exposes only proxy headers — and a layout redirect always preempts the page's, so the gate must live in the pages); the pure `guestBootstrapUrl(next)` seam (encodeURIComponent — path characters can never corrupt the bootstrap URL's query) added to `src/lib/guest.ts`. ProfileView's sign-out is now a FULL navigation (`window.location.assign("/")`): the App Router's RSC soft-nav cannot follow a server redirect targeting a route handler — it rendered an empty shell (no navbar/main) after logout; login keeps `router.refresh()` (its POST sets the cookie directly). §3.2 tree (page-gate.ts, chrome-only layouts), §6.2 (`requireUser`/`guestBootstrapUrl` utilities), §7.1/§7.3: 72→**75 unit** (+3 `guestBootstrapUrl` checks) / 81→**84 E2E** (+3 deep-link pins) / 30→**31 smoke** (check 14 next-aware + the new 14b deep-link 303); §11 line counts refreshed; §12 glossary updated. Verified in this revision: lint 0 errors, typecheck clean, **75/75 unit green, 31/31 smoke green, 84/84 E2E green — the first fully-executed run of the guest suite** (session 46). `.env` untracked (a live AUTH_SECRET had been git-tracked since the v2.16 upload — AGENTS.md's own "never commit .env" rule now enforced by the index).
 - `[v2.17]` Origin-agnostic bootstrap redirect (the live-deploy regression: behind a reverse proxy forwarding `Host: localhost:3000` + `X-Forwarded-Proto: https`, `req.nextUrl.origin` computed as `https://localhost:3000` and the bootstrap's ABSOLUTE 303 Location bounced `https://activity-map.jesspete.shop` visitors onto the origin box's localhost — the layout gates' relative 307 worked fine through the same proxy). ADR-008 amended: the 303 now emits a RELATIVE `Location` (an RFC 9110 §10.2.2 URI-reference) built from `sanitizeNextPath` output only — the CLIENT resolves it against whichever origin it is browsing, so the redirect can never leave the host on any deployment (localhost dev, preview, production domain) with zero configuration; `NextResponse.redirect()` demands an absolute URL, hence the hand-rolled `seeOther()` helper (§3.2, §6.4, ADR-008). docs/DEPLOYMENT.md: reverse-proxy guidance (`Host`/`X-Forwarded-Host` forwarding), the `NEXT_PUBLIC_SITE_URL` row corrected (it IS load-bearing — the cookie Secure flag), and the localhost-bounce row added to its §7 common issues. Tests: +4 unit origin-agnostic Location checks (`tests/guest.test.ts` 20→24; the existing absolute-Location assertions flipped to relative) / +1 smoke raw relative-Location check (29→30) / the E2E open-redirect assertion tightened to the exact `/` (81 unchanged). §7.1/§7.3: 68→**72 unit** · 29→**30 smoke** · 81 E2E; §11 line counts refreshed. Verified in this revision: lint 0 errors (2 pre-existing warnings), typecheck clean, 72/72 unit green, the 81-test census re-listed; build/smoke/E2E left to the repo's own full local gate (no server boot in this environment).
 - `[v2.16]` Login-free guest bootstrap (the change request: "disable login for a fresh user initial visit; create and use a guest account with the necessary seed data"). ADR-008 added (the shared `guest@roam.local` account + the `GET /api/auth/guest` bootstrap route handler); the `(app)`/`(bare)` layout gates and `/profile`'s own gate now redirect session-less visitors to the bootstrap instead of `/login` (§2, §3.2, §6.1, §6.3); `prisma/seed.ts` seeds the guest user (password = a discarded random 32-byte secret — never signable) and `src/lib/guest.ts` re-ensures it at runtime (§4.3, ADR-007); sign-out now returns to `/` and re-bootstraps a guest session (the login wall never resurfaces; `/login` remains for the demo account — ADR-003). §3.3 Pattern 2 companion note; §6.2 `ensureGuestUser`/`hashGuestPassword`/`sanitizeNextPath` utilities; §6.4 open-redirect threat row; §7.1/§7.3 test distribution 48→**68 unit** (new `tests/guest.test.ts`, 20 checks) / 76→**81 E2E** (new `tests/e2e/guest.spec.ts`, 5 checks) / 27→**29 smoke** (the fresh-visit + guest-auth/me checks + the Location-accurate signed-out redirect check); §11 adds the four new files + refreshed line counts; §12 adds the Guest bootstrap term. Verified in this revision: lint 0 errors (2 pre-existing warnings), typecheck clean, 68/68 unit green; build/smoke/E2E left to the repo's own full local gate (no server boot in this environment).
@@ -288,11 +289,12 @@ activity-map/
 │   ├── planner.test.ts               ← 10 checks: planner query/date-label helpers
 │   ├── auth.test.ts                  ← 4 checks: cookie Secure flag + scrypt round-trip
 │   ├── guest.test.ts                 ← 27 checks: identity/password/ensure/sanitize/guestBootstrapUrl/tokens/handler + relative Location
+│   ├── bookings.test.ts              ← 8 checks: the calendar-day Upcoming/Past classification (v2.19)
 │   └── e2e/                          ← Playwright: global-setup, auth.setup, helpers,
-│                                      │   guest.spec (5), auth.spec (5), browse.spec (32),
+│                                      │   guest.spec (8), auth.spec (5), browse.spec (32),
 │                                      │   home.spec (19), mobile-navigation.spec (16),
 │                                      │   not-found.spec (3) + .auth/user.json state
-├── scripts/smoke-test.sh             ← 30-check production API suite (incl. the guest bootstrap)
+├── scripts/smoke-test.sh             ← 31-check production API suite (incl. the guest bootstrap + deep-link checks)
 ├── docs/                             ← DEPLOYMENT.md, remediation-plan.md (session 2),
 │                                      remediation-plan-session-3.md, session logs,
 │                                      Tailwind-V4-Validation-Report.md,
@@ -548,6 +550,7 @@ Transitions: `transition-colors` on chips, links, and buttons, plus the bespoke 
 | `ensureGuestUser` | `src/lib/guest.ts` | Idempotent + race-safe create-or-reuse of the shared guest account |
 | `guestBootstrapUrl` | `src/lib/guest.ts` | The path-aware gate target: the bootstrap + encodeURIComponent'd next (v2.18) |
 | `requireUser` | `src/lib/page-gate.ts` | Page-level session gate: resolve or 307 through the bootstrap with the page's own path (v2.18) |
+| `isBookingPast` | `src/lib/bookings.ts` | Calendar-day Upcoming/Past classification for the profile's booking tabs (v2.19) — a same-day reservation stays Upcoming |
 | `hashGuestPassword` | `src/lib/guest.ts` | Random discarded secret → the guest account has no knowable password |
 | `sanitizeNextPath` | `src/lib/guest.ts` | Open-redirect / header-injection / loop guard for the bootstrap's `?next=` |
 | `clientIp` / `checkRateLimit` | `src/lib/rate-limit.ts` | Sliding-window limiter with `X-Forwarded-For` awareness |
@@ -583,6 +586,7 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 | Unit — planner helpers | 1 | 10 | `tests/planner.test.ts` | Vitest (node env) |
 | Unit — auth seam | 1 | 4 | `tests/auth.test.ts` | Vitest (node env) |
 | Unit — guest bootstrap seam | 1 | 27 | `tests/guest.test.ts` | Vitest (node env, injected fake user store) |
+| Unit — booking classification seam | 1 | 8 | `tests/bookings.test.ts` | Vitest (node env) |
 | E2E — guest bootstrap (login-free first visit + deep links) | 1 | 8 | `tests/e2e/guest.spec.ts` | Playwright (chromium, empty storageState) |
 | E2E — auth surface + legal pages | 1 | 5 | `tests/e2e/auth.spec.ts` | Playwright (chromium) |
 | E2E — browse/planner/booking/favourites/map/profile | 1 | 32 | `tests/e2e/browse.spec.ts` | Playwright (chromium) |
@@ -592,7 +596,7 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 | E2E — auth setup | 1 | 1 | `tests/e2e/auth.setup.ts` | Playwright (setup project) |
 | Smoke — production API | 1 script | 31 | `scripts/smoke-test.sh` | bash + curl |
 
-**Totals: 75 unit + 84 E2E + 31 smoke — ALL EXECUTED GREEN (session 46: 75/75 · 31/31 · 84/84).** (v2.18: +3 unit `guestBootstrapUrl` checks / +3 E2E deep-link pins / +1 smoke deep-link check over v2.17's 72/81/30; v2.17: +4 unit origin-agnostic Location checks / +1 smoke relative-Location check over v2.16's 68/81/29; v2.16: +20 unit guest checks / +5 E2E guest checks / +2 smoke guest checks over v2.15's 48/76/27. v2.18's session was the first to EXECUTE the v2.16/17 guest E2E corpus — it exposed the 2 RED specs that `--list`-only verification had missed.)
+**Totals: 83 unit + 84 E2E + 31 smoke — ALL EXECUTED GREEN (session 48: 83/83 · 31/31 · 84/84).** (v2.19: +8 unit calendar-day booking checks over v2.18's 75/84/31 — the E2E booking spec re-pinned to a runtime-computed same-day date; v2.18: +3 unit `guestBootstrapUrl` checks / +3 E2E deep-link pins / +1 smoke deep-link check over v2.17's 72/81/30; v2.17: +4 unit origin-agnostic Location checks / +1 smoke relative-Location check over v2.16's 68/81/29; v2.16: +20 unit guest checks / +5 E2E guest checks / +2 smoke guest checks over v2.15's 48/76/27. v2.18's session was the first to EXECUTE the v2.16/17 guest E2E corpus — it exposed the 2 RED specs that `--list`-only verification had missed.)
 
 ### 7.2 Test Patterns
 
@@ -603,14 +607,14 @@ Single role (authenticated user); no RBAC. Authorization = ownership: favourites
 
 ### 7.3 Coverage Thresholds
 
-No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`, `guest`) must carry tests for every behavior added. The verification gate (lint → typecheck → 75 unit → build → 31 smoke → 84 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists). The E2E gate must be RUN — a `--list` census is not a pass (the v2.16/17 lesson: 2 RED guest specs shipped behind a green `--list`).
+No numeric coverage gate is configured; the contract is structural: the pure seams (`db-path`, `filters`, `planner`, `auth`, `guest`, `bookings`) must carry tests for every behavior added. The verification gate (lint → typecheck → 83 unit → build → 31 smoke → 84 E2E) is the release criterion, enforced socially via `AGENTS.md` (no hosted CI exists). The E2E gate must be RUN — a `--list` census is not a pass (the v2.16/17 lesson: 2 RED guest specs shipped behind a green `--list`).
 
 ### 7.4 Pre-PR / Pre-Deploy Checklist
 
 ```bash
 npm run lint          # eslint .
 npm run typecheck     # tsc --noEmit
-npm run test          # 75 unit checks
+npm run test          # 83 unit checks
 npm run build         # next build (Turbopack)
 ./scripts/smoke-test.sh   # 31 API checks against a fresh production server
 npm run test:e2e      # 84 browser checks (chromium, production build on :3100)
@@ -738,8 +742,9 @@ No CRITICAL or HIGH issues are open. The three build-time infrastructure bugs (T
 - **Anchor** — a candidate directory for SQLite URL resolution; the winning anchor is the one containing `prisma/schema.prisma`.
 - **Standalone trap** — the `.next/standalone` traced copy of `schema.prisma` that would capture naive CWD-based resolution.
 - **DTO** — Data Transfer Object (`PlaceDTO` / `BookingDTO`); the typed shape crossing the server→client boundary.
-- **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, planner, auth, guest, rate-limit, utils).
+- **Seam** — a pure, unit-testable module in `src/lib/` (db-path, filters, planner, auth, guest, bookings, rate-limit, utils).
 - **Guest bootstrap** — the login-free first visit: each authenticated page's `requireUser("/own-path")` gate (v2.18) 307s session-less visitors to `GET /api/auth/guest?next=<path>`, which provisions/uses the shared `guest@roam.local` account, signs the ordinary session cookie, and 303s back to a sanitised path via a RELATIVE, origin-agnostic Location — deep links survive (ADR-008).
+- **Calendar-day classification** — the profile's Upcoming/Past split (v2.19): a booking is "past" only when its start DAY is strictly before the viewer's today (the `isBookingPast` seam), so a reservation for tonight never files under Past at midnight.
 - **Failure classes A–E** — the five Tailwind v4 mobile-nav failure modes (no-nav / invisible / clipped / under-layer / breakpoint mismatch) pinned by the E2E suite.
 - **Envelope** — the API response shape `{ ok: true, data } | { ok: false, error }`.
 - **StorageState** — Playwright's saved-authentication file (`tests/e2e/.auth/user.json`) shared across specs to avoid rate-limited re-login.

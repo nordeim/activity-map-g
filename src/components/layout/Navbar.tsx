@@ -14,11 +14,14 @@
 // Desktop (md+): a sticky TRANSPARENT header (pt 9px, px-6, pb-2) holding a
 // centered WHITE floating PILL (h-14, max-w 820, radius 999, 1px #E8E6DC
 // border all round, shadow 0 2px 12px rgba(14,14,14,0.08)):
-//   [✳ ROAM]  Highlights Eat Stay Do Map     [♥] (S)
+//   [✳ ROAM]  Highlights Eat Stay Do Map     [♥] (user icon)
 // Links are icon+text 13px Inter at +0.01em tracking (session-22
 // re-measure; session-6: 13px) — the ACTIVE link is weight 700 ink on the
 // rgba(14,14,14,0.08) pill; inactive links are weight 500 #555550. The
-// right cluster is the heart (#0E0E0E/7 disc) plus the black avatar disc.
+// right cluster is the heart (#0E0E0E/7 disc) plus the black avatar disc
+// carrying the white lucide USER ICON (session-48 re-measure: the live
+// renders the account-agnostic 17×17 strokeWidth-2 icon — not an
+// email-derived text initial).
 // The whole header hides on scroll-down near the bottom and returns on
 // scroll-up (the live app's translateY choreography).
 //
@@ -30,7 +33,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sun, UtensilsCrossed, BedDouble, Compass, MapPin, Heart, User } from "lucide-react";
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Highlights", icon: Sun },
@@ -39,7 +42,7 @@ const LINKS = [
   { href: "/do", label: "Do", icon: Compass },
 ] as const;
 
-export function Navbar({ userEmail }: { userEmail: string }) {
+export function Navbar() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [hidden, setHidden] = useState(false);
@@ -226,8 +229,17 @@ export function Navbar({ userEmail }: { userEmail: string }) {
                   : "text-ink hover:opacity-70 md:text-white md:hover:opacity-90",
               )}
             >
-              <User className="h-[18px] w-[18px] md:hidden" strokeWidth={1.5} aria-hidden />
-              <span className="hidden text-sm font-bold text-white md:inline">{initials(userEmail)}</span>
+              {/* Session-48: the live's account-agnostic avatar — the mobile
+                  tab-bar keeps the measured 18px/1.5 icon; the desktop disc
+                  renders the live's 17×17 strokeWidth-2 lucide-user glyph
+                  (the email-derived initial is retired). One DOM node: the
+                  md: arbitrary property overrides the stroke-width
+                  presentation attribute from md up. */}
+              <User
+                className="h-[18px] w-[18px] md:h-[17px] md:w-[17px] md:[stroke-width:2]"
+                strokeWidth={1.5}
+                aria-hidden
+              />
             </Link>
           </div>
         </nav>
