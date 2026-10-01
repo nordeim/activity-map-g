@@ -3,10 +3,11 @@
 // The Profile canvas — session-12 re-measure: the live redesigned the page
 // into TWO glass cards (896px container): the identity card (rounded-36,
 // bg-white/78, border-white/70) with the Profile eyebrow (12px/600 #72706C),
-// the account identity as the h1 (72px serif — session-48 re-measure: the
-// live shows the account NAME "Explorer" again), the STATIC "Your Roam
-// account" as the 16px #555550 line below it (the email line the
-// session-14 measurement captured is gone), the
+// the account identity as the h1 (72px serif — session-50 re-measure: the
+// live's identity surface oscillated BACK to the session-14 contract: the
+// h1 renders the account name "sepnetflix2023"), the account EMAIL as the
+// 16px #555550 line below it (the STATIC "Your Roam account" line the
+// session-48 measurement captured is gone again), the
 // cream outlined chips (Augsburg / 0 day streak / Explorer), and the dark
 // heart Saved-places button; then the bookings card (rounded-32, mt-8) with
 // the Trips eyebrow, the "My bookings" h2 at 36px, FULL-WIDTH Upcoming/Past
@@ -133,14 +134,15 @@ export function ProfileView({
           CENTERED on phones (text-center) and goes left from md. */}
       <section className="relative overflow-hidden rounded-[36px] border border-white/70 bg-white/78 p-5 text-center shadow-[0_8px_24px_rgba(14,14,14,0.08)] sm:p-8 md:text-left">
         <p className={cn(EYEBROW, "mb-3")}>Profile</p>
-          {/* Session-48: the h1 carries the account identity (the seeded
-              name — the live's current value "Explorer"). */}
+          {/* Session-50: the h1 carries the account identity (the seeded
+              name — the live's current value "sepnetflix2023"). */}
           <h1 className="font-serif text-[clamp(42px,9vw,72px)] leading-[0.98] tracking-[-0.06em] text-ink">
             {user.name}
           </h1>
-          {/* Session-48 re-measure: the live renders the STATIC "Your Roam
-              account" line here (the email line is gone upstream). */}
-          <p className="mt-2 text-base text-[#555550]">Your Roam account</p>
+          {/* Session-50 re-measure: the live renders the account EMAIL line
+              here again (the static "Your Roam account" line is gone — the
+              identity surface flipped back to the session-14 contract). */}
+          <p className="mt-2 text-base text-[#555550]">{user.email}</p>
 
           {/* The live's stat chips — cream outlined 34px pills (session-12:
               the Explorer badge lost its dark fill; all three match).

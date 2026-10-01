@@ -14,14 +14,16 @@
 // Desktop (md+): a sticky TRANSPARENT header (pt 9px, px-6, pb-2) holding a
 // centered WHITE floating PILL (h-14, max-w 820, radius 999, 1px #E8E6DC
 // border all round, shadow 0 2px 12px rgba(14,14,14,0.08)):
-//   [✳ ROAM]  Highlights Eat Stay Do Map     [♥] (user icon)
+//   [✳ ROAM]  Highlights Eat Stay Do Map     [♥] (S)
 // Links are icon+text 13px Inter at +0.01em tracking (session-22
 // re-measure; session-6: 13px) — the ACTIVE link is weight 700 ink on the
 // rgba(14,14,14,0.08) pill; inactive links are weight 500 #555550. The
 // right cluster is the heart (#0E0E0E/7 disc) plus the black avatar disc
-// carrying the white lucide USER ICON (session-48 re-measure: the live
-// renders the account-agnostic 17×17 strokeWidth-2 icon — not an
-// email-derived text initial).
+// carrying the EMAIL-DERIVED INITIAL (session-50 re-measure: the live
+// flipped back to the session-14 contract — the white 14px/700 Inter
+// letter, "S" for the demo account, "G" for the guest; the lucide-user
+// icon session 48 measured is retired again). Session-50: every nav icon
+// renders stroke-width 2, and the desktop heart disc renders a 17px glyph.
 // The whole header hides on scroll-down near the bottom and returns on
 // scroll-up (the live app's translateY choreography).
 //
@@ -33,7 +35,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sun, UtensilsCrossed, BedDouble, Compass, MapPin, Heart, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Highlights", icon: Sun },
@@ -42,7 +44,11 @@ const LINKS = [
   { href: "/do", label: "Do", icon: Compass },
 ] as const;
 
-export function Navbar() {
+// Session-50: the avatar derivation needs the session email (the live's
+// current contract — the email-derived initial on the desktop disc). The
+// prop is optional with an empty default so the navbar still renders
+// (icon-only) if a caller omits it.
+export function Navbar({ userEmail = "" }: { userEmail?: string }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [hidden, setHidden] = useState(false);
@@ -205,7 +211,7 @@ export function Navbar() {
                 isActive("/map") ? "text-ink" : "text-ink hover:opacity-70",
               )}
             >
-              <MapPin className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden />
+              <MapPin className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
             </Link>
             <Link
               href="/favourites"
@@ -217,7 +223,14 @@ export function Navbar() {
                   : "text-ink hover:opacity-70 md:hover:bg-[#0e0e0e]/[0.12]",
               )}
             >
-              <Heart className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden />
+              {/* Session-50 re-measure: the live's tab-bar icons all render
+                  stroke-width 2 (the earlier 1.5/1.8 values are stale), and
+                  the DESKTOP heart disc renders a 17px glyph (18px mobile). */}
+              <Heart
+                className="h-[18px] w-[18px] md:h-[17px] md:w-[17px]"
+                strokeWidth={2}
+                aria-hidden
+              />
             </Link>
             <Link
               href="/profile"
@@ -229,17 +242,17 @@ export function Navbar() {
                   : "text-ink hover:opacity-70 md:text-white md:hover:opacity-90",
               )}
             >
-              {/* Session-48: the live's account-agnostic avatar — the mobile
-                  tab-bar keeps the measured 18px/1.5 icon; the desktop disc
-                  renders the live's 17×17 strokeWidth-2 lucide-user glyph
-                  (the email-derived initial is retired). One DOM node: the
-                  md: arbitrary property overrides the stroke-width
-                  presentation attribute from md up. */}
-              <User
-                className="h-[18px] w-[18px] md:h-[17px] md:w-[17px] md:[stroke-width:2]"
-                strokeWidth={1.5}
-                aria-hidden
-              />
+              {/* Session-50 re-measure: the live's identity surface flipped
+                  BACK to the session-14 contract — the desktop disc carries
+                  the EMAIL-DERIVED INITIAL (the white 14px/700 Inter letter,
+                  "S" for the demo account); the lucide-user glyph remains
+                  the MOBILE tab-bar icon only (md:hidden; the live's mobile
+                  Profile tab-bar icon stays the 18px user glyph, now at
+                  stroke-width 2). */}
+              <User className="h-[18px] w-[18px] md:hidden" strokeWidth={2} aria-hidden />
+              <span className="hidden font-nav text-sm font-bold text-white md:inline">
+                {initials(userEmail)}
+              </span>
             </Link>
           </div>
         </nav>

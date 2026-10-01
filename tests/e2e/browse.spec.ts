@@ -733,16 +733,16 @@ test.describe("map view", () => {
 test.describe("profile", () => {
   test("renders the profile identity, booking tabs and the empty state", async ({ page }) => {
     await page.goto("/profile");
-    // Session-48 re-measure: the live account's identity drifted back — the
-    // live's profile h1 now renders the account NAME ("Explorer") with the
-    // STATIC "Your Roam account" as the 16px #555550 line (the email line
-    // the session-14 measurement captured is gone; the seed follows the
-    // live's current name).
+    // Session-50 re-measure: the live identity surface oscillated AGAIN
+    // (the third flip — Explorer→sepnetflix2023→Explorer→sepnetflix2023):
+    // the live's profile h1 now renders the account name "sepnetflix2023"
+    // with the account EMAIL as the 16px #555550 line (the session-14
+    // contract is back; the seed follows the live's current name).
     await expect(page.getByText("Profile", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Explorer" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Explorer" })).toHaveCSS("font-size", "72px");
-    await expect(page.getByText("Your Roam account")).toBeVisible();
-    await expect(page.getByText("sepnetflix2023@outlook.com")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "sepnetflix2023" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "sepnetflix2023" })).toHaveCSS("font-size", "72px");
+    await expect(page.getByText("sepnetflix2023@outlook.com")).toBeVisible();
+    await expect(page.getByText("Your Roam account")).toHaveCount(0);
 
     // Session-16 re-measure: the live's profile is a CHROME-LESS page — no
     // navbar at any breakpoint, no footer — carrying a FULL-PAGE fixed
@@ -754,7 +754,7 @@ test.describe("profile", () => {
     const gridOverlay = page.locator("div.pointer-events-none.fixed.inset-0.opacity-40");
     await expect(gridOverlay).toHaveCount(1);
     await expect(gridOverlay).toHaveCSS("background-size", "18px 18px, 18px 18px");
-    const h1Box = await page.getByRole("heading", { name: "Explorer" }).boundingBox();
+    const h1Box = await page.getByRole("heading", { name: "sepnetflix2023" }).boundingBox();
     expect(h1Box).not.toBeNull();
     expect(h1Box!.y).toBeGreaterThanOrEqual(192);
     expect(h1Box!.y).toBeLessThanOrEqual(214);
@@ -795,7 +795,7 @@ test.describe("profile", () => {
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
     const identity = page.locator("section").first();
     await expect(identity).toHaveCSS("text-align", "center");
-    const h1Box = await page.getByRole("heading", { name: "Explorer" }).boundingBox();
+    const h1Box = await page.getByRole("heading", { name: "sepnetflix2023" }).boundingBox();
     expect(h1Box).not.toBeNull();
     expect(h1Box!.y).toBeGreaterThanOrEqual(155);
     expect(h1Box!.y).toBeLessThanOrEqual(180);

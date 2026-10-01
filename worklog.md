@@ -1042,3 +1042,26 @@ Stage Summary:
 - F1 (HIGH): same-day bookings classified "Past" — fixed with the calendar-day isBookingPast seam (8 unit checks + a deterministic same-day E2E pin; the time-bombed fixtures made runtime-computed).
 - F2/F3: the live's identity/avatar drift re-aligned (seed "Explorer" + "Your Roam account" + the account-agnostic user-icon avatar).
 - Gates: 75→83 unit · 31 smoke · 84 E2E — all green; 16 screenshots; one commit on main (no branches).
+
+---
+
+Task ID: 44
+Agent: Super Z (main agent, session 50 — final record)
+Task: Session 50 — the v2.19-range re-audit + the identity/avatar oscillation re-alignment (v2.20).
+
+Work Log:
+- Workspace refreshed to 585fb4c (the v2.19 tree 26984e5 + the operator's session-49 raw-log commit); every root doc + the session history re-read; the 66c50de..a358ffb v2.18 range re-audited (page-gate, guestBootstrapUrl, the 8 wired pages — sound).
+- Baseline on the untouched tree: lint 0 errors · typecheck ✓ · 83/83 unit · build ✓ · 31/31 smoke · 84/84 E2E.
+- Dual-site browser audit (agent-browser): the REDEPLOYED v2.19 mirror verified live — the calendar-day booking classification (a same-day booking lands under "Upcoming (1)"), the mobile navigation menu end-to-end at 390 (geometry 121/192/222/259 + icons 304/330/356 + the 52px glass; all taps navigate; active state follows) — NO Tailwind v4 regression; every other parity surface exact; zero console errors on 9 pages.
+- The live source's identity surface had drifted a THIRD time (Explorer→sepnetflix2023→Explorer→sepnetflix2023): profile h1 "sepnetflix2023" + the account EMAIL subtitle + the email-derived "S" avatar initial (14px/700 white on the 36px disc); the live's tab-bar icons all stroke-width 2 with a 17px desktop heart.
+- R0 RED: the browse/guest/mobile-nav identity pins flipped + the new tests/initials.test.ts (4 checks).
+- R1–R3 GREEN: the seed name "sepnetflix2023"; ProfileView's subtitle {user.email}; the Navbar's email-derived initial (the userEmail prop re-introduced via the (app) layout + the initials() seam; the lucide-user glyph mobile-only); every nav icon re-stroked to 2 + the desktop heart to 17px.
+- R4: db reseeded; dev-server DOM probes verified (h1/email/chips; the "S" disc; the guest "guest@roam.local"; strokes 2/2/2 + heart 17px); 16 screenshots re-captured via scripts/capture-screens-session50.mjs.
+- R5: docs aligned (AGENTS, CLAUDE, README, PAD v2.20, SKILL v1.22.6, the findings v2.20 addendum, session_50.md, the plan, this worklog).
+- R6 final gate: lint 0 errors · typecheck ✓ · 87/87 unit · build ✓ · 31/31 smoke ×2 · 84/84 E2E ×2 — pushed to main via the SSH wrapper.
+
+Stage Summary:
+- The v2.18/v2.19 remediations verified live on the redeployment (deep links, sign-out, the calendar-day classification, the mobile nav — no Tailwind v4 regression).
+- F1–F3 (MED): the identity/avatar surface re-aligned to the live's current contract (seed "sepnetflix2023" + the email subtitle + the email-derived initial, pinned by the initials() seam's 4 unit checks + the flipped E2E pins).
+- F4 (LOW): the nav icon strokes matched to the live (2/2/2 + the 17px desktop heart).
+- Gates: 83→87 unit · 31 smoke · 84 E2E — all green ×2; 16 screenshots; one commit on main (no branches).

@@ -319,19 +319,21 @@ test.describe("desktop (1280) navigation", () => {
     const desktopLs = await highlights.evaluate((el) => parseFloat(getComputedStyle(el).letterSpacing));
     expect(desktopLs).toBeGreaterThanOrEqual(0.08);
     expect(desktopLs).toBeLessThanOrEqual(0.18);
-    // Session-48 re-measure: the avatar chip renders the white lucide USER
-    // ICON on the black disc (17×17, strokeWidth 2 — the live's current
-    // chrome, account-agnostic), not an email-derived text initial.
+    // Session-50 re-measure: the live's identity surface flipped BACK to the
+    // session-14 contract — the desktop avatar disc carries the
+    // email-derived INITIAL (the white 14px/700 Inter letter on the black
+    // 36×36 disc, "S" for the demo account), not the lucide-user icon
+    // session 48 measured. The mobile tab-bar keeps the user icon.
     const avatar = nav.getByRole("link", { name: "Profile", exact: true });
-    await expect(avatar).toHaveText("");
+    await expect(avatar).toHaveText("S");
     await expect(avatar).toHaveCSS("background-color", "rgb(14, 14, 14)");
-    await expect(avatar.locator("svg.lucide-user")).toHaveCount(1);
-    const iconSize = await avatar.locator("svg.lucide-user").evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      return { w: Math.round(r.width), h: Math.round(r.height) };
-    });
-    expect(iconSize.w).toBe(17);
-    expect(iconSize.h).toBe(17);
+    // The mobile user icon stays in the DOM but is CSS-hidden from md up
+    // (md:hidden) — the desktop disc renders the initial only.
+    await expect(avatar.locator("svg")).toBeHidden();
+    const initial = avatar.locator("span").first();
+    await expect(initial).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(initial).toHaveCSS("font-size", "14px");
+    await expect(initial).toHaveCSS("font-weight", "700");
   });
 });
 
