@@ -64,12 +64,21 @@ export function StayCard({ place, home = false }: { place: PlaceDTO; home?: bool
             className="absolute left-4 top-4 z-10"
           />
 
-          <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-white px-2.5 py-1.5">
-            <Star className="h-[13px] w-[13px] fill-ink text-ink" aria-hidden />
-            <span className="text-xs font-bold text-ink">{place.avgRating.toFixed(1)}</span>
-          </div>
+          {/* Session-60 re-measure: the live REMOVED the white star-rating
+              badge from the HOME showcase variant (the rating survives only
+              in the meta line's "€€ · ★ 4.5" text) — the /stay BROWSE
+              variant keeps its badge. */}
+          {!home && (
+            <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-white px-2.5 py-1.5">
+              <Star className="h-[13px] w-[13px] fill-ink text-ink" aria-hidden />
+              <span className="text-xs font-bold text-ink">{place.avgRating.toFixed(1)}</span>
+            </div>
+          )}
 
-          <div className="absolute bottom-[18px] left-[18px] right-[18px] text-white transition-transform duration-300 ease-out md:bottom-[-30px] md:group-hover:-translate-y-12">
+          {/* Session-60: the live's bottom block — bottom-18 on phones,
+          -30px from md, the pills row mt-14px with the 18px/220-260ms
+          reveal (was mt-3/300ms/16px). */}
+          <div className="absolute bottom-[18px] left-[18px] right-[18px] text-white transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] md:bottom-[-30px] md:group-hover:-translate-y-12">
             <h3 className="text-[24px] font-medium leading-tight tracking-[-0.03em] text-white md:text-lg">
               {place.name}
             </h3>
@@ -92,7 +101,7 @@ export function StayCard({ place, home = false }: { place: PlaceDTO; home?: bool
                 )}
               </span>
             </p>
-            <div className="mt-3 flex translate-y-0 gap-2 opacity-100 transition-all duration-300 ease-out md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+            <div className="mt-3.5 flex translate-y-0 gap-2 opacity-100 transition-[opacity,transform] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] md:translate-y-[18px] md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
               {/* Session-28 re-measure: the home-showcase pills carry the
                   live's inline 34px height (was the session-6 41px
                   override) with the Learn More border/bg at white/[0.36]

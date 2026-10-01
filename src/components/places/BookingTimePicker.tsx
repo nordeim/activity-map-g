@@ -40,9 +40,13 @@ const SLOTS = buildTimeSlots();
 export function BookingTimePicker({
   value,
   onChange,
+  label = "Time*",
 }: {
   value: string | null;
   onChange: (value: string) => void;
+  // Session-60: the STAY forms' label reads "Preferred Check-In Time*"
+  // (the live differentiates by category; eat/do keep "Time*").
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLLabelElement>(null);
@@ -69,7 +73,7 @@ export function BookingTimePicker({
       ref={rootRef}
       className="relative block text-xs font-semibold text-[#3a3a3a]"
     >
-      Time*
+      {label}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

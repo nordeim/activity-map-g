@@ -177,7 +177,14 @@ export function BookingForm({ place }: { place: BookablePlace }) {
           />
         </div>
         <BookingDatePicker range={range} onChange={setRange} />
-        <BookingTimePicker value={time} onChange={setTime} />
+        {/* Session-60 re-measure: the live differentiates the time field's
+            label by category — the STAY forms read "Preferred Check-In
+            Time*" (the eat/do forms keep "Time*"). */}
+        <BookingTimePicker
+          value={time}
+          onChange={setTime}
+          label={place.category === "stay" ? "Preferred Check-In Time*" : "Time*"}
+        />
         <div>
           <label className={label} htmlFor="booking-phone">
             Phone

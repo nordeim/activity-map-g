@@ -29,6 +29,12 @@ test.describe("home (Highlights)", () => {
 
   test("VIEW ALL navigates to the category view", async ({ page }) => {
     await page.goto("/");
+    // Session-60: the desktop View All pill is the sliding deck's 4th item
+    // — clipped at rest. Hover the card first (the deck slides -44px
+    // revealing the pill), then click it.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.locator("[data-category-fan] [data-category-card]").first().hover();
+    await page.waitForTimeout(600);
     await page.getByRole("link", { name: /View All/ }).first().click();
     await expect(page).toHaveURL(/\/stay\/?$/);
     await expect(page.getByRole("heading", { name: "Stay In Style" })).toBeVisible();
@@ -341,9 +347,10 @@ test.describe("place detail", () => {
     // that open a date-range calendar and a 29-slot time list; the free-text
     // inputs were clone invention). Session-55 re-measure (v2.23): the
     // triggers carry NO aria-label — their accessible names are "Dates*" /
-    // "Time*" derived from the wrapping labels (the live's contract).
+    // the stay form's "Preferred Check-In Time*" derived from the wrapping
+    // labels (the live's session-60 contract).
     const datesTrigger = page.getByRole("button", { name: /^Dates\*/ });
-    const timeTrigger = page.getByRole("button", { name: /^Time\*/ });
+    const timeTrigger = page.getByRole("button", { name: /^Preferred Check-In Time\*/ });
     await expect(datesTrigger).toBeVisible();
     await expect(timeTrigger).toBeVisible();
     for (const field of ["Name", "Surname", "Phone", "Email", "Message"]) {
@@ -389,10 +396,12 @@ test.describe("place detail", () => {
     // The TRIGGERS are the live's picker buttons: 44px, 16px radii, the
     // #DDDBD5 border, the calendar/clock + chevron icons, and the #888580
     // placeholder spans while empty. Session-55 (v2.23): the accessible
-    // names are the LABEL texts ("Dates*" / "Time*") — the live's triggers
-    // carry no aria-label/aria-expanded of their own.
+    // names are the LABEL texts ("Dates*" / the STAY form's "Preferred
+    // Check-In Time*" — session-60 re-measure: the live differentiates the
+    // time label by category; the eat/do forms keep "Time*") — the live's
+    // triggers carry no aria-label/aria-expanded of their own.
     const datesTrigger = page.getByRole("button", { name: /^Dates\*/ });
-    const timeTrigger = page.getByRole("button", { name: /^Time\*/ });
+    const timeTrigger = page.getByRole("button", { name: /^Preferred Check-In Time\*/ });
     for (const trigger of [datesTrigger, timeTrigger]) {
       await expect(trigger).toBeVisible();
       await expect(trigger).toHaveCSS("height", "44px");
@@ -653,7 +662,7 @@ test.describe("place detail", () => {
     // Session-55 (v2.23): the trigger's accessible name is the LABEL text
     // ("Dates*") — the trigger's VISIBLE text is asserted separately.
     const datesTrigger = page.getByRole("button", { name: /^Dates\*/ });
-    const timeTrigger = page.getByRole("button", { name: /^Time\*/ });
+    const timeTrigger = page.getByRole("button", { name: /^Preferred Check-In Time\*/ });
     await datesTrigger.click();
     const todayCell = page.locator(`[data-booking-calendar] button[data-date="${todayIso}"]`);
     await todayCell.click();

@@ -318,7 +318,7 @@ test.describe("home content parity (session 2)", () => {
     await expect(inactive.locator("span")).toHaveCSS("color", "rgb(85, 85, 80)");
   });
 
-  test("category cards: live row internals, full-width VIEW ALL, mobile snap carousel (session 10)", async ({ page }) => {
+  test("category cards: the 3D fan + sliding row decks + in-card VIEW ALL (session 60 re-measure)", async ({ page }) => {
     // Mobile (390): the cards form a HORIZONTAL snap carousel (the live's
     // today-category-cards row scrolls sideways — scrollWidth 978 at 390).
     await page.setViewportSize({ width: 390, height: 844 });
@@ -326,15 +326,21 @@ test.describe("home content parity (session 2)", () => {
     const cardRow = page.locator("#category-cards").first();
     const scrollInfo = await cardRow.evaluate((el) => ({ scrollW: el.scrollWidth, clientW: el.clientWidth }));
     expect(scrollInfo.scrollW).toBeGreaterThan(scrollInfo.clientW + 200); // 3 off-screen-ish cards
-    // The mobile VIEW ALL pills are violet #571AFF, full card width.
+    // The mobile VIEW ALL pill is the deck's 4th item — violet #571AFF,
+    // 36px tall (the rows deck renders all four items on phones).
     const mobileViewAll = page.getByRole("link", { name: /View All/ }).first();
     await expect(mobileViewAll).toHaveCSS("background-color", "rgb(87, 26, 255)");
     const viewAllRadius = await mobileViewAll.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
     expect(viewAllRadius).toBeGreaterThan(1000);
-    // Session-16: the live's mobile glass card carries radius 24 (the
-    // desktop card keeps radius 20).
+    const mobileViewAllH = await mobileViewAll.evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    expect(mobileViewAllH).toBeGreaterThanOrEqual(34);
+    expect(mobileViewAllH).toBeLessThanOrEqual(38);
+    // Session-60 re-measure: the mobile glass card carries radius 20 at
+    // BOTH breakpoints now (was the session-16 mobile 24) and the bg
+    // computes rgba(255,255,255,0.58).
     const mobileCard = page.locator("[data-category-card]").first();
-    await expect(mobileCard).toHaveCSS("border-radius", "24px");
+    await expect(mobileCard).toHaveCSS("border-radius", "20px");
+    await expect(mobileCard).toHaveCSS("background-color", "rgba(255, 255, 255, 0.58)");
 
     // Session-26 re-measure: the live's mobile track (its override
     // stylesheet) pads the track 18/18/40 and tightens the gap to 12px
@@ -352,49 +358,119 @@ test.describe("home content parity (session 2)", () => {
     expect(cardY).toBeGreaterThanOrEqual(570);
     expect(cardY).toBeLessThanOrEqual(585);
 
-    // Desktop (1280): the VIEW ALL pills stay near-black #141413 — session-16
-    // re-measure: the pill now HANGS BELOW the glass card's bottom edge
-    // (w≈229, h=54, half-overlapping the card onto the hero photo below)
-    // instead of sitting inside the card.
+    // Desktop (1280) — session-60 re-measure: the row became a 3D FAN. The
+    // wrapper carries matrix(1.15) (a 1.15 row scale), each card sits in a
+    // perspective-800 slot, and the INNER card tilts rotateY(±18deg) that
+    // FLATTENS on hover (0.5s cubic-bezier(0.22,1,0.36,1)).
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    const desktopViewAll = page.getByRole("link", { name: /View All/ }).first();
+    const fanRow = page.locator("[data-category-fan]");
+    await expect(fanRow).toHaveCount(1);
+    const fanState = await fanRow.evaluate((el) => ({
+      transform: getComputedStyle(el).transform,
+      perspective: getComputedStyle(el).perspective,
+    }));
+    expect(fanState.transform).toBe("matrix(1.15, 0, 0, 1.15, 0, 0)");
+    // The three slots carry perspective: 800px.
+    const slotPerspectives = await page
+      .locator("[data-category-fan] > [data-fan-slot]")
+      .evaluateAll((els) => els.map((el) => getComputedStyle(el).perspective));
+    expect(slotPerspectives).toEqual(["800px", "800px", "800px"]);
+    // The inner cards' REST transforms: left rotateY(18deg), middle flat,
+    // right rotateY(-18deg) — read the computed matrix3d m13 sign (the
+    // ±0.309017 = sin 18°).
+    const fanTilts = await page.locator("[data-category-fan] [data-category-card]").evaluateAll((els) =>
+      els.map((el) => getComputedStyle(el).transform),
+    );
+    expect(fanTilts.length).toBe(3);
+    expect(fanTilts[0]).toContain("-0.309");
+    expect(fanTilts[1]).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    expect(fanTilts[2]).toContain("0.309");
+    // The tilt transition is the live's 0.5s curve.
+    const tiltTransition = await page
+      .locator("[data-category-fan] [data-category-card]")
+      .first()
+      .evaluate((el) => getComputedStyle(el).transitionDuration);
+    expect(tiltTransition).toBe("0.5s");
+    // HOVER flattens the tilted card back to rotateY(0).
+    const leftCard = page.locator("[data-category-fan] [data-category-card]").first();
+    await leftCard.hover();
+    await page.waitForTimeout(700);
+    const hovered = await leftCard.evaluate((el) => getComputedStyle(el).transform);
+    expect(hovered).toBe("matrix(1, 0, 0, 1, 0, 0)");
+
+    // The card's glass chrome at md: bg rgba(255,255,255,0.34), blur 28 +
+    // saturate 160% (was 150), radius 20, the 1px rgba(255,255,255,0.36)
+    // hairline.
+    const card = page.locator("[data-category-fan] [data-category-card]").nth(1);
+    await expect(card).toHaveCSS("background-color", "rgba(255, 255, 255, 0.34)");
+    const blur = await card.evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(blur).toContain("blur(28px)");
+    // Chrome normalizes the live's saturate(160%) to 1.6.
+    expect(blur).toContain("saturate(1.6)");
+    await expect(card).toHaveCSS("border-radius", "20px");
+    const cardBorder = await card.evaluate(
+      (el) => `${getComputedStyle(el).borderTopWidth} ${getComputedStyle(el).borderTopColor}`,
+    );
+    expect(cardBorder).toBe("1px rgba(255, 255, 255, 0.36)");
+
+    // The VIEW ALL pill is the deck's 4th item INSIDE the card — near-black
+    // #141413, 36px layout (≈41px measured through the 1.15 scale), riding
+    // the sliding deck. At rest it sits BELOW the 124px rows window (the
+    // clip-path hides it); on hover the deck slides -44px revealing it.
+    const desktopViewAll = page.locator("[data-category-fan] a[href='/eat']").first();
     await expect(desktopViewAll).toHaveCSS("background-color", "rgb(20, 20, 19)");
-    await expect(desktopViewAll).toHaveCSS("height", "54px");
     const vaBox = await desktopViewAll.boundingBox();
-    const card = desktopViewAll.locator("xpath=ancestor::article[1]");
     const cardBox = await card.boundingBox();
     expect(vaBox).not.toBeNull();
     expect(cardBox).not.toBeNull();
-    // The pill hangs PAST the glass card's bottom edge (the live's
-    // half-in/half-out overlap).
-    expect(vaBox!.y + vaBox!.height).toBeGreaterThan(cardBox!.y + cardBox!.height);
-    expect(vaBox!.width).toBeGreaterThan(cardBox!.width - 40);
-    // Session-25 re-measure: the pill's top sits ≈5px ABOVE the card's
-    // bottom edge (the live hangs it 49px past the bottom, was 27) — its
-    // overlap with the card is a thin sliver, not a half.
-    expect(cardBox!.y + cardBox!.height - vaBox!.y).toBeLessThanOrEqual(10);
+    expect(Math.round(vaBox!.height)).toBeGreaterThanOrEqual(38);
+    expect(Math.round(vaBox!.height)).toBeLessThanOrEqual(44);
+    // At rest the pill is the deck's 4th item — its top sits ~132px below
+    // the window's top (below the three visible rows; the window's
+    // clip-path + the card's overflow clip it visually — the box still
+    // reports its geometry, so pin the DECK position, not the clip).
+    const rowsWindow = card.locator("[data-rows-window]");
+    const windowBox = await rowsWindow.boundingBox();
+    expect(windowBox).not.toBeNull();
+    expect(Math.round(windowBox!.height)).toBeGreaterThanOrEqual(136);
+    expect(Math.round(windowBox!.height)).toBeLessThanOrEqual(148);
+    expect(vaBox!.y - windowBox!.y).toBeGreaterThanOrEqual(120);
+    // HOVER: the deck slides -44px (translateY) revealing the pill inside
+    // the window's clip.
+    await card.hover();
+    await page.waitForTimeout(600);
+    const deckTransform = await card.locator("[data-rows-deck]").evaluate((el) => getComputedStyle(el).transform);
+    expect(deckTransform).toBe("matrix(1, 0, 0, 1, 0, -44)");
+    // ...and the window's clip-path expands at its right/bottom edges.
+    const clipOnHover = await rowsWindow.evaluate((el) => getComputedStyle(el).clipPath);
+    expect(clipOnHover).toContain("-36px");
+    // Un-hover restores the rest state.
+    await page.mouse.move(636, 100);
+    await page.waitForTimeout(600);
+    const deckRest = await card.locator("[data-rows-deck]").evaluate((el) => getComputedStyle(el).transform);
+    expect(deckRest).toBe("matrix(1, 0, 0, 1, 0, 0)");
 
-    // Session-25 re-measure: each row is a two-line title + subtitle beside
-    // a 32×32 rounded-8 GLASS icon cell — the live renders its session-10
-    // internals (28×28 cells, 36px rows) and SCALES the desktop row
-    // transform:matrix(1.15), so the VISIBLE cells measure 32×32 and the
-    // rows 41–46px (the live's own cards vary: eat 41, hotels/sights 46).
-    const firstTagRow = card.locator("ul li").first();
+    // The deck rows: 36px layout items (41px measured through the scale)
+    // beside 28×28 layout cells (32.2px measured).
+    const firstTagRow = card.locator("[data-rows-deck] li").first();
     const iconCell = firstTagRow.locator("span").first();
-    await expect(iconCell).toHaveCSS("width", "32px");
-    await expect(iconCell).toHaveCSS("height", "32px");
+    const cellW = await iconCell.evaluate((el) => Math.round(el.getBoundingClientRect().width));
+    expect(cellW).toBeGreaterThanOrEqual(30);
+    expect(cellW).toBeLessThanOrEqual(34);
     await expect(iconCell).toHaveCSS("border-radius", "8px");
     const rowBox = await firstTagRow.boundingBox();
     expect(rowBox).not.toBeNull();
-    expect(rowBox!.height).toBeGreaterThanOrEqual(40);
-    expect(rowBox!.height).toBeLessThanOrEqual(50);
+    expect(rowBox!.height).toBeGreaterThanOrEqual(38);
+    expect(rowBox!.height).toBeLessThanOrEqual(44);
     const title = firstTagRow.locator("span").nth(1).locator("span").first();
     await expect(title).toHaveCSS("font-size", "12px");
     await expect(title).toHaveCSS("font-weight", "500");
-    // Three two-line rows per card (the live's curated set).
-    await expect(card.locator("ul li")).toHaveCount(3);
-    await expect(card.getByText("City center", { exact: true })).toBeVisible();
+    // Three two-line rows + the View All pill as the deck's 4th item
+    // (the nth(1) card is EAT — its first row reads "Fine dining /
+    // Rathausplatz").
+    await expect(card.locator("ul li")).toHaveCount(4);
+    await expect(card.getByText("Rathausplatz", { exact: true })).toBeVisible();
 
     // Session-25 re-measure: the desktop header line-box is ≈24px (the
     // live's 21px header × its 1.15 row scale = 24px visible; was 32px).
@@ -427,6 +503,177 @@ test.describe("home content parity (session 2)", () => {
     // carries one of each).
     await expect(page.locator("[data-category-card]:visible svg.lucide-ferris-wheel")).toHaveCount(1);
     await expect(page.locator("[data-category-card]:visible svg.lucide-wine")).toHaveCount(1);
+  });
+
+  test("the route visual renders the live's CARTO tile map (session 60 re-measure)", async ({ page }) => {
+    // Desktop (1280): the live replaced the purple winding-path svg with a
+    // REAL MAP — an svg viewBox 0 0 1500 1500 (preserveAspectRatio xMidYMid
+    // slice) carrying 25 Carto light_nolabels z14 tiles (a 5×5 grid from
+    // 8697/5642, 502px cells), the dashed base path (rgba(20,20,19,0.15) w5,
+    // dash 10 8), the solid #141413 progress path, five cream waypoint
+    // circles (r13, #F8F7F4 fill, #141413 stroke 2.5), and the ink head dot
+    // (r7 + drop-shadow) that rides the path while the wrapping g pans to
+    // keep it centered (translate(750−headX, 750−headY)).
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const mapPanel = page.locator("#recommended-route div[class*='w-1/2']").first();
+    await mapPanel.waitFor({ state: "visible", timeout: 15_000 });
+    // The map svg: viewBox 1500×1500, slice, covering the half-viewport
+    // panel (640×800 at 1280).
+    const mapSvg = mapPanel.locator("svg").first();
+    await expect(mapSvg).toHaveAttribute("viewBox", "0 0 1500 1500");
+    await expect(mapSvg).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+    const svgBox = await mapSvg.boundingBox();
+    expect(svgBox).not.toBeNull();
+    expect(Math.round(svgBox!.width)).toBeGreaterThanOrEqual(630);
+    expect(Math.round(svgBox!.height)).toBeGreaterThanOrEqual(790);
+    // 25 tiles in the 5×5 grid, all light_nolabels z14 PNGs.
+    const tileInfo = await mapSvg.locator("image").evaluateAll((els) => ({
+      count: els.length,
+      firstHref: els[0] ? (els[0].getAttribute("href") ?? "") : "",
+    }));
+    expect(tileInfo.count).toBe(25);
+    expect(tileInfo.firstHref).toContain("basemaps.cartocdn.com/light_nolabels/14/");
+    expect(tileInfo.firstHref).toContain(".png");
+    // The base path is DASHED (strokeDasharray 10 8) at 15% ink; the
+    // progress path is the same geometry in solid #141413 whose
+    // dashoffset tracks the trap scroll.
+    const paths = mapSvg.locator("g > path");
+    await expect(paths).toHaveCount(2);
+    const pathState = await paths.evaluateAll((els) =>
+      els.map((el) => ({
+        d: el.getAttribute("d") ?? "",
+        stroke: el.getAttribute("stroke") ?? "",
+        width: el.getAttribute("stroke-width") ?? "",
+        dash: el.getAttribute("stroke-dasharray") ?? el.style.strokeDasharray,
+      })),
+    );
+    expect(pathState[0].dash).toBe("10 8");
+    expect(pathState[0].stroke).toBe("rgba(20,20,19,0.15)");
+    expect(pathState[0].width).toBe("5");
+    expect(pathState[1].stroke).toBe("#141413");
+    // The live's route geometry (both paths share the d).
+    expect(pathState[0].d).toContain("M 748 400");
+    expect(pathState[0].d).toContain("750 1100");
+    // Five cream waypoint circles at the measured coords.
+    const waypoints = await mapSvg
+      .locator("g > g > circle")
+      .evaluateAll((els) =>
+        els.map((el) => ({
+          cx: el.getAttribute("cx"),
+          cy: el.getAttribute("cy"),
+          r: el.getAttribute("r"),
+          fill: el.getAttribute("fill"),
+          stroke: el.getAttribute("stroke"),
+          strokeW: el.getAttribute("stroke-width"),
+        })),
+      );
+    expect(waypoints.length).toBe(5);
+    expect(waypoints[0]).toMatchObject({
+      cx: "748",
+      cy: "400",
+      r: "13",
+      fill: "#F8F7F4",
+      stroke: "#141413",
+      strokeW: "2.5",
+    });
+    expect(waypoints[4]).toMatchObject({ cx: "750", cy: "1100", r: "13" });
+    // The head dot: r7 ink with the drop-shadow filter, riding the path.
+    const headDot = mapSvg.locator("g > circle").last();
+    const headState = await headDot.evaluate((el) => ({
+      r: el.getAttribute("r"),
+      fill: el.getAttribute("fill"),
+      filter: el.style.filter ?? "",
+      cx: Number(el.getAttribute("cx")),
+      cy: Number(el.getAttribute("cy")),
+    }));
+    expect(headState.r).toBe("7");
+    expect(headState.fill).toBe("#141413");
+    expect(headState.filter).toContain("drop-shadow");
+    // Mid-trap: the head sits ON the path (between y 400 and 1100) and the
+    // g's pan keeps it at the viewBox center (750, 750) — sample the
+    // scroll-linked state.
+    await page.evaluate(() => {
+      const t = document.querySelector("#recommended-route > div");
+      window.scrollTo(0, t ? t.getBoundingClientRect().top + window.scrollY + 1200 : 0);
+    });
+    await page.waitForTimeout(500);
+    const panState = await mapSvg.locator("g").first().evaluate((el) => {
+      const m = getComputedStyle(el).transform;
+      const nums = m.match(/-?[\d.]+/g) ? m.match(/-?[\d.]+/g)!.map(Number) : [];
+      return { transform: m, tx: nums[4] ?? 0, ty: nums[5] ?? 0 };
+    });
+    expect(panState.transform).toContain("matrix");
+    // The pan magnitude is bounded by the path's extent (|tx| < 30,
+    // |ty| < 400) — the head-centering pan.
+    expect(Math.abs(panState.tx)).toBeLessThan(30);
+    expect(Math.abs(panState.ty)).toBeLessThan(400);
+
+    // The progress pill: the live's SPLIT-COLOR bar — a white 218×36 pill
+    // (blur 10, the #E8E6DC hairline, the 0 8 22/0.08 shadow) whose violet
+    // fill (left-anchored, width = progress%) underlays the dark text
+    // clipped to the unfilled right and a white duplicate clipped to the
+    // filled left.
+    const pill = mapPanel.locator("[data-route-pill]");
+    await expect(pill).toHaveCount(1);
+    await expect(pill).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    const pillBlur = await pill.evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(pillBlur).toContain("blur(10px)");
+    const pillBox = await pill.boundingBox();
+    expect(pillBox).not.toBeNull();
+    expect(Math.round(pillBox!.height)).toBeGreaterThanOrEqual(34);
+    expect(Math.round(pillBox!.height)).toBeLessThanOrEqual(38);
+    expect(Math.round(pillBox!.y)).toBeGreaterThanOrEqual(650); // bottom-24 ≈ 668 at 800
+    expect(Math.round(pillBox!.y)).toBeLessThanOrEqual(690);
+    const fillW = await pill.locator("[data-pill-fill]").evaluate((el) => {
+      const w = parseFloat(getComputedStyle(el).width);
+      const parentW = el.parentElement!.getBoundingClientRect().width;
+      return { pct: (w / parentW) * 100, bg: getComputedStyle(el).backgroundColor };
+    });
+    expect(fillW.bg).toBe("rgb(87, 26, 255)");
+    expect(fillW.pct).toBeGreaterThan(5);
+    expect(fillW.pct).toBeLessThan(100);
+    await expect(pill.getByText(/of your day planned/)).toHaveCount(2);
+
+    // The waypoint panel's 18px graph-paper overlay (opacity 0.42, radial
+    // mask) — the live's session-60 addition.
+    const panelOverlay = page.locator("#recommended-route [data-graph-paper]");
+    await expect(panelOverlay).toHaveCount(1);
+    const overlayState = await panelOverlay.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { opacity: cs.opacity, size: cs.backgroundSize, image: cs.backgroundImage };
+    });
+    expect(overlayState.opacity).toBe("0.42");
+    // Chrome repeats the size per gradient layer (two 18px grids).
+    expect(overlayState.size).toContain("18px");
+    expect(overlayState.image).toContain("rgba(20, 20, 19, 0.055)");
+
+    // The heading overlay FADES OUT across the 140vh trap (opacity 1 → 0
+    // within ~178px of the section's top) — at mid-fade it is translucent.
+    const headingOverlay = page.locator("[data-heading-overlay]");
+    await expect(headingOverlay).toHaveCount(1);
+    const fadeMid = await headingOverlay.evaluate((el) => getComputedStyle(el).opacity);
+    expect(parseFloat(fadeMid)).toBeLessThan(0.4);
+    // At the heading section's own top the overlay is fully visible.
+    // Re-align once — late-loading images above the route can shift the
+    // section AFTER the first deterministic scroll.
+    for (let i = 0; i < 2; i++) {
+      await page.evaluate(() => {
+        const t = document.querySelector('section[aria-label="Recommended Route heading"]');
+        window.scrollTo(0, t ? t.getBoundingClientRect().top + window.scrollY : 0);
+      });
+      await page.waitForTimeout(400);
+    }
+    const fadeTop = await headingOverlay.evaluate((el) => getComputedStyle(el).opacity);
+    expect(parseFloat(fadeTop)).toBeGreaterThan(0.9);
+
+    // The route trap is the live's 416.65vh (3332-3335px at 800).
+    const trapH = await page.evaluate(() => {
+      const t = document.querySelector("#recommended-route > div");
+      return t ? Math.round(t.getBoundingClientRect().height) : 0;
+    });
+    expect(trapH).toBeGreaterThanOrEqual(3320);
+    expect(trapH).toBeLessThanOrEqual(3345);
   });
 
   test("recommended route renders the five timed TEXT stops (session 8)", async ({ page }) => {
@@ -580,15 +827,16 @@ test.describe("home content parity (session 2)", () => {
     const slotState = await page.evaluate(() => {
       const sticky = document.querySelector("#recommended-route div[class*='lg:sticky']");
       const card = document.querySelector("#recommended-route article");
-      const col = document.querySelector("#recommended-route div[class*='lg:pt-']");
+      // Session-60: the cards center on the panel's middle (top: 50% +
+      // translateY(-50% + offset)) — the live's center-based slot (the
+      // 326px cards' top lands ≈ 237, the 349px ones ≈ 225).
       return {
-        designed: col ? parseFloat(getComputedStyle(col).paddingTop) : 0,
         runtime: card && sticky ? card.getBoundingClientRect().y - sticky.getBoundingClientRect().y : 0,
+        h: card ? Math.round(card.getBoundingClientRect().height) : 0,
       };
     });
-    expect(Math.round(slotState.designed)).toBe(237);
-    expect(Math.round(slotState.runtime)).toBeGreaterThanOrEqual(205);
-    expect(Math.round(slotState.runtime)).toBeLessThanOrEqual(265);
+    expect(Math.round(slotState.runtime)).toBeGreaterThanOrEqual(180);
+    expect(Math.round(slotState.runtime)).toBeLessThanOrEqual(270);
     const firstCard = page.locator("#recommended-route article").first();
     const slotY = slotState.runtime;
     // The desktop link card is capped at max-w-md (448px).
@@ -630,11 +878,12 @@ test.describe("home content parity (session 2)", () => {
     const visibleStop = page.locator('#recommended-route article[data-active="true"] h2');
     await expect(visibleStop).not.toHaveText("Morning Coffee", { timeout: 8000 });
 
-    // Session-18 re-measure: the live's mobile route pins a FULL-VIEWPORT
-    // route visual (the winding-path svg with numbered nodes) BEFORE the
-    // stop cards flow — and the mobile progress chip is GONE (only the
-    // desktop pill remains, hidden below lg). The stop link-cards are
-    // rounded-28 now.
+    // Session-60 re-measure: the mobile route visual is the same CARTO map
+    // (viewBox 1500×1500, 25 tiles) pinned full-viewport — the mobile map
+    // does NOT pan (the g stays identity while the head travels) and there
+    // is no mobile progress chip (only the desktop pill, hidden below lg).
+    // The stop link-cards are rounded-28 and the panel pulls up -12vh over
+    // the trap's tail.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     const routeSectionMobile = page.locator("#recommended-route");
@@ -644,6 +893,15 @@ test.describe("home content parity (session 2)", () => {
     expect(visualBox).not.toBeNull();
     expect(Math.round(visualBox!.width)).toBeGreaterThanOrEqual(380);
     expect(Math.round(visualBox!.height)).toBeGreaterThanOrEqual(700);
+    // The mobile map carries the same 25-tile grid + the two paths.
+    await expect(mobileVisual).toHaveAttribute("viewBox", "0 0 1500 1500");
+    const mobileTiles = await mobileVisual.locator("image").evaluateAll((els) => els.length);
+    expect(mobileTiles).toBe(25);
+    const mobilePaths = await mobileVisual.locator("g > path").evaluateAll((els) => els.length);
+    expect(mobilePaths).toBe(2);
+    // The mobile g does NOT pan (identity) while the head advances.
+    const mobilePan = await mobileVisual.locator("g").first().evaluate((el) => getComputedStyle(el).transform);
+    expect(mobilePan).toBe("matrix(1, 0, 0, 1, 0, 0)");
     // No VISIBLE progress chip at 390 (the desktop pill's DOM node may
     // exist inside the lg-only panel — it must be hidden).
     const plannedTexts = routeSectionMobile.getByText(/of your day planned/);
@@ -651,8 +909,8 @@ test.describe("home content parity (session 2)", () => {
     for (let i = 0; i < plannedCount; i++) {
       await expect(plannedTexts.nth(i)).toBeHidden();
     }
-    // The mobile stop link-card is rounded-28 (was 24) — session-20: the
-    // panel pads px-[18px] so the cards sit at x=18 (354 wide at 390).
+    // The mobile stop link-card is rounded-28 — session-60: the panel pads
+    // px-[18px] so the cards sit at x=18 (354 wide at 390).
     const stopLinkCardMobile = routeSectionMobile.locator("article a").first();
     await expect(stopLinkCardMobile).toHaveCSS("border-radius", "28px");
     const mobileCardBox = await stopLinkCardMobile.boundingBox();
@@ -991,6 +1249,13 @@ test.describe("home content parity (session 2)", () => {
     expect(Math.round(bookBox!.height)).toBeLessThanOrEqual(36);
     const bookBorder = await bookPill.evaluate((el) => getComputedStyle(el).borderTopWidth);
     expect(bookBorder).toBe("1px");
+
+    // Session-60 re-measure: the live REMOVED the home showcase's white
+    // star-rating badge (the right-4 top-4 pill) — zero lucide-star svgs in
+    // the showcase; the rating survives only as the meta line's
+    // "€€ · ★ 4.8" text (the /stay BROWSE variant keeps its badge).
+    const starIcons = await showcase.locator("svg.lucide-star").count();
+    expect(starIcons).toBe(0);
 
     // Session-31 re-measure: the live's HOME showcase images carry a
     // permanent 1.16 zoom (transform: translateY(8%) scale(1.16) at rest,

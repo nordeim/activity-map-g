@@ -332,3 +332,54 @@ and found ONE gap (the only remediation of the session):
 - Gate arithmetic stable at **113 unit · 31 smoke · 93 E2E** — all executed
   green (the profile + browse pins extended in place); 19 screenshots
   re-captured via `scripts/capture-screens-session58.mjs`.
+
+## v2.25 addendum — session 60 (the Carto-map route + the 3D-fan cards)
+
+Re-measured 2026-10-01 (the session-60 workspace was REBUILT from `2bc4a45`
+after a sandbox crash wiped the uncommitted session-60 work — every finding
+below was re-measured fresh from the live, not restored from memory):
+
+- The MOBILE NAVIGATION MENU (the recurring task focus) re-verified EXACT
+  at 390 — the tab-bar geometry (links x=121/192/222/259, icons
+  x=304/330/356, the 52px glass bar) + the Heart/MapPin/User taps — NO
+  Tailwind v4 regression. The hero (h1 115.2px, the photo y=−86 h=1010),
+  the desktop nav, the stays grid (12 cards 381px 3×4 column-major), and
+  the mobile restaurant deck (6 cards h 490 / img 300 / 620px advances)
+  also re-verified unchanged.
+- The Recommended Route visual became a REAL CARTO TILE MAP: the 416.65vh
+  desktop trap (was 420vh) pins an svg viewBox 0 0 1500 1500
+  (xMidYMid slice) carrying 25 `basemaps.cartocdn.com/light_nolabels/14`
+  tiles (the 8697-8701 × 5642-5646 grid, 502px cells), the dashed base
+  path (rgba(20,20,19,0.15) w5, dash 10 8), the solid #141413 progress
+  path (~703.098 arc length, dashoffset = the trap progress), five cream
+  r13 waypoints, the ink r7 head dot (drop-shadow), the lg-only g pan
+  `translate(750−headX, 750−headY)` (phones stay identity), the
+  SPLIT-COLOR progress pill (218×36 white/blur-10/#E8E6DC-hairline with
+  the violet fill sweeping under the dual clipped text pair), the 18px
+  graph-paper waypoint-panel overlay (opacity 0.42, radially masked), the
+  CENTER-BASED card slot (`top: 50%` + `translateY(calc(-50% + offset))`,
+  offsets `(i − idx) × 420px`), the City Gallery's "· 90 min" meta note,
+  and the desktop heading overlay FADING OUT across ~178px from the
+  section top (the old mirror kept the h2 visible over the pinned map
+  until 1832 — CONFIRMED drift). Phones keep the 220vh trap + the −12vh
+  panel pull, the no-pan map, and the y=68 heading.
+- The home category cards became a 3D ±18° FAN (the wrapper
+  `transform: scale(1.15)`, the perspective-800 slots, the hover flatten
+  at 0.5s, the sliding row deck with the in-card clipped View All pill
+  revealed by the −44px hover slide + the expanded clip-path, bg 0.34/0.58
+  + blur 28 + saturate 160%, radius 20 at both breakpoints — the external
+  hanging 229×54 pill is GONE).
+- The home stay cards lost the white star-rating badge (the meta keeps
+  "€€ · ★ 4.5"; the /stay browse variant KEEPS its badge).
+- The STAY booking form's time label reads "Preferred Check-In Time\*"
+  (eat/do keep "Time\*").
+- Accepted equivalences documented (F5, not remediated): the restaurants
+  band's `mix-blend-mode: overlay` canvas layer + the matrix3d-tilted
+  floating photos (the band's structure is identical to the session-29
+  model — the deterministic scatter is the documented equivalent), the
+  heading-fade window timing, and the live's DB COUNT drift (20 eats /
+  10 sights vs the seeded 12/18 — data, not code).
+- Gate arithmetic: **113 unit · 31 smoke · 94 E2E** (+1: the new
+  Carto-map spec; the fan/stop/badge/label pins extended in place) — all
+  executed green;
+  19 screenshots re-captured via `scripts/capture-screens-session60.mjs`.
