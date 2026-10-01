@@ -117,10 +117,14 @@ export function MapExplorer({
         />
         <div className="relative mx-auto max-w-7xl">
           <div className="mx-auto mb-8 max-w-7xl text-center">
-            <h1 className="mb-5 font-serif text-[36px] leading-[1.08] tracking-[-0.06em] text-ink sm:text-[clamp(36px,4.3vw,55px)]">
+            {/* Session-57 (v2.24): the live's h1 — 50.7px on phones (the
+                browse-h1 mobile scaling) with the 0.92 leading, no own
+                margin (the subtitle's mt carries the gap). */}
+            <h1 className="font-serif text-[clamp(42px,13vw,55px)] font-normal leading-[0.92] tracking-[-0.06em] text-ink">
               Map
             </h1>
-            <p className="text-sm text-[#3A3A3A]">
+            {/* Session-57 (v2.24): the live's centered max-w-xl subtitle. */}
+            <p className="mx-auto mt-3.5 max-w-xl px-6 font-inter text-sm text-[#3A3A3A] md:mt-6 md:px-0">
               Augsburg restaurants, hotels and experiences plotted across the old town.
             </p>
           </div>

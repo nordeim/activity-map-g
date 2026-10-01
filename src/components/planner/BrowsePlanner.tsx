@@ -25,7 +25,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { CalendarDays, Users, Search, SlidersHorizontal, MapPin, X } from "lucide-react";
+import { CalendarDays, Users, Search, SlidersHorizontal, Map, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { plannerDateLabel, plannerSearchUrl, type PlannerType } from "@/lib/planner";
 import { DateRangePicker } from "./DateRangePicker";
@@ -75,15 +75,18 @@ export function BrowsePlanner({
 
   const fieldPill =
     "flex items-center gap-3 rounded-[22px] bg-[rgba(248,247,244,0.55)] px-4 text-left";
+  // Session-57 (v2.24): the live's GLASS icon buttons — the 1px black/5
+  // hairline, the cream/55 bg, the inset white-highlight shadow, and the
+  // hover that inverts to dark with the lift + scale.
   const iconBtn =
-    "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-ink shadow-[0_6px_16px_rgba(14,14,14,0.08)] transition hover:bg-cream md:h-12 md:w-12";
+    "flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[rgba(0,0,0,0.05)] bg-[rgba(248,247,244,0.55)] text-[#141413] shadow-[inset_0_1px_0_rgba(255,255,255,0.70)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 hover:bg-[#0E0E0E] hover:text-white hover:shadow-[0_12px_28px_rgba(14,14,14,0.24)] md:h-12 md:w-12";
 
   return (
     <div className="sticky top-[10px] z-30 md:top-24">
       <div
         className={cn(
-          "browse-planner-card relative mx-auto w-full rounded-[30px] border border-white/70 bg-white/[0.92] p-2.5 shadow-[0_12px_28px_rgba(14,14,14,0.1)]",
-          "md:flex md:items-center md:gap-2 md:rounded-full md:bg-white md:p-1.5 md:shadow-[0_8px_22px_rgba(0,0,0,0.10)]",
+          "browse-planner-card relative mx-auto w-full rounded-[30px] border border-white/70 bg-white/[0.92] p-2.5 shadow-[0_12px_28px_rgba(14,14,14,0.1),inset_0_1px_0_rgba(255,255,255,0.88)]",
+          "md:flex md:items-center md:gap-2 md:rounded-full md:bg-white md:p-1.5 md:shadow-[0_8px_22px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.88)]",
           open && "z-[30000]",
         )}
       >
@@ -160,7 +163,9 @@ export function BrowsePlanner({
         </div>
 
         {/* The two circular icon actions (live parity): filters → the
-            chips row; the second → the map view. */}
+            chips row; the second → the map view. Session-57 (v2.24): the
+            live's second glyph is the MAP outline (was map-pin), both
+            icons stroke 2. */}
         <div className="mt-3 flex items-center justify-center gap-3 md:mt-0 md:justify-end">
           <button
             type="button"
@@ -168,10 +173,10 @@ export function BrowsePlanner({
             onClick={scrollToChips}
             className={iconBtn}
           >
-            <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden />
+            <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
           <Link href="/map" aria-label="Open the map view" className={iconBtn}>
-            <MapPin className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden />
+            <Map className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </Link>
         </div>
 

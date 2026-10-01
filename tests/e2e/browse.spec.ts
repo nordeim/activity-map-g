@@ -74,6 +74,20 @@ test.describe("browse views", () => {
       const sub = page.locator("main > section").first().locator("p").first();
       await expect(sub).toHaveCSS("font-size", "14px");
       await expect(sub).toHaveCSS("color", "rgb(58, 58, 58)");
+      // Session-57 re-measure (v2.24): the live's subtitle carries the
+      // centered max-w-xl block — mt 24px below the h1 (the h1's own
+      // margin-bottom dropped), a 576px-wide box centered at x=352.
+      const h1El = page.getByRole("heading", { name: title });
+      await expect(h1El).toHaveCSS("margin-bottom", "0px");
+      const subMt = await sub.evaluate((el) => getComputedStyle(el).marginTop);
+      expect(subMt).toBe("24px");
+      const subBox = await sub.boundingBox();
+      expect(subBox!.width).toBeGreaterThanOrEqual(574);
+      expect(subBox!.width).toBeLessThanOrEqual(578);
+      expect(Math.round(subBox!.x)).toBe(352);
+      const subY = await sub.evaluate((el) => Math.round(el.getBoundingClientRect().y));
+      expect(subY).toBeGreaterThanOrEqual(240);
+      expect(subY).toBeLessThanOrEqual(246);
 
       // Session-18 re-measure: the live now carries the 18px graph-paper
       // grid texture on EVERY browse heading section — a scoped overlay
@@ -88,6 +102,30 @@ test.describe("browse views", () => {
       expect(bgSize).toContain("18px");
       const overlayBox = await overlay.boundingBox();
       expect(overlayBox!.width).toBeGreaterThanOrEqual(1270);
+
+      // Session-57 re-measure (v2.24) — phones: the live's subtitle
+      // computes a 14px top margin with the TEXT inset 24px inside the
+      // section (a px-6 inner padding; the text wraps at ~310px).
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(path);
+      const subMobile = page.locator("main > section").first().locator("p").first();
+      const subMobileMt = await subMobile.evaluate((el) => getComputedStyle(el).marginTop);
+      expect(subMobileMt).toBe("14px");
+      await expect(subMobile).toHaveCSS("padding-left", "24px");
+      await expect(subMobile).toHaveCSS("padding-right", "24px");
+      const subMobileBox = await subMobile.boundingBox();
+      expect(Math.round(subMobileBox!.x)).toBe(16);
+      expect(Math.round(subMobileBox!.width)).toBe(358);
+      const textW = await subMobile.evaluate((el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return Math.round(range.getBoundingClientRect().width);
+      });
+      expect(textW).toBeLessThanOrEqual(312);
+      const h1Mobile = page.getByRole("heading", { name: title });
+      const h1MobileSize = await h1Mobile.evaluate((el) => getComputedStyle(el).fontSize);
+      expect(Math.round(parseFloat(h1MobileSize))).toBe(51);
+      await expect(h1Mobile).toHaveCSS("margin-bottom", "0px");
     });
   }
 
@@ -116,6 +154,34 @@ test.describe("browse views", () => {
     await expect(card.getByLabel("Type of Activities")).toHaveCount(0);
     await expect(card.getByLabel("Open category filters")).toBeVisible();
 
+    // Session-57 re-measure (v2.24): the live's two circular icon actions —
+    // the second button's glyph is the MAP outline (not the map-pin), both
+    // icons stroke 2, and the buttons carry the glass chrome (the 1px
+    // black/5 border, the cream/55 bg, the inset white highlight shadow).
+    const mapBtn = card.getByLabel("Open the map view");
+    await expect(mapBtn.locator("svg.lucide-map")).toHaveCount(1);
+    await expect(mapBtn.locator("svg.lucide-map-pin")).toHaveCount(0);
+    await expect(mapBtn.locator("svg").first()).toHaveAttribute("stroke-width", "2");
+    await expect(mapBtn).toHaveCSS("border-top-width", "1px");
+    await expect(mapBtn).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0.05)");
+    await expect(mapBtn).toHaveCSS("background-color", "rgba(248, 247, 244, 0.55)");
+    const mapBtnShadow = await mapBtn.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(mapBtnShadow).toContain("inset");
+    const filtersBtn = card.getByLabel("Open category filters");
+    await expect(filtersBtn.locator("svg").first()).toHaveAttribute("stroke-width", "2");
+    await expect(filtersBtn).toHaveCSS("background-color", "rgba(248, 247, 244, 0.55)");
+
+    // Session-57 re-measure (v2.24): the planner card's shadows carry the
+    // glass inset highlight on BOTH breakpoints (mobile + md).
+    const mobileShadow = await card.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(mobileShadow).toContain("inset");
+
+    // Session-57 re-measure (v2.24) — the chips row's left inset: the
+    // live's first chip sits at x=16 @390 (not x=4).
+    const firstChip = page.getByRole("button", { name: "Open now", exact: true });
+    const firstChipBox = await firstChip.boundingBox();
+    expect(Math.round(firstChipBox!.x)).toBe(16);
+
     // Desktop: one sticky white PILL (radius 999, h-68) — search inline.
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/eat");
@@ -125,6 +191,14 @@ test.describe("browse views", () => {
     expect(pillRadius).toBeGreaterThan(1000);
     await expect(pill.getByLabel("Search places")).toBeVisible();
     await expect(pill.getByText("Let's Plan Your Trip").first()).toBeVisible();
+    // Session-57 (v2.24): the md shadow carries the inset highlight too,
+    // and the icon buttons shrink to 48px at md (the live's contract).
+    const pillShadow = await pill.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(pillShadow).toContain("inset");
+    const mapBtnD = pill.getByLabel("Open the map view");
+    const mapBtnDBox = await mapBtnD.boundingBox();
+    expect(Math.round(mapBtnDBox!.width)).toBe(48);
+    await expect(mapBtnD.locator("svg.lucide-map")).toHaveCount(1);
   });
 
   test("the browse planner forwards its params back to the category view", async ({ page }) => {
@@ -702,6 +776,30 @@ test.describe("favourites round-trip", () => {
     const sub = page.getByText("All saved restaurants, hotels, and places in one calm collection.");
     await expect(sub).toHaveCSS("font-size", "14px");
     await expect(sub).toHaveCSS("color", "rgb(58, 58, 58)");
+    // Session-57 re-measure (v2.24): the live's subtitle carries the
+    // centered max-w-xl block (mt 24px, 576px wide, x=352) and the h1's
+    // own margin-bottom dropped (the live's spacing model).
+    const favSubMt = await sub.evaluate((el) => getComputedStyle(el).marginTop);
+    expect(favSubMt).toBe("24px");
+    const favSubBox = await sub.boundingBox();
+    expect(favSubBox!.width).toBeGreaterThanOrEqual(574);
+    expect(favSubBox!.width).toBeLessThanOrEqual(578);
+    expect(Math.round(favSubBox!.x)).toBe(352);
+    await expect(favH1).toHaveCSS("margin-bottom", "0px");
+
+    // Session-57 (v2.24) — phones: the live's favourites h1 computes
+    // 50.7px at 390 (the same mobile scaling as the browse h1s) and the
+    // subtitle's mt drops to 14px.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/favourites", { waitUntil: "domcontentloaded" });
+    const favH1M = page.getByRole("heading", { name: "Favourites" });
+    const favH1MSize = await favH1M.evaluate((el) => getComputedStyle(el).fontSize);
+    expect(Math.round(parseFloat(favH1MSize))).toBe(51);
+    const favSubM = page.getByText("All saved restaurants, hotels, and places in one calm collection.");
+    const favSubMMt = await favSubM.evaluate((el) => getComputedStyle(el).marginTop);
+    expect(favSubMMt).toBe("14px");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/favourites", { waitUntil: "domcontentloaded" });
 
     await page.locator("article").first().getByRole("button", { name: "Remove from favourites" }).click();
     await expect(page.getByText("No favourites yet")).toBeVisible();
@@ -731,6 +829,19 @@ test.describe("map view", () => {
     await page.goto("/map");
     await expect(page.getByRole("heading", { name: "Map", exact: true })).toBeVisible();
     await expect(page.getByText("Augsburg restaurants, hotels and experiences plotted across the old town.")).toBeVisible();
+    // Session-57 re-measure (v2.24): the map's subtitle carries the live's
+    // centered max-w-xl block (mt 24px, 576px, x=352) and the h1's own
+    // margin dropped; on phones the h1 computes 50.7px (the browse-h1
+    // mobile scaling — was 36px).
+    const mapSub = page.getByText("Augsburg restaurants, hotels and experiences plotted across the old town.");
+    const mapSubMt = await mapSub.evaluate((el) => getComputedStyle(el).marginTop);
+    expect(mapSubMt).toBe("24px");
+    const mapSubBox = await mapSub.boundingBox();
+    expect(mapSubBox!.width).toBeGreaterThanOrEqual(574);
+    expect(mapSubBox!.width).toBeLessThanOrEqual(578);
+    expect(Math.round(mapSubBox!.x)).toBe(352);
+    const mapH1 = page.getByRole("heading", { name: "Map", exact: true });
+    await expect(mapH1).toHaveCSS("margin-bottom", "0px");
     // Session-18 re-measure: the map heading section carries the scoped
     // 18px graph-paper texture like the browse views (the live's new
     // heading surface).
@@ -967,6 +1078,46 @@ test.describe("profile", () => {
     expect(h1Box!.y).toBeGreaterThanOrEqual(192);
     expect(h1Box!.y).toBeLessThanOrEqual(214);
 
+    // Session-57 re-measure (v2.24): the live's glass refresh — the page
+    // div carries the padding so the identity card spans the FULL 896px
+    // of the max-w-4xl main (x=192 at 1280), with the backdrop-blur-24
+    // frosted glass + the compound inset-highlight shadow; the h1's
+    // line-height tightened to 0.92.
+    const identityCard = page.getByRole("heading", { name: "sepnetflix2023" }).locator("xpath=ancestor::section[1]");
+    const cardBox = await identityCard.boundingBox();
+    expect(Math.round(cardBox!.width)).toBeGreaterThanOrEqual(894);
+    expect(Math.round(cardBox!.width)).toBeLessThanOrEqual(898);
+    expect(Math.round(cardBox!.x)).toBe(192);
+    await expect(identityCard).toHaveCSS("backdrop-filter", "blur(24px)");
+    // The live's bg-white/78 class does not compute (transparent + the
+    // blur frosting) — the rendered card bg IS transparent.
+    await expect(identityCard).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    const cardShadow = await identityCard.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(cardShadow).toContain("inset");
+    expect(cardShadow).toContain("rgba(14, 14, 14, 0.1)");
+    const h1lh = await page.getByRole("heading", { name: "sepnetflix2023" }).evaluate(
+      (el) => getComputedStyle(el).lineHeight,
+    );
+    expect(Math.round(parseFloat(h1lh))).toBe(66);
+    // The identity subtitle: 14px→16px responsive with the 20px top margin.
+    const sub = page.getByText("sepnetflix2023@outlook.com");
+    await expect(sub).toHaveCSS("font-size", "16px");
+    const subMt = await sub.evaluate((el) => getComputedStyle(el).marginTop);
+    expect(subMt).toBe("20px");
+    // The stat chips: the cream pill + 600 weight + the 13px stroke-2 icons.
+    const augsburgChip = page.getByText("Augsburg", { exact: true });
+    await expect(augsburgChip).toHaveCSS("font-weight", "600");
+    await expect(augsburgChip).toHaveCSS("background-color", "rgb(248, 247, 244)");
+    const chipIcon = augsburgChip.locator("svg").first();
+    const chipIconW = await chipIcon.evaluate((el) => Math.round(el.getBoundingClientRect().width));
+    expect(chipIconW).toBe(13);
+    await expect(chipIcon).toHaveAttribute("stroke-width", "2");
+    // The EYEBROW: the 0.18em tracking (2.16px at 12px) + #72706A.
+    const eyebrow = page.getByText("Profile", { exact: true });
+    await expect(eyebrow).toHaveCSS("color", "rgb(114, 112, 106)");
+    const eyebrowLs = await eyebrow.evaluate((el) => getComputedStyle(el).letterSpacing);
+    expect(Math.round(parseFloat(eyebrowLs) * 100) / 100).toBeCloseTo(2.16, 1);
+
     // The identity card: rounded-[36px] white/78 glass with the stat chips
     // (Augsburg, 0 day streak, Explorer badge) and the dark Saved-places
     // button (heart icon + bare label — 154×44 on the live).
@@ -982,15 +1133,53 @@ test.describe("profile", () => {
     const bookingsH2 = page.getByRole("heading", { name: "My bookings" });
     await expect(bookingsH2).toBeVisible();
     await expect(bookingsH2).toHaveCSS("font-size", "36px");
+    // Session-57 (v2.24): the h2's tracking tightened to -0.05em.
+    const h2Ls = await bookingsH2.evaluate((el) => getComputedStyle(el).letterSpacing);
+    expect(Math.round(parseFloat(h2Ls) * 100) / 100).toBeCloseTo(-1.8, 1);
+
+    // Session-57 re-measure (v2.24): the Upcoming/Past tabs are 18px-radius
+    // (not pill) with the 0 8 18 /0.08 active shadow, the label renders
+    // "Upcoming(N)" with NO space before the paren, the active tab's text
+    // is #141413 and the inactive #72706A, and the total count renders a
+    // CREAM PILL (bg #F8F7F4).
+    const upcomingTab = page.getByRole("tab", { name: /Upcoming/ });
+    await expect(upcomingTab).toHaveCSS("border-radius", "18px");
+    await expect(upcomingTab).toHaveCSS("color", "rgb(20, 20, 19)");
+    const tabShadow = await upcomingTab.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(tabShadow).toContain("rgba(14, 14, 14, 0.08)");
+    expect(tabShadow).toContain("0px 8px 18px");
+    const pastTab = page.getByRole("tab", { name: /Past/ });
+    await expect(pastTab).toHaveCSS("color", "rgb(114, 112, 106)");
+    // The label carries NO space before the paren ("Upcoming(2)").
+    await expect(upcomingTab).toContainText(/Upcoming\(\d+\)/);
+    await expect(upcomingTab).not.toContainText("Upcoming (");
+    const bookingsCard = bookingsH2.locator("xpath=ancestor::section[1]");
+    await expect(bookingsCard).toHaveCSS("backdrop-filter", "blur(20px)");
+    const bookingsCount = bookingsCard.locator("span").filter({ hasText: /^\d+$/ }).first();
+    await expect(bookingsCount).toHaveCSS("background-color", "rgb(248, 247, 244)");
 
     // Either the empty-upcoming state or an earlier test's reservation —
     // both prove the section renders. .first(): with zero bookings BOTH the
-    // "Upcoming (0)" tab and the empty-state paragraph exist at once, and an
+    // "Upcoming(0)" tab and the empty-state paragraph exist at once, and an
     // un-scoped .or() would trip strict mode on the pair.
     await expect(
-      page.getByText("No upcoming reservations. Time to explore.").or(page.getByText("Upcoming (")).first(),
+      page.getByText("No upcoming reservations. Time to explore.").or(page.getByText(/Upcoming\(/)).first(),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+
+    // Session-57 re-measure (v2.24): the pills' glass chrome — the Go-back
+    // + Sign-out controls carry the 1px black/6 border + backdrop-blur-xl,
+    // and the Saved-places button hovers VIOLET with the lift.
+    const signOut = page.getByRole("button", { name: "Sign out" });
+    await expect(signOut).toHaveCSS("border-top-width", "1px");
+    await expect(signOut).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0.06)");
+    const signOutBlur = await signOut.evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(signOutBlur).toContain("blur");
+    const backBtn = page.getByRole("button", { name: "Go back" });
+    await expect(backBtn).toHaveCSS("border-top-width", "1px");
+    await savedBtn.hover();
+    await expect(savedBtn).toHaveCSS("background-color", "rgb(87, 26, 255)");
+    await page.mouse.move(0, 0);
+    await expect(savedBtn).toHaveCSS("background-color", "rgb(14, 14, 14)");
   });
 
   test("profile identity centers on mobile; the back control is a Go back button (session 16)", async ({ page }) => {
@@ -1001,9 +1190,20 @@ test.describe("profile", () => {
     // top of the main (y≈64 on desktop).
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
-    const identity = page.locator("section").first();
-    await expect(identity).toHaveCSS("text-align", "center");
-    const h1Box = await page.getByRole("heading", { name: "sepnetflix2023" }).boundingBox();
+    // Session-57 (v2.24): the centering pins read the H1's own computed
+    // text-align (the live's card carries no text-center itself — an
+    // inner wrapper owns it; the computed result is what parity pins).
+    const h1 = page.getByRole("heading", { name: "sepnetflix2023" });
+    await expect(h1).toHaveCSS("text-align", "center");
+    // Session-57 (v2.24): the h1's mobile size is 55px with the 50.6px
+    // 0.92 line-height (the live's text-[55px] md:text-[72px] form).
+    await expect(h1).toHaveCSS("font-size", "55px");
+    const h1lhM = await h1.evaluate((el) => getComputedStyle(el).lineHeight);
+    expect(Math.round(parseFloat(h1lhM))).toBe(51);
+    // The subtitle renders 14px on phones (text-sm, growing to 16 at md).
+    const subM = page.getByText("sepnetflix2023@outlook.com");
+    await expect(subM).toHaveCSS("font-size", "14px");
+    const h1Box = await h1.boundingBox();
     expect(h1Box).not.toBeNull();
     expect(h1Box!.y).toBeGreaterThanOrEqual(155);
     expect(h1Box!.y).toBeLessThanOrEqual(180);
@@ -1020,7 +1220,7 @@ test.describe("profile", () => {
     // Desktop: the identity block goes left-aligned.
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("section").first()).toHaveCSS("text-align", "left");
+    await expect(page.getByRole("heading", { name: "sepnetflix2023" })).toHaveCSS("text-align", "left");
   });
 
   test("profile category filters carry icons; a Back control exists (session 8)", async ({ page }) => {

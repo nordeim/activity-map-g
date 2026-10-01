@@ -293,3 +293,42 @@ and found ONE gap (the only remediation of the session):
 - Gate arithmetic stable at **113 unit · 31 smoke · 93 E2E** — all executed
   green (the picker pins extended in place); 19 screenshots re-captured via
   `scripts/capture-screens-session56.mjs`.
+
+## v2.24 addendum (session 58 — the profile GLASS refresh + the browse-shell chrome)
+
+- The dual-site audit on the redeployed v2.23 mirror verified EVERY pinned
+  surface EXACT again (the mobile tab bar at 390 + taps, the mobile footer
+  grid, the desktop nav + footer pill, the byte-identical hero, the home
+  category-card classes, the v2.23 picker chrome INTACT on the live, the
+  title sweep, zero console errors; the SEVENTH identity measurement held
+  "sepnetflix2023" — the transient "Roam" h1 first-paints are the live's
+  pre-hydration skeleton, not the contract).
+- NEW drift found (F1–F16, `docs/remediation-plan-session-57.md`): the
+  live's profile evolved into a GLASS design — the page-div padding model
+  (the cards span the FULL 896px at md, was 832), the TRANSPARENT + blurred
+  cards (the live's `bg-white/78` class DOES NOT COMPUTE — its CDN skips the
+  non-standard /78 opacity step; the mirror's applying tint rendered 6 RGB
+  points too white — verified pixel-identical (248,247,244) after the fix),
+  the compound inset-highlight shadows, the glass Go-back/Sign-out pills
+  with the hover lift + invert, the VIOLET Saved-places hover, the 55px
+  mobile identity h1 (lh 0.92), the 14px→16px responsive subtitle, the
+  `#F8F7F4` font-semibold chips with 13px stroke-2 icons, the 0.18em
+  eyebrow, the 18px-radius "Upcoming(N)" tabs (no space, the cream-pill
+  count), and the browse shell — the centered `max-w-xl` subtitles on all
+  five heading pages (the live's CDN computes its `mt-6` as 14px and its
+  `mx-auto` as 24px margins on phones — the mirror pins the COMPUTED
+  result), the map + favourites h1s adopting the browse clamp form
+  (50.7px on phones), the MAP-glyph planner buttons (was map-pin) at
+  stroke 2 with the inset-highlight chrome, the planner card's inset
+  shadows, and the chips row's x=16 inset.
+- The centering pins flipped from the SECTION's text-align to the H1's own
+  (the live's card carries no `text-center` — an inner wrapper owns it;
+  the computed result is what parity pins).
+- Accepted equivalences documented (F16, not remediated): the live's eat
+  HIDDEN eyebrow ("Augsburg dining guide"), the live's home category-count
+  DATA drift (20 eat / 10 sights vs the seeded 12/18), the live's "Roam"
+  skeleton h1s, the live's tab states as inline styles, the live's CDN
+  computed-value quirks (the mirror pins computed results).
+- Gate arithmetic stable at **113 unit · 31 smoke · 93 E2E** — all executed
+  green (the profile + browse pins extended in place); 19 screenshots
+  re-captured via `scripts/capture-screens-session58.mjs`.

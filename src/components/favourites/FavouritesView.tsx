@@ -36,10 +36,16 @@ export function FavouritesView({ places }: { places: PlaceDTO[] }) {
           <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-float">
             <Heart className="h-6 w-6 fill-ink text-ink" strokeWidth={1.5} aria-hidden />
           </span>
-          <h1 className="mb-3 font-serif text-[55px] leading-[0.92] tracking-[-0.06em] text-ink">
+          {/* Session-57 (v2.24): the live's h1 — 50.7px on phones (the
+              browse-h1 mobile scaling) with the 0.92 leading, no own
+              margin (the subtitle's mt carries the gap). */}
+          <h1 className="font-serif text-[clamp(42px,13vw,55px)] font-normal leading-[0.92] tracking-[-0.06em] text-ink">
             Favourites
           </h1>
-          <p className="text-sm text-[#3A3A3A]">
+          {/* Session-57 (v2.24): the live's centered max-w-xl subtitle
+              (mx-auto mt-6 at md; the phones' computed 14px mt + the
+              24px inner inset). */}
+          <p className="mx-auto mt-3.5 max-w-xl px-6 font-inter text-sm text-[#3A3A3A] md:mt-6 md:px-0">
             All saved restaurants, hotels, and places in one calm collection.
           </p>
         </div>

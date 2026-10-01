@@ -58,10 +58,17 @@ export function CategoryExplorer({
         />
         <div className="relative mx-auto max-w-7xl">
           <div className="mx-auto mb-8 max-w-7xl text-center">
-            <h1 className="mb-5 font-serif text-[clamp(42px,13vw,55px)] leading-[0.95] tracking-[-0.06em] text-ink">
+            {/* Session-57 (v2.24): the live's h1 — leading 0.92, no own
+                margin (the subtitle's mt carries the gap). */}
+            <h1 className="font-serif text-[clamp(42px,13vw,55px)] font-normal leading-[0.92] tracking-[-0.06em] text-ink">
               {meta.title}
             </h1>
-            <p className="text-sm text-[#3A3A3A]">{meta.subtitle}</p>
+            {/* Session-57 (v2.24): the live's subtitle — the centered
+                max-w-xl block (mx-auto mt-6 at md) with the phones'
+                computed 14px mt + the 24px inner inset (px-6). The live's
+                leading-7 computes to 20px — text-sm's own default — so no
+                leading class is needed. */}
+            <p className="mx-auto mt-3.5 max-w-xl px-6 font-inter text-sm text-[#3A3A3A] md:mt-6 md:px-0">{meta.subtitle}</p>
           </div>
 
           {/* The unified browse planner (session 8): search + labelled date /
@@ -85,8 +92,10 @@ export function CategoryExplorer({
                 violet #571AFF active fill, and 44px min-height touch
                 targets on phones (the live's mobile override). The live's
                 row bleeds past the inner container to the section edges. */}
+            {/* Session-57 (v2.24): the live's chips row — the first chip
+                sits at x=16 on phones (the inner px-4; was px-1 → x=4). */}
             <div className="relative mt-[14px] -mx-4 md:-mx-8 md:mt-5">
-              <div className="no-scrollbar flex gap-2 overflow-x-auto px-1 pb-2">
+              <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2">
                 {chipsAvailable.map(({ label }) => {
                   const active = chips.includes(label);
                   return (
