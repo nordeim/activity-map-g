@@ -29,9 +29,13 @@
 
 import { randomBytes } from "node:crypto";
 import { hashPassword } from "./auth";
+import { GUEST_EMAIL, GUEST_NAME } from "./identity";
 
-export const GUEST_EMAIL = "guest@roam.local";
-export const GUEST_NAME = "Guest";
+// v2.21: the guest constants live in the CLIENT-SAFE identity seam
+// (src/lib/identity.ts — pure, zero imports) so client components (the
+// Navbar, ProfileView) can consume them without dragging node:crypto into
+// the browser bundle. Re-exported here for the server-side consumers.
+export { GUEST_EMAIL, GUEST_NAME };
 export const GUEST_AVATAR_COLOR = "#996CE4"; // the schema's User default
 export const GUEST_BOOTSTRAP_PATH = "/api/auth/guest";
 

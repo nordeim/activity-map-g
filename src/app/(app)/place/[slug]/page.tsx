@@ -9,9 +9,12 @@ import { SaveButton } from "@/components/places/SaveButton";
 import { BookingForm } from "@/components/places/BookingForm";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const place = await getPlaceBySlug(slug);
-  return { title: place ? place.name : "Place" };
+  await params;
+  // v2.21: the live's place-detail tab title is the STATIC "Place Page |
+  // Activity Map" — the place NAME never enters the tab title (measured on
+  // the live's Rose Circuit detail, 2026-10-01). The slug is still awaited
+  // so the route segment stays dynamic-params-typed.
+  return { title: "Place Page" };
 }
 
 export default async function PlaceDetailPage({ params }: { params: Promise<{ slug: string }> }) {

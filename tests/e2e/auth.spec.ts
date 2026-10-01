@@ -134,13 +134,19 @@ test.describe("login route", () => {
     await expect(page.getByRole("heading", { name: "Augsburg City Guide" })).toBeVisible();
   });
 
-  test("authenticated visits redirect /login back to the guide", async ({ page }) => {
+  test("authenticated visits STAY on /login (v2.21)", async ({ page }) => {
+    // The live's /login renders the form for EVERYONE — a signed-in demo
+    // visit stays on /login with the card visible (measured on the live:
+    // path stays /login, "Welcome to Activity Map", 2 inputs). The mirror's
+    // old bounce-to-/ was clone invention; the pin flips in v2.21.
     const res = await page.request.post("/api/auth/login", {
       data: { email: DEMO_EMAIL, password: DEMO_PASSWORD },
     });
     expect(res.ok()).toBeTruthy();
     await page.goto("/login", { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page).toHaveTitle(/Activity Map/);
+    await expect(page.getByRole("heading", { name: "Welcome to Activity Map" })).toBeVisible();
   });
 
   test("the legal pages match the live (session-25)", async ({ page }) => {

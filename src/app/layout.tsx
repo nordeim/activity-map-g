@@ -3,8 +3,15 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "ROAM — Augsburg City Guide",
-    template: "%s · ROAM",
+    // v2.21: the live's tab-title format, re-measured 2026-10-01 on every
+    // route — the home page renders the bare app name "Activity Map", and
+    // every subpage renders "<Short> | Activity Map" (the map page is
+    // "Discover | Activity Map"; the place detail is "Place Page |
+    // Activity Map" — the live never puts the place name in the tab). The
+    // legal pages already used this format; the old "ROAM — Augsburg City
+    // Guide" / "X · ROAM" branding is retired.
+    default: "Activity Map",
+    template: "%s | Activity Map",
   },
   description:
     "Augsburg restaurants, hotels and experiences in one calm guide. Plan a trip, browse the city, and plot everything on the map.",

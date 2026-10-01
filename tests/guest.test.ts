@@ -67,7 +67,10 @@ function request(path = GUEST_BOOTSTRAP_PATH, cookie?: string): NextRequest {
 describe("guest identity", () => {
   it("pins the guest account identity used by the seed and the bootstrap", () => {
     expect(GUEST_EMAIL).toBe("guest@roam.local");
-    expect(GUEST_NAME).toBe("Guest");
+    // v2.21: the guest account's NAME is the live's ANONYMOUS default
+    // identity ("Explorer" — the live went open; its logged-out profile
+    // renders h1 "Explorer"). Pinned by the identity seam too.
+    expect(GUEST_NAME).toBe("Explorer");
     expect(GUEST_AVATAR_COLOR).toBe("#996CE4");
     expect(GUEST_BOOTSTRAP_PATH).toBe("/api/auth/guest");
   });

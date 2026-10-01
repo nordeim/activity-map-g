@@ -18,12 +18,13 @@
 // Links are icon+text 13px Inter at +0.01em tracking (session-22
 // re-measure; session-6: 13px) — the ACTIVE link is weight 700 ink on the
 // rgba(14,14,14,0.08) pill; inactive links are weight 500 #555550. The
-// right cluster is the heart (#0E0E0E/7 disc) plus the black avatar disc
-// carrying the EMAIL-DERIVED INITIAL (session-50 re-measure: the live
-// flipped back to the session-14 contract — the white 14px/700 Inter
-// letter, "S" for the demo account, "G" for the guest; the lucide-user
-// icon session 48 measured is retired again). Session-50: every nav icon
-// renders stroke-width 2, and the desktop heart disc renders a 17px glyph.
+// right cluster is the heart (#0E0E0E/7 disc) plus the black avatar disc.
+// Session-50: every nav icon renders stroke-width 2, and the desktop heart
+// disc renders a 17px glyph. V2.21: the desktop avatar is STATE-DEPENDENT
+// (the live went open — src/lib/identity.ts): the GUEST (the clone's
+// anonymous state) carries the white 17px stroke-2 lucide-user glyph (the
+// live's anonymous avatar); real accounts carry the EMAIL-DERIVED INITIAL
+// (the white 14px/700 Inter letter, "S" for the demo account).
 // The whole header hides on scroll-down near the bottom and returns on
 // scroll-up (the live app's translateY choreography).
 //
@@ -36,6 +37,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sun, UtensilsCrossed, BedDouble, Compass, MapPin, Heart, User } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
+import { avatarIsIcon } from "@/lib/identity";
 
 const LINKS = [
   { href: "/", label: "Highlights", icon: Sun },
@@ -242,17 +244,23 @@ export function Navbar({ userEmail = "" }: { userEmail?: string }) {
                   : "text-ink hover:opacity-70 md:text-white md:hover:opacity-90",
               )}
             >
-              {/* Session-50 re-measure: the live's identity surface flipped
-                  BACK to the session-14 contract — the desktop disc carries
-                  the EMAIL-DERIVED INITIAL (the white 14px/700 Inter letter,
-                  "S" for the demo account); the lucide-user glyph remains
-                  the MOBILE tab-bar icon only (md:hidden; the live's mobile
-                  Profile tab-bar icon stays the 18px user glyph, now at
-                  stroke-width 2). */}
+              {/* The MOBILE tab-bar icon: the 18px stroke-2 user glyph for
+                  EVERYONE (the live's mobile Profile icon, all sessions). */}
               <User className="h-[18px] w-[18px] md:hidden" strokeWidth={2} aria-hidden />
-              <span className="hidden font-nav text-sm font-bold text-white md:inline">
-                {initials(userEmail)}
-              </span>
+              {/* v2.21: the DESKTOP avatar is STATE-DEPENDENT (the identity
+                  seam, src/lib/identity.ts — the live went open): the GUEST
+                  (the clone's anonymous state) renders the white 17px
+                  stroke-2 lucide-user glyph (the live's anonymous avatar,
+                  the session-48 icon contract restored for the guest only);
+                  every real account keeps the v2.20 email-derived INITIAL
+                  ("S" for the demo) on the black 36×36 disc. */}
+              {avatarIsIcon(userEmail) ? (
+                <User className="hidden h-[17px] w-[17px] md:block" strokeWidth={2} aria-hidden />
+              ) : (
+                <span className="hidden font-nav text-sm font-bold text-white md:inline">
+                  {initials(userEmail)}
+                </span>
+              )}
             </Link>
           </div>
         </nav>

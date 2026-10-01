@@ -8,6 +8,7 @@ import { PrismaClient } from "@prisma/client";
 import { scryptSync, randomBytes } from "crypto";
 import { readFileSync } from "fs";
 import path from "path";
+import { GUEST_EMAIL, GUEST_NAME } from "../src/lib/identity";
 
 const db = new PrismaClient();
 
@@ -128,8 +129,11 @@ async function main() {
   // an un-seeded database still gets a working guest experience.
   const guest = await db.user.create({
     data: {
-      email: "guest@roam.local",
-      name: "Guest",
+      email: GUEST_EMAIL,
+      // v2.21: the guest renders the live's ANONYMOUS identity — the live
+      // went open, and its logged-out profile renders h1 "Explorer" (the
+      // constants live in src/lib/identity.ts, the client-safe seam).
+      name: GUEST_NAME,
       passwordHash: hashPassword(randomBytes(32).toString("hex")),
       avatarColor: "#996CE4",
     },

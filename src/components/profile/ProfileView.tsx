@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import type { BookingDTO, PlaceCategory } from "@/types";
 import { cn } from "@/lib/utils";
+import { profileSubtitle } from "@/lib/identity";
 
 type BookingTab = "upcoming" | "past" | "all";
 type CategoryFilter = PlaceCategory | "all";
@@ -139,10 +140,13 @@ export function ProfileView({
           <h1 className="font-serif text-[clamp(42px,9vw,72px)] leading-[0.98] tracking-[-0.06em] text-ink">
             {user.name}
           </h1>
-          {/* Session-50 re-measure: the live renders the account EMAIL line
-              here again (the static "Your Roam account" line is gone — the
-              identity surface flipped back to the session-14 contract). */}
-          <p className="mt-2 text-base text-[#555550]">{user.email}</p>
+          {/* v2.21: the subtitle is STATE-DEPENDENT (the identity seam,
+              src/lib/identity.ts): the live went open, and its ANONYMOUS
+              profile renders the STATIC "Your Roam account" line (no
+              address) — the guest (the clone's anonymous state) renders
+              that; every real account keeps the v2.20 contract: the account
+              EMAIL as the 16px #555550 line. */}
+          <p className="mt-2 text-base text-[#555550]">{profileSubtitle(user.email)}</p>
 
           {/* The live's stat chips — cream outlined 34px pills (session-12:
               the Explorer badge lost its dark fill; all three match).

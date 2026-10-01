@@ -28,17 +28,24 @@ test.describe("guest bootstrap", () => {
     expect(me.ok()).toBeTruthy();
     const body = (await me.json()) as { data?: { user?: { email?: string; name?: string } } };
     expect(body.data?.user?.email).toBe("guest@roam.local");
-    expect(body.data?.user?.name).toBe("Guest");
+    // v2.21: the guest account's NAME is "Explorer" — the live's anonymous
+    // default identity (the live went open: anonymous visitors browse every
+    // page, and their profile renders h1 "Explorer"). The guest account IS
+    // the clone's anonymous state, so it renders the same name.
+    expect(body.data?.user?.name).toBe("Explorer");
   });
 
   test("the profile renders the guest identity", async ({ page }) => {
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Guest", exact: true })).toBeVisible();
-    // Session-50: the subtitle is the account EMAIL line (the live's current
-    // contract — the identity surface oscillated back to the session-14
-    // shape); the guest profile correspondingly shows the guest email.
-    // The guest identity itself stays pinned by /api/auth/me above.
-    await expect(page.getByText("guest@roam.local")).toBeVisible();
+    // v2.21: the live's ANONYMOUS profile contract — h1 "Explorer" + the
+    // STATIC "Your Roam account" 16px line (measured on the live with
+    // cleared cookies; the live's authenticated profile keeps the account
+    // name + email). The guest account is the clone's anonymous state.
+    await expect(page.getByRole("heading", { name: "Explorer", exact: true })).toBeVisible();
+    await expect(page.getByText("Your Roam account")).toBeVisible();
+    // The guest's own email must NOT surface on the anonymous profile
+    // surface (the live renders the static line, not an address).
+    await expect(page.getByText("guest@roam.local")).toHaveCount(0);
   });
 
   test("signing out returns to the guide as a fresh guest, not the login wall", async ({ page }) => {

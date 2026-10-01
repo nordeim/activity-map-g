@@ -3,7 +3,10 @@ import { listPlacesForUser } from "@/lib/places";
 import { CATEGORY_META } from "@/types";
 import { CategoryExplorer } from "@/components/places/CategoryExplorer";
 
-export const metadata = { title: CATEGORY_META.eat.title };
+export const metadata = { title: CATEGORY_META.eat.label };
+// v2.21: the live's tab title is the SHORT label ("Eat | Activity Map")
+// — never the on-page H1 ("Eat Well Tonight"-style). The layout template
+// appends "| Activity Map".
 
 export default async function EatPage({
   searchParams,

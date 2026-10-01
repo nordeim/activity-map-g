@@ -1065,3 +1065,23 @@ Stage Summary:
 - F1–F3 (MED): the identity/avatar surface re-aligned to the live's current contract (seed "sepnetflix2023" + the email subtitle + the email-derived initial, pinned by the initials() seam's 4 unit checks + the flipped E2E pins).
 - F4 (LOW): the nav icon strokes matched to the live (2/2/2 + the 17px desktop heart).
 - Gates: 83→87 unit · 31 smoke · 84 E2E — all green ×2; 16 screenshots; one commit on main (no branches).
+
+---
+Task ID: 47
+Agent: Super Z (main agent, session 52 — the operator's repo numbering)
+Task: Session 52 — refresh, v2.18-range re-audit, dual-site E2E audit (the live went OPEN), login-stay + anonymous-identity + title parity remediation (v2.21), commit + push.
+
+Work Log:
+- Refreshed the repo at 96880e8 (main = 50be2d7 v2.20 + the operator's session_51.md/start_server_log commit); read AGENTS/CLAUDE/README/PAD v2.20/SKILL v1.22.6 + session_50/remediation-plan-50/session_51/start_server_log; the v2.18 range 66c50de..a358ffb re-verified (page-gate, guestBootstrapUrl, 8 wired pages, chrome-only layouts).
+- Baseline gates on the untouched tree: lint 0 errors · typecheck ✓ · 87/87 unit · build ✓ · 31/31 smoke · 84/84 E2E. .env from .env.example with DATABASE_URL=file:../db/custom.db (db/ at root, 118784B seeded).
+- Dual-site browser audit (agent-browser; repo skills: agent-browser/clone-app-pat-pro/tdd/nextjs16-tailwind4/code-review-checklist): the v2.20 mirror verified live (demo identity + mobile nav geometry/taps EXACT at 390, NO Tailwind v4 regression; zero console errors on 9 pages).
+- THE LIVE WENT OPEN: anonymous visitors browse every page (cleared cookies); the live's anonymous identity = h1 "Explorer" + the static "Your Roam account" subtitle + the white 17px stroke-2 lucide-user desktop avatar; the live's anonymous state is read-only (heart taps don't persist); /login renders the form for EVERYONE (no authenticated redirect).
+- TDD remediation (docs/remediation-plan-session-51.md, R0–R6): F1 the /login authenticated redirect removed (auth.spec pin flipped to STAY); F2 the new client-safe identity seam src/lib/identity.ts (GUEST_NAME "Explorer", profileSubtitle, avatarIsIcon — guest.ts re-exports; the seed/ProfileView/Navbar branch through it); F3 the document titles aligned (template "%s | Activity Map", default "Activity Map", map "Discover", detail static "Place Page", category SHORT labels) + the new titles.spec.ts.
+- R4: reseeded; dev-server DOM probes verified (guest "Explorer"/"Your Roam account"/user-icon avatar; demo path unchanged; /login stays authenticated; the 11-route title sweep exact).
+- R5: 17 screenshots re-captured via scripts/capture-screens-session51.mjs (new 17-guest-profile-desktop.png); docs aligned — AGENTS, CLAUDE, README (+session-51 history row), PAD v2.21, SKILL v1.22.7, findings v2.21 addendum, session_52.md, the plan, this worklog.
+- R6 final gate: lint 0 errors · typecheck ✓ · 92/92 unit · build ✓ · 31/31 smoke · 92/92 E2E.
+
+Stage Summary:
+- v2.21 on main: the login-stay contract, the guest/anonymous identity surfaces, and the document titles all aligned to the live's measured strings; unit 87→92, E2E 84→92.
+- The live's OPEN transition documented (F4 INFO): the mirror's guest-bootstrap model validated — same user-visible outcome, and the guest account keeps working favourites/bookings (the deliberate divergence).
+- The identity surface now has TWO stable halves: the authenticated contract (re-measure the demo name every session) and the anonymous contract ("Explorer" + "Your Roam account" + the user icon).

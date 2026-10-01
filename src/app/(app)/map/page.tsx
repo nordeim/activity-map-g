@@ -2,7 +2,9 @@ import { requireUser } from "@/lib/page-gate";
 import { listMapPlaces } from "@/lib/places";
 import { MapExplorer } from "@/components/map/MapExplorer";
 
-export const metadata = { title: "Map" };
+export const metadata = { title: "Discover" };
+// v2.21: the live's map tab title is "Discover | Activity Map" (measured
+// 2026-10-01) — not "Map".
 
 export default async function MapPage({
   searchParams,
