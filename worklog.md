@@ -1288,3 +1288,22 @@ Stage Summary:
 - The mobile navigation menu (the task's focus) re-verified EXACT + functional on both sites — NO Tailwind v4 regression (the 15th consecutive verification).
 - En-route traps recorded in docs/session_74.md: the smooth-scroll walk resuming after a later instant scroll (~1500px past the target — walk with behavior:instant); the body/documentElement scrollHeight delta leaving the footer's last sliver unreachable (snap p to 1 at the document end); toHaveCSS is a sub-pixel STRING compare (fix the driver, not the tolerance); the live's ::placeholder is per-surface; SVG-image tiles are invisible to img-based probes.
 - Next session: re-measure the identity + the deployed mirror after the operator's next redeploy from this commit; watch whether the live's sticky-vibe architecture holds, whether its placeholder gray-400 family spreads to other surfaces, and whether the LLM pending-text family stabilizes.
+
+---
+Task ID: session-76
+Agent: Super Z (main agent, session 76 — the repo's own numbering)
+Task: Session 76 — refresh, the dual-site E2E audit on the redeployed v2.32 mirror (the verification cycle), the fifth-variant docs note, the screenshot refresh, docs, commit + push to main.
+
+Work Log:
+- Pulled the workspace (fast-forward to 52bfc15 — the operator's session-75 transcript + the refreshed start-server log); re-read the five root docs + session_74/75 + remediation-plan-73 + the worklog; baseline gates on the untouched v2.32 tree: lint 0 · typecheck · 117 unit · build · 31 smoke · 122 E2E. scandihaven re-reviewed (same stack, no new guidance).
+- Verified the user's checklist items IN PLACE (no edits needed): .env DATABASE_URL="file:../db/custom.db", db/ at the repo root, the vitest + playwright suites, the CARTO key integration (the mirror's 50 route tiles keyed), .env.example matching the codebase.
+- Dual-site browser audit (agent-browser, logged into the live with the demo account): the MOBILE NAVIGATION MENU (the task's focus) verified EXACT at 390 on BOTH sites (the 52px glass tab-bar (0,0,390,52), links x=16/121/192/222/259/304/330/356, all 44px anchors, Map/Favourites/Profile taps green) — NO Tailwind v4 regression (the 16th consecutive verification); the identity's 15th measurement held "sepnetflix2023"; ZERO console errors on the mirror's swept pages.
+- ZERO code-level gaps: the vibe sticky (2632/h2-pin-88/12 static cards/parallax 1.16 — the live's architecture HOLDS), the /eat placeholder model (400 + #9CA3AF both sites), the mirror's zero-state card, the browse card order (identical titles), the map default state, the route tiles, the footer grown 646×118 (identical), the detail (82px h1 + pickers), the login slate-600 placeholders (the gray-400 family did NOT spread), the favourites, the hero, the chips.
+- ONE finding, docs-only (docs/remediation-plan-session-75.md): the LLM status-text family evolved a FIFTH variant ("garden" → "Looking for places with garden vibes." as the /map RESOLVED status; the nonsense-query error text unchanged) — the divergence register updated; the clone's deterministic template stays.
+- T2: the 22-screenshot suite re-captured on the locally-running server against the same v2.32 tree (capture-screens-session74.mjs re-run as-is; all 22 captures healthy, the same-day booking fixture recreated). T3: docs aligned (session_76.md, the worklog, README's session-76 row + screenshots paragraph, PAD [v2.32a], SKILL 1.32.1, the findings register). T4: the quick gates re-verified + commit + push via the SSH wrapper to main.
+
+Stage Summary:
+- v2.32 held EXACT on every measured surface — a pure verification cycle; no code changes. The 16th consecutive mobile-nav verification (no Tailwind v4 regression); the identity's 15th measurement held.
+- The LLM status-text family's FIFTH variant documented (docs-only); 22 screenshots re-captured; 9 docs touched (register, plan, session log, worklog, README, PAD, SKILL).
+- Traps recorded in docs/session_76.md: the Bash display layer can eat bracket sequences (verify with od -c before "fixing"); agent-browser's window collectors reset on every open (use `agent-browser console` + --clear for focused sweeps).
+- Next session: re-measure after the operator's next redeploy; watch the sticky-vibe architecture, the placeholder family, and the LLM text family (the sixth variant?).

@@ -632,9 +632,12 @@ Validated on the live + the remediated tree:
   72 observed a THIRD variant: "Searching for brass related items in
   Augsburg" — space + "items"; session 74 observed a FOURTH variant —
   "garden" → "Finding locations featuring a lovely garden setting.", a
-  full free-form LLM sentence; the live's /map also renders an LLM
+  full free-form LLM sentence; session 76 observed a FIFTH variant —
+  "garden" → "Looking for places with garden vibes." as the RESOLVED
+  status text; the live's /map also renders an LLM
   error message for nonsense queries: "I could not identify your search
-  criteria."); only the dominant family is deterministic enough to pin.
+  criteria." — unchanged since session 74); only the dominant family is
+  deterministic enough to pin.
 - The live's place URLs became MongoDB ObjectIds
   (`/place/6a53554b67474954f64e3cd6`); slug URLs 404 upstream. The clone
   keeps slugs — a documented divergence (readable, stable, load-bearing
