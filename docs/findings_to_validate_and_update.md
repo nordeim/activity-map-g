@@ -628,8 +628,10 @@ Validated on the live + the remediated tree:
   results a WHITE card `rounded-[28px] bg-white py-14 text-center` with
   "No places found" at 20px Libre Baskerville ink.
 - The live's PENDING pill text is LLM-generated per query ("brass
-  related listings" vs "castle-related options" — both observed); only
-  the dominant family is deterministic enough to pin.
+  related listings" vs "castle-related options" — both observed; session
+  72 observed a THIRD variant: "Searching for brass related items in
+  Augsburg" — space + "items"); only the dominant family is
+  deterministic enough to pin.
 - The live's place URLs became MongoDB ObjectIds
   (`/place/6a53554b67474954f64e3cd6`); slug URLs 404 upstream. The clone
   keeps slugs — a documented divergence (readable, stable, load-bearing

@@ -215,11 +215,16 @@ test.describe("browse views", () => {
     await expect(page).toHaveURL(/\/eat\?people=4$/);
   });
 
-  test("the browse search pill is the live's 54px min-height pill with the 44px input (session 70)", async ({ page }) => {
+  test("the browse search pill is the live's 54px pill with the live's input model (session 72)", async ({ page }) => {
     // Session-70 finding F3a — the REAL BUG: `h-[54px] md:h-auto` collapsed
     // the pill to its 20px input floor at desktop (the F5 trap family).
     // The live's pill is `min-h-[54px]` → [39,323,720,54] at every
-    // breakpoint, input 44px.
+    // breakpoint. Session-72 (v2.31) re-measure: the live's INPUT height
+    // is breakpoint-dependent — 44px below md (its mobile CSS),
+    // CONTENT-DRIVEN ~20px at md+ (no height class; the pill's min-h
+    // carries the row) — and the typed text renders at font-weight 400
+    // (`font-inter text-sm`, no font-medium) while the ::placeholder
+    // computes 500 + black/40 (an intentional override).
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/eat");
     const pill = page.locator(".browse-planner-card .browse-search-pill");
@@ -228,15 +233,32 @@ test.describe("browse views", () => {
     expect(Math.round(pillBox!.height)).toBe(54);
     const input = pill.getByLabel("Search places");
     const inputBox = await input.boundingBox();
-    expect(Math.round(inputBox!.height)).toBe(44);
-    // The pill never collapses on phones either (min-h holds).
+    // Desktop: the live's input is content-driven (~20px, 14px text at
+    // lh 20 with 0 padding) — NOT the mobile 44.
+    expect(Math.round(inputBox!.height)).toBeLessThanOrEqual(24);
+    expect(Math.round(inputBox!.height)).toBeGreaterThanOrEqual(16);
+    // The typed text is weight 400 (the live's font-inter text-sm, no
+    // font-medium) and #141413; the placeholder overrides to 500/black-40.
+    await expect(input).toHaveCSS("font-weight", "400");
+    const placeholderWeight = await input.evaluate(
+      (el) => getComputedStyle(el, "::placeholder").fontWeight,
+    );
+    expect(placeholderWeight).toBe("500");
+    const placeholderColor = await input.evaluate(
+      (el) => getComputedStyle(el, "::placeholder").color,
+    );
+    expect(placeholderColor).toMatch(/0\.4\)|rgba\(0, 0, 0, 0\.4\)/);
+    // The pill never collapses on phones either (min-h holds) and the
+    // mobile input IS the live's 44px.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/eat");
     const mPill = page.locator(".browse-planner-card .browse-search-pill");
     const mPillBox = await mPill.boundingBox();
     expect(Math.round(mPillBox!.height)).toBe(54);
-    const mInputBox = await mPill.getByLabel("Search places").boundingBox();
+    const mInput = mPill.getByLabel("Search places");
+    const mInputBox = await mInput.boundingBox();
     expect(Math.round(mInputBox!.height)).toBe(44);
+    await expect(mInput).toHaveCSS("font-weight", "400");
   });
 
   test("the browse pill chrome is the live's bordered inset-shadow pill (session 70)", async ({ page }) => {
@@ -1587,6 +1609,28 @@ test.describe("map view", () => {
     const card = page.locator(".map-filter-shell > div").first();
     const cardBox = await card.boundingBox();
     expect(Math.abs(Math.round(cardBox!.height) - 138)).toBeLessThanOrEqual(2);
+  });
+
+  test("the /map search input follows the live's weight + height model (session 72)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/map");
+    // Session-72 (v2.31): the live's /map input is content-driven ~20px
+    // at md+ (no height class — its 44px is mobile-only CSS) inside the
+    // 48px h-12 row, and its TYPED text is font-weight 400 (the live's
+    // `flex-1 bg-transparent outline-none font-inter` — no font-medium)
+    // while the placeholder computes 500 + black/40.
+    const search = page.getByLabel("Search the map");
+    const searchBox = await search.boundingBox();
+    expect(Math.round(searchBox!.height)).toBeLessThanOrEqual(24);
+    expect(Math.round(searchBox!.height)).toBeGreaterThanOrEqual(16);
+    await expect(search).toHaveCSS("font-weight", "400");
+    const placeholderWeight = await search.evaluate(
+      (el) => getComputedStyle(el, "::placeholder").fontWeight,
+    );
+    expect(placeholderWeight).toBe("500");
+    const row = page.locator(".map-search-row");
+    const rowBox = await row.boundingBox();
+    expect(Math.round(rowBox!.height)).toBe(48);
   });
 
   test("the /map pills→canvas gaps match the live's measured layout (session 68)", async ({ page }) => {

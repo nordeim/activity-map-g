@@ -103,7 +103,15 @@ export function BrowsePlanner({
             Session-70 (v2.30) F3a: min-h-[54px] replaces the old
             `h-[54px] md:h-auto` — the auto height collapsed the pill to
             the 20px input floor at md+ (the session-68 F5 trap family,
-            desktop edition). The input carries h-11 (the live's 44px). */}
+            desktop edition).
+            Session-72 (v2.31) re-measure: the live's INPUT is 44px only
+            below md (its mobile CSS) and CONTENT-DRIVEN ~20px at md+ —
+            `h-11 md:h-auto` is SAFE here because the PILL's min-h-[54px]
+            carries the row height (the B11 trap cannot fire — the height
+            carrier is the pill, not the input). The typed text renders at
+            font-weight 400 (the live's font-inter text-sm — no
+            font-medium) in #141413; the ::placeholder overrides to 500 +
+            black/40 (the live's own intentional split). */}
         <div
           className={cn(
             "browse-search-pill flex min-h-[54px] min-w-0 flex-1 items-center gap-3",
@@ -117,7 +125,7 @@ export function BrowsePlanner({
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label="Search places"
-            className="h-11 w-full min-w-0 flex-1 bg-transparent text-sm font-medium text-ink outline-none placeholder:text-black/40"
+            className="h-11 md:h-auto min-w-0 flex-1 bg-transparent font-inter text-sm text-[#141413] outline-none placeholder:font-medium placeholder:text-black/40"
           />
           {query ? (
             <button

@@ -194,7 +194,14 @@ export function MapExplorer({
               34px (the 32px icon cell + 2px border) with a 20px input.
               The live's row renders 48px with a 44px input. Fix: the
               WRAPPER carries the mobile-safe w-full / md:flex-1 and the
-              row itself keeps h-12 + the input's own h-11. */}
+              row itself keeps h-12.
+              Session-72 (v2.31): the input is `h-11 md:h-auto` — the
+              live's input is 44px only below md (its mobile CSS) and
+              content-driven ~20px at md+; SAFE because the ROW's h-12
+              carries the height (the B11 trap cannot fire). The typed
+              text is font-weight 400 in #141413 (the live's own class
+              carries no font-medium); the ::placeholder overrides to
+              500 + black/40. */}
           <div className="w-full md:flex-1">
           <div className="map-search-row flex h-12 w-full items-center gap-2 rounded-full border border-black/5 bg-[rgba(248,247,244,0.55)] px-2 shadow-none">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-roam text-white">
@@ -211,7 +218,7 @@ export function MapExplorer({
               }}
               placeholder="Try: romantic hotels with a pool"
               aria-label="Search the map"
-              className="h-11 w-full bg-transparent text-sm font-medium text-ink outline-none placeholder:text-black/40"
+              className="h-11 md:h-auto w-full min-w-0 flex-1 bg-transparent font-inter text-sm text-[#141413] outline-none placeholder:font-medium placeholder:text-black/40"
             />
             {inputText ? (
               <button
