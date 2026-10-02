@@ -22,8 +22,16 @@ export function HighlightedSights({ sights }: { sights: PlaceDTO[] }) {
   if (sights.length === 0) return null;
   // Session-23: the section's bottom padding is the live's mobile
   // pill→footer hand-off (22px); desktop hands off flush (0).
+  // Session-74 (v2.32): the section carries its OWN top padding — pt-48
+  // phones / pt-144 at md — stacked AFTER the vibe grid section's pb
+  // (the live's grid-end → sights h2 gap: 283px at 1280 / 104px at 390;
+  // the clone rendered the vibe's pb alone).
   return (
-    <section id="highlighted-sights" ref={parallaxRef} className="w-full pb-[22px] md:pb-0">
+    <section
+      id="highlighted-sights"
+      ref={parallaxRef}
+      className="w-full pb-[22px] pt-[48px] md:pb-0 md:pt-[144px]"
+    >
       <div className="mx-auto mb-10 max-w-3xl px-4 text-center sm:px-6">
         <h2 className="font-serif text-[42px] leading-[1.05] tracking-[-0.055em] text-ink sm:text-[clamp(42px,6.5vw,86px)]">
           Highlighted Sights

@@ -630,8 +630,11 @@ Validated on the live + the remediated tree:
 - The live's PENDING pill text is LLM-generated per query ("brass
   related listings" vs "castle-related options" — both observed; session
   72 observed a THIRD variant: "Searching for brass related items in
-  Augsburg" — space + "items"); only the dominant family is
-  deterministic enough to pin.
+  Augsburg" — space + "items"; session 74 observed a FOURTH variant —
+  "garden" → "Finding locations featuring a lovely garden setting.", a
+  full free-form LLM sentence; the live's /map also renders an LLM
+  error message for nonsense queries: "I could not identify your search
+  criteria."); only the dominant family is deterministic enough to pin.
 - The live's place URLs became MongoDB ObjectIds
   (`/place/6a53554b67474954f64e3cd6`); slug URLs 404 upstream. The clone
   keeps slugs — a documented divergence (readable, stable, load-bearing

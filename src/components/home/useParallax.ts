@@ -48,7 +48,12 @@ export function useParallax<T extends HTMLElement>() {
         if (r.height === 0) return;
         const center = r.top + r.height / 2;
         const dist = center - vh / 2;
-        const max = r.height * 0.08; // ±8% of the element's own height
+        // Session-74 (v2.32): the max is ±8% of the element's LAYOUT
+        // height (offsetHeight — transform-immune), NOT the transformed
+        // rect (the scale(1.16) inflated the rect → ±45 vs the live's
+        // ±35.9 = 8% of the 449 layout px; re-measured on the live:
+        // +34.6 far-below → −35.9 clamped).
+        const max = el.offsetHeight * 0.08;
         const ty = Math.max(-max, Math.min(max, dist * 0.05));
         const scale = el.dataset.parallax || "1";
         el.style.transform =

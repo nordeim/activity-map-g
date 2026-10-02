@@ -110,8 +110,11 @@ export function BrowsePlanner({
             carries the row height (the B11 trap cannot fire — the height
             carrier is the pill, not the input). The typed text renders at
             font-weight 400 (the live's font-inter text-sm — no
-            font-medium) in #141413; the ::placeholder overrides to 500 +
-            black/40 (the live's own intentional split). */}
+            font-medium) in #141413. Session-74 (v2.32): the live's
+            ::placeholder now computes 400 + #9CA3AF (gray-400) — the
+            SAME weight as the typed text (the v2.31 500/black-40 pin
+            captured a since-evolved state); the placeholder needs only
+            the gray color, no weight override. */}
         <div
           className={cn(
             "browse-search-pill flex min-h-[54px] min-w-0 flex-1 items-center gap-3",
@@ -125,7 +128,7 @@ export function BrowsePlanner({
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label="Search places"
-            className="h-11 md:h-auto min-w-0 flex-1 bg-transparent font-inter text-sm text-[#141413] outline-none placeholder:font-medium placeholder:text-black/40"
+            className="h-11 md:h-auto min-w-0 flex-1 bg-transparent font-inter text-sm text-[#141413] outline-none placeholder:text-[#9CA3AF]"
           />
           {query ? (
             <button

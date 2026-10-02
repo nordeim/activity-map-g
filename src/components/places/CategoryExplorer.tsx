@@ -8,13 +8,21 @@
 // row, and the max-w-7xl responsive card grid.
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import type { CategoryMeta, PlaceDTO } from "@/types";
 import { FILTER_CHIPS, filterPlaces } from "@/lib/filters";
 import { cn } from "@/lib/utils";
 import { PlaceCard } from "./PlaceCard";
 import { StayCard } from "./StayCard";
 import { BrowsePlanner } from "@/components/planner/BrowsePlanner";
+
+// Session-74 (v2.32): the live's zero-state category names — "No
+// restaurants found" / "No hotels found" / "No experiences found"
+// (measured on the live's /eat + /stay + /do zero states).
+const ZERO_CATEGORY_NAME: Record<CategoryMeta["key"], string> = {
+  eat: "restaurants",
+  stay: "hotels",
+  do: "experiences",
+};
 
 export function CategoryExplorer({
   meta,
@@ -132,7 +140,7 @@ export function CategoryExplorer({
         {visible.length} {visible.length === 1 ? "place" : "places"}
       </p>
 
-      <section className="grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+      <section className="browse-grid grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-5 lg:grid-cols-3">
         {visible.map((place) =>
           meta.key === "stay" ? (
             <StayCard key={place.id} place={place} />
@@ -140,29 +148,26 @@ export function CategoryExplorer({
             <PlaceCard key={place.id} place={place} />
           ),
         )}
-      </section>
 
-      {visible.length === 0 ? (
-        <div className="mt-6 flex flex-col items-center rounded-3xl bg-white px-6 py-16 text-center shadow-card">
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface2">
-            <Search className="h-5 w-5 text-black/40" strokeWidth={1.5} aria-hidden />
-          </span>
-          <h2 className="font-serif text-2xl text-ink">No matches</h2>
-          <p className="mt-2 max-w-sm text-sm text-black/50">
-            Nothing in the guide fits that combination — try removing a filter or two.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setQuery("");
-              setChips([]);
-            }}
-            className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
-          >
-            Reset filters
-          </button>
-        </div>
-      ) : null}
+        {/* Session-74 (v2.32): the live's zero state — a white spanning
+            cell INSIDE the results grid (measured on /eat + /stay + /do:
+            [32,·,1216,194] desktop / [16,·,358,194] mobile — NO shadow,
+            NO icon, NO button) carrying the category-aware title ("No
+            restaurants|hotels|experiences found", Inter 20px/400 #0E0E0E
+            lh 28) + the hint ("Try widening your search", Inter 14px/400
+            #888580 lh 20, 4px below). The old icon-disc + serif
+            "No matches" + "Reset filters" card was a clone invention. */}
+        {visible.length === 0 ? (
+          <div className="browse-zero-card rounded-[28px] bg-white py-16 text-center md:col-span-2 lg:col-span-3">
+            <h2 className="font-inter text-xl font-normal leading-7 text-[#0E0E0E]">
+              No {ZERO_CATEGORY_NAME[meta.key]} found
+            </h2>
+            <p className="mt-1 font-inter text-sm font-normal leading-5 text-[#888580]">
+              Try widening your search
+            </p>
+          </div>
+        ) : null}
+      </section>
       </div>
     </main>
   );

@@ -1,135 +1,73 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { StayCard } from "@/components/places/StayCard";
 import { LetterReveal } from "./LetterReveal";
 import { useParallax } from "./useParallax";
 import type { PlaceDTO } from "@/types";
 
 // The Choose Your Vibe stay showcase — re-measured from the live app
-// (sessions 6 + 8 + 12 + 31): the big serif headline ("Choose Your Vibe,
-// Select The Dates & Enjoy Your Ultimate Getaway", #1A1A1A) with the
-// live's per-letter scroll reveal (cream → ink, LetterReveal) — session-31:
-// the heading block is CENTER-ALIGNED (the live changed it from the
-// session-12 left-aligned model) with the subtitle a centered 14px
-// #888580 line — and all twelve stays as SQUARE photo cards (the shared
-// StayCard design: aspect 1/1, rounded 24, dark bg, white Inter 18px dsk
-// / 24px mob title overlaid at the photo bottom, address + "€€€ · ★
-// rating" meta, ghost Learn More + white Book Now pills, heart overlay).
+// (sessions 6 + 8 + 12 + 31 + 74): the big serif headline ("Choose Your
+// Vibe, Select The Dates & Enjoy Your Ultimate Getaway", #1A1A1A) with
+// the live's per-letter scroll reveal (cream → ink, LetterReveal),
+// CENTER-ALIGNED (session-31) with the subtitle a centered 14px #888580
+// line — and all twelve stays as SQUARE photo cards (the shared StayCard
+// design: aspect 1/1, rounded 24, dark bg, white Inter 18px dsk / 24px
+// mob title overlaid at the photo bottom, address + "€€€ · ★ rating"
+// meta, ghost Learn More + white Book Now pills, heart overlay).
 // Session-14: the grid fills COLUMN-MAJOR from md (3 columns × 4 stacked
 // cards; visual row 1 reads Courtyard | Maison | Velvet) over the BARE
 // 1178px grid (no container side padding) at an 18px gap → 381px cards;
 // one column on phones (row flow — DOM order == visual order below md).
-// Session-31: a client component — the section owns the parallax listener
-// driving its cards' [data-parallax] imgs (the 1.16 zoom + the scroll ty).
 //
-// Session-61 re-measure: the live's grid became a STAGGERED FANNING grid
-// on desktop — the grid now renders THREE explicit column wrappers
-// (li[data-fan-col]) whose MIDDLE column rises with scroll (translateY →
-// −0.2 × the column height, i.e. −315px at 1576px) while the outer
-// columns' cards fan outward: rotate(∓6°) about the bottom-LEFT corner
-// plus translateX(∓38px), each card's phase driven by its own viewport
-// traversal ((vh − top)/(vh + height) — the row pitch staggers them so
-// the top cards settle first). Settled values verified on the live at
-// 1280×900: col1 card0 rect [−78, 341] (w 418), col3 card0 [836, 1255]
-// (w 418), matrix ±0.104528 = ±6.000°, the middle ty = −315.24. On
-// phones (below md) the live computes transform: none at EVERY scroll —
-// the whole effect is md+ only (the driver resets on narrow viewports).
+// Session-74 (v2.32) RESTRUCTURE — the live retired the session-61/63
+// fanning grid and rebuilt the section as a STICKY-HEADING + PASS-THROUGH
+// architecture (structure verified stable across reloads + time + scroll):
+//
+//   SECTION (relative, bg cream, 2632 tall at 1280)
+//   ├── DIV absolute inset-0 — the 18px graph-paper texture at 0.36
+//   ├── DIV md:sticky md:top-0 md:h-screen (relative + auto at mobile)
+//   │   └── pt-88/px-18 (mobile: pt-48/px-18/pb-18): h2 + subtitle
+//   └── SECTION (the grid section)
+//       └── pt-112/1178-centering/pb-144 (mobile: pt-20/pb-56)
+//           └── UL grid-cols-3 — 3 column wrappers × 4 cards, 381×381
+//
+// The heading PINS at viewport y 88 (its sticky block is vh-tall from
+// md, top-0, carrying pt-88) while the grid slides up and PAINTS OVER
+// it — the grid section comes LATER in DOM order so it wins the paint
+// order (verified by screenshot: the cards cover the pinned h2). The
+// grid itself renders STATICALLY: no middle-column raise, no card
+// fanning/rotation (the live computes identity transforms at every
+// scroll; the fan driver is deleted). The three li[data-fan-col]
+// wrappers stay (the live keeps them for the column-major 12-card
+// distribution — the attribute name survives as the E2E column hook).
+// The stay-img parallax REMAINS (the live's imgs still carry
+// scale(1.16) + the scroll ty ±8% of the LAYOUT height — useParallax).
 
 export function StayShowcase({ stays }: { stays: PlaceDTO[] }) {
   const parallaxRef = useParallax<HTMLElement>();
-  const fanRef = useRef<HTMLUListElement>(null);
-
-  // The fan driver — one passive rAF-throttled scroll listener. All
-  // geometry reads are TRANSFORM-IMMUNE (the ul's own rect + the
-  // wrappers' offsetTop inside the positioned ul), so the transforms it
-  // just wrote can never feed back into the next frame's math. (Runs on
-  // an empty grid too — the effect just no-ops without its columns.)
-  useEffect(() => {
-    const ul = fanRef.current;
-    if (!ul) return;
-
-    let raf: number | null = null;
-    const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-
-    const apply = () => {
-      raf = null;
-      const cols = [...ul.children] as HTMLElement[];
-      if (cols.length !== 3) return;
-      const cards = [...ul.querySelectorAll<HTMLElement>("[data-fan-card]")];
-
-      // Below md the live renders the section FLAT — clear any stale
-      // desktop transforms and do nothing else.
-      if (window.innerWidth < 768) {
-        cols[1].style.transform = "";
-        for (const c of cards) c.style.transform = "";
-        return;
-      }
-
-      const vh = window.innerHeight;
-      const gridR = ul.getBoundingClientRect();
-
-      // The middle column: rises to −0.2 × its own height as the grid
-      // traverses the viewport. Session-63 re-fit (a 5-point parked curve
-      // on the live, the grid top verified at each sample): NO traversal
-      // inset — the zero crossing sits at gridTop ≈ vh and the slope is
-      // 0.2 × colH / (vh + gridH) exactly (the session-62 ±38px inset fit
-      // diverged from the live by up to ~3.4px in the mid-ramp states;
-      // the p=0/p=1 states are inset-insensitive, which is why the old
-      // checks passed on both models).
-      const p = clamp01((vh - gridR.top) / (gridR.height + vh));
-      const colH = cols[1].getBoundingClientRect().height; // translateY keeps height
-      cols[1].style.transform = p > 0 ? `translateY(${(-0.2 * colH * p).toFixed(2)}px)` : "";
-
-      // The outer cards: rotate(∓6°) about the bottom-left + the ∓38px
-      // slide, phased by each wrapper's own traversal. (offsetTop is
-      // layout-only, so the fan's own transforms never skew the input.)
-      for (const card of cards) {
-        const col = Number(card.dataset.fanCard);
-        if (col === 1) {
-          card.style.transform = "";
-          continue;
-        }
-        const top = gridR.top + card.offsetTop;
-        const h = card.offsetHeight;
-        if (h === 0) continue;
-        const prog = clamp01((vh - top) / (vh + h));
-        if (prog <= 0) {
-          card.style.transform = "";
-          continue;
-        }
-        const dir = col === 0 ? -1 : 1;
-        card.style.transformOrigin = "0 100%";
-        card.style.transform =
-          `translateX(${(dir * 38 * prog).toFixed(2)}px) rotate(${(dir * 6 * prog).toFixed(3)}deg)`;
-      }
-    };
-
-    const onScroll = () => {
-      if (raf !== null) return;
-      raf = requestAnimationFrame(apply);
-    };
-
-    apply();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf !== null) cancelAnimationFrame(raf);
-    };
-  }, []);
 
   if (stays.length === 0) return null;
   return (
-    <section id="stay-showcase" ref={parallaxRef} className="w-full pt-[112px]">
-      {/* Session-31 re-measure: the live now CENTER-ALIGNS the heading
-          text — the container pads px-[18px] and the h2 carries
-          mx-auto max-w-[94vw] (at 1280 the box lands 1203 wide @x=38 with
-          20.4px auto margins; below ~640 the container inner width binds
-          and the box is full-bleed-inset). The rendered lines sit
-          symmetrically; the subtitle stays centered. */}
-      <div className="w-full px-[18px] text-center">
+    <section id="stay-showcase" ref={parallaxRef} className="relative w-full bg-cream">
+      {/* Session-74 (v2.32): the live's texture layer — the 18px
+          graph-paper grid at 0.36 opacity spanning the whole section
+          (the live's own absolute layer; the vibe section had NO
+          texture in the session-≤73 model). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.36] [background-image:linear-gradient(to_right,rgba(20,20,19,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(20,20,19,0.055)_1px,transparent_1px)] [background-size:18px_18px]"
+      />
+
+      {/* The sticky heading block — vh-tall from md, pins at top 0
+          (the h2 rides at viewport y 88 via the block's pt-88) while
+          the grid section scrolls up and paints over it. Below md the
+          live renders the heading RELATIVE with pt-48/pb-18 (no pin).
+          Session-31: the container pads px-[18px] and the h2 carries
+          mx-auto max-w-[94vw] (at 1280 the box lands 1203 wide @x=38). */}
+      <div
+        data-vibe-heading
+        className="relative px-[18px] pb-[18px] pt-[48px] text-center md:sticky md:top-0 md:h-screen md:pb-0 md:pt-[88px]"
+      >
         <LetterReveal
           text="Choose Your Vibe, Select The Dates & Enjoy Your Ultimate Getaway"
           className="mx-auto max-w-[94vw] font-serif text-[40px] leading-[1.08] tracking-[-0.06em] text-[#1A1A1A] sm:text-[clamp(40px,7.2vw,112px)]"
@@ -139,33 +77,26 @@ export function StayShowcase({ stays }: { stays: PlaceDTO[] }) {
         </p>
       </div>
 
-      {/* Session-14: the 1178px grid carries NO horizontal padding at
-          md+ (the live's grid box IS 1178 — 381px cards at an 18px gap)
-          and fills column-major (3 li[data-fan-col] wrappers × 4 cards;
-          visual row 1 reads Courtyard | Maison | Velvet). Session-26:
-          below md the live's mobile grid pads px-[18px] — the cards
-          render INSET (354 wide at 390), not full-bleed, and the three
-          columns simply stack (the same DOM order as the old row flow).
-          Session-61: the ul is POSITIONED (relative) so the fan driver
-          can read each wrapper's offsetTop transform-immunely, and the
-          middle column's translateY + the outer cards' rotation fan are
-          driven by the listener above. */}
-      <div className="mx-auto w-full max-w-[1178px] pb-[144px]">
-        <ul
-          ref={fanRef}
-          className="relative flex flex-col gap-[18px] px-[18px] md:grid md:grid-cols-3 md:gap-[18px] md:px-0"
-        >
+      {/* The grid section — the live's nested SECTION: pt-112 / the
+          1178 centered grid / pb-144 at md (mobile: pt-20 / pb-56). The
+          section comes AFTER the sticky block in DOM order so the grid
+          paints OVER the pinned heading (the live's own pass-through).
+          Session-26: below md the grid pads px-[18px] — the cards render
+          INSET (354 wide at 390), not full-bleed. */}
+      <section
+        data-vibe-grid-section
+        className="mx-auto w-full max-w-[1178px] pb-[56px] pt-[20px] md:pb-[144px] md:pt-[112px]"
+      >
+        <ul className="relative flex flex-col gap-[18px] px-[18px] md:grid md:grid-cols-3 md:gap-[18px] md:px-0">
           {[0, 1, 2].map((col) => (
             <li key={col} data-fan-col={col} className="flex flex-col gap-[18px]">
               {stays.slice(col * 4, col * 4 + 4).map((stay) => (
-                <div key={stay.slug} data-fan-card={col}>
-                  <StayCard place={stay} home />
-                </div>
+                <StayCard key={stay.slug} place={stay} home />
               ))}
             </li>
           ))}
         </ul>
-      </div>
+      </section>
     </section>
   );
 }

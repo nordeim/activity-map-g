@@ -1304,175 +1304,159 @@ test.describe("home content parity (session 2)", () => {
     expect(sightsWrapper.wrapperH).toBeLessThanOrEqual(Math.round(sightsWrapper.cardH * 1.4));
   });
 
-  // Session-61 re-measure: the live's home stay grid became a STAGGERED
-  // FANNING grid on desktop — three column wrappers (the middle column
-  // rises with scroll to −0.2 × its own height) and the outer columns'
-  // cards fanning rotate(∓6°) about their bottom-LEFT corner plus
-  // translateX(∓38px) as each card traverses the viewport. Mobile (390):
-  // flat — the whole effect is md+ only. Verified on the live at
-  // 1280×900: the settled col1 card0 rect spans [−78, 341] (w 418) and
-  // col3 card0 spans [836, 1255] (w 418); the middle column settles at
-  // ty = −315.24 (= −0.2 × 1576px column).
-  test("the stay grid FANS + STAGGERS on desktop scroll (session 61)", async ({ page }) => {
+  // Session-74 (v2.32): the live RETIRED the session-61/63 fanning grid —
+  // its "Choose Your Vibe" showcase is now a STICKY-HEADING + PASS-THROUGH
+  // architecture: [an absolute 18px graph-paper texture layer at 0.36] + [a
+  // vh-tall sticky heading block (pt-88: the h2 pins at viewport y 88 while
+  // the grid scrolls up and PAINTS OVER it — the nested grid section comes
+  // later in DOM order)] + [the nested grid section: pt-112 / the 1178
+  // centered grid / pb-144] with the grid STATIC (every column + card
+  // transform identity at every scroll; no middle-column raise, no card
+  // rotation). Verified on the live at 1280: the section = 2632 (800
+  // sticky + 112 + 1576 grid + 144), the h2 pinned at 88 across scroll
+  // 7400→9000, released at 9215.
+  test("the vibe heading PINS at the viewport top while the grid scrolls beneath (session 74)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const heading = page.locator("#stay-showcase [data-vibe-heading]");
+    const gridSection = page.locator("#stay-showcase [data-vibe-grid-section]");
+    await expect(heading).toHaveCount(1);
+    await expect(gridSection).toHaveCount(1);
+
+    // The sticky block is vh-tall from md and pins at top 0 (its own
+    // pt-88 puts the h2 at viewport y 88 mid-pin).
+    const stickyState = await heading.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        position: cs.position,
+        top: cs.top,
+        height: Math.round(el.getBoundingClientRect().height),
+        padTop: parseFloat(cs.paddingTop),
+      };
+    });
+    expect(stickyState.position).toBe("sticky");
+    expect(stickyState.top).toBe("0px");
+    expect(stickyState.height).toBe(800); // h-screen at vh 800
+    expect(stickyState.padTop).toBe(88);
+
+    // The grid section follows the sticky block: its own pt-112 + pb-144.
+    const sectionState = await gridSection.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        padTop: parseFloat(cs.paddingTop),
+        padBottom: parseFloat(cs.paddingBottom),
+      };
+    });
+    expect(sectionState.padTop).toBe(112);
+    expect(sectionState.padBottom).toBe(144);
+
+    // Walk the scroll past the heading (the lazy-image layout shifts —
+    // never trust a position read before the images above settle). The
+    // site's CSS sets scroll-behavior: smooth — jump INSTANTLY or the
+    // measurements read mid-animation.
+    const walkTo = async (y: number) => {
+      await page.evaluate((v) => window.scrollTo({ top: v, behavior: "instant" }), y);
+      await page.waitForTimeout(450);
+    };
+    const section = page.locator("#stay-showcase");
+    const sectionDocY = async () =>
+      section.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    await walkTo((await sectionDocY()) + 2000); // walk past (settles lazy images)
+    // Park MID-PIN: 512px past the section top — the sticky engaged (the
+    // h2 holds viewport y 88) while the grid (912px below the section
+    // top) still sits below the fold at viewport y 400.
+    await walkTo((await sectionDocY()) + 512);
+
+    // THE PIN: the h2 holds viewport y 88 (its natural position would be
+    // 512+88 = 600 — the sticky keeps it at the top while the grid rises).
+    const h2 = heading.locator("h2");
+    const h2ViewportY = await h2.evaluate((el) => Math.round(el.getBoundingClientRect().y));
+    expect(h2ViewportY).toBe(88);
+    // The grid is still below the heading's content (the cards enter from
+    // the bottom; the heading's own subtitle sits above the grid's top).
+    const grid = gridSection.locator("ul");
+    const gridViewportTop = await grid.evaluate((el) => Math.round(el.getBoundingClientRect().y));
+    expect(gridViewportTop).toBeGreaterThan(380);
+    expect(gridViewportTop).toBeLessThan(500);
+  });
+
+  // Session-74 (v2.32): the fan is RETIRED — the grid renders statically.
+  // The three li column wrappers stay (the live keeps them for the
+  // column-major 12-card distribution), but no JS driver, no
+  // data-fan-card transforms: every column + card computes identity at
+  // every scroll position, desktop AND mobile.
+  test("the stay grid is STATIC — no fan at any scroll, the columns flat (session 74)", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     const grid = page.locator("#stay-showcase ul").first();
 
-    // At load (the grid far below the fold): the fan is at rest — every
-    // transform identity, the twelve wrappers + three columns in place.
-    const atRest = await grid.evaluate((el) => {
-      const cards = [...el.querySelectorAll("[data-fan-card]")] as HTMLElement[];
-      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
-      return {
-        fanCards: cards.length,
-        cols: cols.length,
-        cardT: cards[0] ? getComputedStyle(cards[0]).transform : "missing",
-        midT: cols[1] ? getComputedStyle(cols[1]).transform : "missing",
-      };
-    });
-    expect(atRest.fanCards).toBe(12);
-    expect(atRest.cols).toBe(3);
-    expect(atRest.cardT).toBe("none");
-    expect(atRest.midT).toBe("none");
-
-    // Centered scroll: the fan ENGAGES — the middle column rises, the
-    // outer cards rotate (progressively — top cards ahead), the middle
-    // column's own cards stay flat.
-    await grid.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(800);
-    const engaged = await grid.evaluate((el) => {
-      const deg = (t: string) => {
-        if (t === "none") return 0;
-        const m = t.match(/^matrix\(([^,]+),\s*([^,]+)/);
-        if (!m) return 0;
-        return (Math.asin(parseFloat(m[2])) * 180) / Math.PI;
-      };
-      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
-      const outer = [...el.querySelectorAll('[data-fan-card="0"], [data-fan-card="2"]')] as HTMLElement[];
-      const inner = [...el.querySelectorAll('[data-fan-card="1"]')] as HTMLElement[];
-      const midT = getComputedStyle(cols[1]).transform;
-      const midTy = midT === "none" ? 0 : parseFloat(midT.split(",")[5]);
-      return {
-        midTy,
-        outerRots: outer.map((c) => Math.round(Math.abs(deg(getComputedStyle(c).transform)) * 100) / 100),
-        innerRots: inner.map((c) => Math.round(Math.abs(deg(getComputedStyle(c).transform)) * 100) / 100),
-      };
-    });
-    expect(engaged.midTy).toBeLessThan(-40);
-    expect(Math.max(...engaged.outerRots)).toBeGreaterThan(1);
-    expect(Math.max(...engaged.outerRots)).toBeLessThan(6);
-    expect(Math.max(...engaged.innerRots)).toBe(0);
-
-    // Deep scroll (the section fully above the viewport): the SETTLED
-    // state — every outer card at ±6°, the middle column at
-    // −0.2 × its column height, col1's first card leaning LEFT past the
-    // grid's edge (rect x < 0, width ≈ 418).
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(800);
-    const settled = await grid.evaluate((el) => {
-      const deg = (t: string) => {
-        if (t === "none") return 0;
-        const m = t.match(/^matrix\(([^,]+),\s*([^,]+)/);
-        if (!m) return 0;
-        return (Math.asin(parseFloat(m[2])) * 180) / Math.PI;
-      };
-      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
-      const outer = [...el.querySelectorAll('[data-fan-card="0"], [data-fan-card="2"]')] as HTMLElement[];
-      const midT = getComputedStyle(cols[1]).transform;
-      const midTy = midT === "none" ? 0 : parseFloat(midT.split(",")[5]);
-      const colH = cols[1].getBoundingClientRect().height;
-      const first = outer[0].getBoundingClientRect();
-      const gridR = el.getBoundingClientRect();
-      return {
-        midTy,
-        colH,
-        outerRots: outer.map((c) => Math.round(Math.abs(deg(getComputedStyle(c).transform)) * 100) / 100),
-        firstCard: { x: Math.round(first.x - gridR.x), w: Math.round(first.width) },
-      };
-    });
-    expect(settled.outerRots.every((r) => Math.abs(r - 6) < 0.2)).toBe(true);
-    expect(settled.midTy).toBeLessThanOrEqual(-0.19 * settled.colH);
-    expect(settled.midTy).toBeGreaterThanOrEqual(-0.21 * settled.colH);
-    expect(settled.firstCard.x).toBeLessThanOrEqual(-70);
-    expect(settled.firstCard.w).toBeGreaterThanOrEqual(410);
-    expect(settled.firstCard.w).toBeLessThanOrEqual(426);
-  });
-
-  test("the stay grid fan is OFF on mobile — flat at every scroll (session 61)", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    const grid = page.locator("#stay-showcase ul").first();
-    const gridY = await grid.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-    // Sweep the whole section — every fan transform stays identity.
-    for (const dy of [0, 400, 1200, 2400, 3600]) {
-      await page.evaluate((y) => window.scrollTo(0, y), gridY - 200 + dy);
-      await page.waitForTimeout(350);
-      const state = await grid.evaluate((el) => {
-        const cards = [...el.querySelectorAll("[data-fan-card]")] as HTMLElement[];
+    const stateAt = () =>
+      grid.evaluate((el) => {
         const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+        const cards = [...el.children[0].children] as HTMLElement[];
         return {
-          cardCount: cards.length,
-          colCount: cols.length,
-          cardT: cards.map((c) => getComputedStyle(c).transform === "none"),
-          midT: cols[1] ? getComputedStyle(cols[1]).transform === "none" : true,
+          cols: cols.length,
+          cardsPerCol: cards.length,
+          colT: cols.map((c) => getComputedStyle(c).transform),
+          cardT: cards.map((c) => getComputedStyle(c).transform),
         };
       });
-      expect(state.cardCount).toBe(12);
-      expect(state.colCount).toBe(3);
-      expect(state.cardT.every(Boolean)).toBe(true);
-      expect(state.midT).toBe(true);
+
+    // At rest (the grid far below the fold).
+    const atRest = await stateAt();
+    expect(atRest.cols).toBe(3);
+    expect(atRest.cardsPerCol).toBe(4);
+    expect(atRest.colT.every((t) => t === "none" || t === "matrix(1, 0, 0, 1, 0, 0)")).toBe(true);
+    expect(atRest.cardT.every((t) => t === "none" || t === "matrix(1, 0, 0, 1, 0, 0)")).toBe(true);
+
+    // Mid-grid and deep — the columns never rise, the cards never rotate.
+    // (Instant jumps: the site's scroll-behavior: smooth would otherwise
+    // leave the scroll mid-animation — irrelevant to the static transforms
+    // but keeps the parked positions honest.)
+    const gridDocY = await grid.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    for (const dy of [0, 600, 1400]) {
+      await page.evaluate(
+        (y) => window.scrollTo({ top: y, behavior: "instant" }),
+        gridDocY - 300 + dy,
+      );
+      await page.waitForTimeout(450);
+      const state = await stateAt();
+      expect(state.colT.every((t) => t === "none" || t === "matrix(1, 0, 0, 1, 0, 0)")).toBe(true);
+      expect(state.cardT.every((t) => t === "none" || t === "matrix(1, 0, 0, 1, 0, 0)")).toBe(true);
+      // The columns all start at the same y (no middle-column raise).
+      const colTops = await grid.evaluate((el) => {
+        const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
+        return cols.map((c) => Math.round(c.getBoundingClientRect().y));
+      });
+      expect(new Set(colTops).size).toBe(1);
     }
   });
 
-  // Session-63 re-measure: the middle column's RAMP. A 5-point parked
-  // curve fit on the live (the grid top VERIFIED at each sample) pinned
-  // ty = −0.2 × colH × clamp01((vh − gridTop)/(vh + gridH)) — the zero
-  // crossing at gridTop ≈ vh and the slope 0.2×colH/(vh+gridH) EXACT, i.e.
-  // NO traversal inset. The v2.26 driver carried a ±38px inset (the
-  // session-62 fit) which diverges from the live by up to ~3.4px in the
-  // MID-ramp states (gridTop=400 @ vh=800: −49.65 vs the live's −53.01).
-  // This pin is self-calibrating: the expected ty is computed from the
-  // page's own measured geometry at a parked mid-ramp position.
-  test("the middle column's ramp matches the live's no-inset traversal (session 63)", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
+  // Session-74 (v2.32): the vibe section's mobile contract — the heading
+  // block is RELATIVE (no pin below md) with pt-48/pb-18, and the grid
+  // section carries pt-20/pb-56 (the live's measured mobile paddings).
+  test("the vibe mobile contract: no sticky, pt-48 heading, pt-20 grid (session 74)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    const grid = page.locator("#stay-showcase ul").first();
-
-    // Walk the scroll past the grid first (the lazy-image layout shifts —
-    // never trust a position read before the images above settle).
-    const walkTo = async (y: number) => {
-      await page.evaluate((v) => window.scrollTo(0, v), y);
-      await page.waitForTimeout(450);
-    };
-    const gridDocY = async () =>
-      grid.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-    await walkTo((await gridDocY()) + 2000);
-    await walkTo((await gridDocY()) - 300); // park: the grid top at viewport y=300
-
-    const state = await grid.evaluate((el) => {
-      const cols = [...el.querySelectorAll("li[data-fan-col]")] as HTMLElement[];
-      const midT = getComputedStyle(cols[1]).transform;
-      const midTy = midT === "none" ? 0 : parseFloat(midT.split(",")[5]);
-      const r = el.getBoundingClientRect();
-      return {
-        midTy,
-        top: r.top,
-        gridH: r.height,
-        colH: cols[1].getBoundingClientRect().height,
-        vh: window.innerHeight,
-      };
+    const heading = page.locator("#stay-showcase [data-vibe-heading]");
+    const gridSection = page.locator("#stay-showcase [data-vibe-grid-section]");
+    const headingState = await heading.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { position: cs.position, padTop: parseFloat(cs.paddingTop), padBottom: parseFloat(cs.paddingBottom) };
     });
-    // The live's measured model: p = (vh − top)/(vh + gridH) — no inset.
-    const p = Math.max(0, Math.min(1, (state.vh - state.top) / (state.vh + state.gridH)));
-    const expected = -0.2 * state.colH * p;
-    // Sanity: we actually parked in the engaged mid-ramp zone (not at rest
-    // or settled, where the two models are indistinguishable).
-    expect(p).toBeGreaterThan(0.05);
-    expect(p).toBeLessThan(0.5);
-    expect(state.midTy).toBeLessThan(-20);
-    // The pin: within ±1.5px of the no-inset model (the inset model reads
-    // ~2.5-3.5px off at these depths).
-    expect(Math.abs(state.midTy - expected)).toBeLessThanOrEqual(1.5);
+    expect(headingState.position).toBe("relative");
+    expect(headingState.padTop).toBe(48);
+    expect(headingState.padBottom).toBe(18);
+    const sectionState = await gridSection.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { padTop: parseFloat(cs.paddingTop), padBottom: parseFloat(cs.paddingBottom) };
+    });
+    expect(sectionState.padTop).toBe(20);
+    expect(sectionState.padBottom).toBe(56);
+    // The cards render 354 wide at 390 (px-18 grid padding, 18px gaps).
+    const card = page.locator("#stay-showcase article").first();
+    const cardBox = await card.boundingBox();
+    expect(Math.round(cardBox!.width)).toBe(354);
   });
 
   // Session-61 re-measure: the live's stay-card heart is RESPONSIVE —
@@ -1569,6 +1553,24 @@ test.describe("home content parity (session 2)", () => {
     expect(sightsGeom.x).toBeLessThanOrEqual(84);
     expect(sightsGeom.cardW).toBeGreaterThanOrEqual(355);
     expect(sightsGeom.cardW).toBeLessThanOrEqual(365);
+  });
+
+  // Session-74 (v2.32): the live's sights section carries its OWN top
+  // padding — pt-144 at md / pt-48 on phones — stacked AFTER the vibe
+  // grid section's pb (144 md / 56 mobile): the live's grid-end → sights
+  // h2 gap measures 283px at 1280 and 104px at 390 (the clone rendered
+  // the vibe's pb alone: 143px/144px).
+  test("the sights section carries its own top padding below the vibe grid (session 74)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const sights = page.locator("#highlighted-sights");
+    const padD = await sights.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
+    expect(padD).toBe(144);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const padM = await sights.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
+    expect(padM).toBe(48);
   });
 
   test("route/sight home places resolve on their detail pages", async ({ page }) => {
@@ -1689,8 +1691,16 @@ test.describe("home content parity (session 2)", () => {
     // The pill's growth interpolates with the footer's visible fraction —
     // scrolling to the document end puts the footer fully in view (p=1).
     // The 120ms transition needs settling: poll for the grown geometry.
+    // Session-74: park at the TRUE max scroll (documentElement.scrollHeight
+    // − innerHeight) — the session-72 trap: body.scrollHeight undershoots
+    // by the body/documentElement height delta, which the taller v2.32
+    // home (the vibe restructure) widened enough to leave p at 0.9992
+    // (radius 33.9952 ≠ 34).
     await page.evaluate(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" });
+      window.scrollTo({
+        top: document.documentElement.scrollHeight - window.innerHeight,
+        behavior: "instant",
+      });
     });
     await expect
       .poll(() => nav.evaluate((el) => el.getBoundingClientRect().width), { timeout: 5000 })

@@ -68,10 +68,20 @@ export function SiteFooter() {
     const update = () => {
       raf = 0;
       const rect = footer.getBoundingClientRect();
-      const frac = Math.max(
+      let frac = Math.max(
         0,
         Math.min(1, (window.innerHeight - rect.top) / rect.height)
       );
+      // Session-74 (v2.32): snap to the fully-grown model at the document
+      // end. The body/documentElement scrollHeight delta (~22px, present
+      // on BOTH sites — session-72's measurement) leaves the footer's
+      // last sliver unreachable at max scroll, pinning p at 0.9992 (the
+      // radius computing 33.9952px instead of 34). The live renders the
+      // exact grown model (646×118) at its own max scroll; the snap
+      // reproduces that within 1px of the body's end.
+      if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 1) {
+        frac = 1;
+      }
       footer.style.setProperty("--footer-p", frac.toFixed(4));
     };
     const onScroll = () => {

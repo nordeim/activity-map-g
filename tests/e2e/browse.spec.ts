@@ -238,16 +238,20 @@ test.describe("browse views", () => {
     expect(Math.round(inputBox!.height)).toBeLessThanOrEqual(24);
     expect(Math.round(inputBox!.height)).toBeGreaterThanOrEqual(16);
     // The typed text is weight 400 (the live's font-inter text-sm, no
-    // font-medium) and #141413; the placeholder overrides to 500/black-40.
+    // font-medium) and #141413. Session-74 (v2.32): the live's
+    // ::placeholder now computes 400 + #9CA3AF (Tailwind gray-400) — the
+    // same weight as the typed text; the v2.31 500/black-40 pin captured a
+    // since-evolved state (re-measured 4× consistently on /eat + /map at
+    // both breakpoints, pre/post-typing, fresh-reload).
     await expect(input).toHaveCSS("font-weight", "400");
     const placeholderWeight = await input.evaluate(
       (el) => getComputedStyle(el, "::placeholder").fontWeight,
     );
-    expect(placeholderWeight).toBe("500");
+    expect(placeholderWeight).toBe("400");
     const placeholderColor = await input.evaluate(
       (el) => getComputedStyle(el, "::placeholder").color,
     );
-    expect(placeholderColor).toMatch(/0\.4\)|rgba\(0, 0, 0, 0\.4\)/);
+    expect(placeholderColor).toMatch(/156, 163, 175|#9CA3AF/i);
     // The pill never collapses on phones either (min-h holds) and the
     // mobile input IS the live's 44px.
     await page.setViewportSize({ width: 390, height: 844 });
@@ -259,6 +263,57 @@ test.describe("browse views", () => {
     const mInputBox = await mInput.boundingBox();
     expect(Math.round(mInputBox!.height)).toBe(44);
     await expect(mInput).toHaveCSS("font-weight", "400");
+  });
+
+  test("the browse zero state is the live's white spanning card with the category title + hint (session 74)", async ({ page }) => {
+    // Session-74 (v2.32): the live's zero-result state on the browses —
+    // measured on /eat + /stay + /do — renders INSIDE the results grid as
+    // a spanning cell (`rounded-[28px] bg-white py-16 text-center
+    // md:col-span-2 lg:col-span-3`, NO shadow, NO icon, NO button) with
+    // "No {restaurants|hotels|experiences} found" (Inter 20px/400 #0E0E0E
+    // lh 28) + "Try widening your search" (Inter 14px/400 #888580). The
+    // old clone card (icon disc + serif "No matches" + "Reset filters")
+    // was an invention — retired.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    for (const [path, title] of [
+      ["/eat", "No restaurants found"],
+      ["/stay", "No hotels found"],
+      ["/do", "No experiences found"],
+    ] as const) {
+      await page.goto(path);
+      const search = page.getByLabel("Search places");
+      await search.fill("zzzz-no-match");
+      await search.press("Enter");
+      const card = page.locator(".browse-zero-card");
+      await expect(card).toBeVisible();
+      // The card IS a spanning grid cell: it owns the grid's full width
+      // (1216 at 1280) and sits inside the results grid (not a sibling).
+      const grid = page.locator(".browse-grid");
+      await expect(card.locator("h2")).toHaveText(title);
+      await expect(card.locator("p")).toHaveText("Try widening your search");
+      const cardBox = await card.boundingBox();
+      const gridBox = await grid.boundingBox();
+      expect(Math.round(cardBox!.width)).toBe(Math.round(gridBox!.width));
+      expect(Math.round(cardBox!.y)).toBeGreaterThanOrEqual(Math.round(gridBox!.y));
+      // Chrome: r-28 + py-16 (64px) + the Inter 20px/400 ink title.
+      const radius = await card.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius));
+      expect(radius).toBeGreaterThanOrEqual(28);
+      expect(radius).toBeLessThanOrEqual(32);
+      const padY = await card.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
+      expect(padY).toBe(64);
+      await expect(card.locator("h2")).toHaveCSS("font-size", "20px");
+      await expect(card.locator("h2")).toHaveCSS("font-weight", "400");
+      await expect(card.locator("h2")).toHaveCSS("font-family", /Inter/);
+      await expect(card.locator("h2")).toHaveCSS("color", "rgb(14, 14, 14)");
+      await expect(card.locator("p")).toHaveCSS("font-size", "14px");
+      await expect(card.locator("p")).toHaveCSS("color", "rgb(136, 133, 128)");
+      // No shadow on the zero card (the old clone card carried one).
+      const shadow = await card.evaluate((el) => getComputedStyle(el).boxShadow);
+      expect(shadow).toBe("none");
+      // No icon disc + no reset button — the live renders text only.
+      await expect(card.locator("svg")).toHaveCount(0);
+      await expect(card.getByRole("button")).toHaveCount(0);
+    }
   });
 
   test("the browse pill chrome is the live's bordered inset-shadow pill (session 70)", async ({ page }) => {
@@ -1617,8 +1672,10 @@ test.describe("map view", () => {
     // Session-72 (v2.31): the live's /map input is content-driven ~20px
     // at md+ (no height class — its 44px is mobile-only CSS) inside the
     // 48px h-12 row, and its TYPED text is font-weight 400 (the live's
-    // `flex-1 bg-transparent outline-none font-inter` — no font-medium)
-    // while the placeholder computes 500 + black/40.
+    // `flex-1 bg-transparent outline-none font-inter` — no font-medium).
+    // Session-74 (v2.32): the ::placeholder now computes 400 + #9CA3AF
+    // (gray-400) like the browse input's — re-measured on the live at
+    // both breakpoints.
     const search = page.getByLabel("Search the map");
     const searchBox = await search.boundingBox();
     expect(Math.round(searchBox!.height)).toBeLessThanOrEqual(24);
@@ -1627,7 +1684,11 @@ test.describe("map view", () => {
     const placeholderWeight = await search.evaluate(
       (el) => getComputedStyle(el, "::placeholder").fontWeight,
     );
-    expect(placeholderWeight).toBe("500");
+    expect(placeholderWeight).toBe("400");
+    const placeholderColor = await search.evaluate(
+      (el) => getComputedStyle(el, "::placeholder").color,
+    );
+    expect(placeholderColor).toMatch(/156, 163, 175|#9CA3AF/i);
     const row = page.locator(".map-search-row");
     const rowBox = await row.boundingBox();
     expect(Math.round(rowBox!.height)).toBe(48);

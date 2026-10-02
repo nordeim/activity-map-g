@@ -200,8 +200,10 @@ export function MapExplorer({
               content-driven ~20px at md+; SAFE because the ROW's h-12
               carries the height (the B11 trap cannot fire). The typed
               text is font-weight 400 in #141413 (the live's own class
-              carries no font-medium); the ::placeholder overrides to
-              500 + black/40. */}
+              carries no font-medium). Session-74 (v2.32): the
+              ::placeholder now computes 400 + #9CA3AF (gray-400) —
+              same weight as the typed text, only the color override
+              remains. */}
           <div className="w-full md:flex-1">
           <div className="map-search-row flex h-12 w-full items-center gap-2 rounded-full border border-black/5 bg-[rgba(248,247,244,0.55)] px-2 shadow-none">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-roam text-white">
@@ -218,7 +220,7 @@ export function MapExplorer({
               }}
               placeholder="Try: romantic hotels with a pool"
               aria-label="Search the map"
-              className="h-11 md:h-auto w-full min-w-0 flex-1 bg-transparent font-inter text-sm text-[#141413] outline-none placeholder:font-medium placeholder:text-black/40"
+              className="h-11 md:h-auto w-full min-w-0 flex-1 bg-transparent font-inter text-sm text-[#141413] outline-none placeholder:text-[#9CA3AF]"
             />
             {inputText ? (
               <button

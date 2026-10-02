@@ -9,6 +9,7 @@
 
 #### Revision Block — v1.0 (Tracked Changes)
 
+- `[v2.32]` The sticky-vibe restructure + the browse zero state + the placeholder remediation (session 74 — the repo's own numbering; the plan is `docs/remediation-plan-session-73.md`; the operator's `docs/session_73.md` is the session-72 transcript archive). The dual-site audit on the operator's REDEPLOYED v2.31 mirror (verified running v2.31 from the live DOM) found the mobile navigation EXACT (the 15th consecutive verification) and FOUR gaps: the search-input ::placeholder now computes 400 + #9CA3AF (the v2.31 500/black-40 was a since-evolved state), the pending pill's FOURTH LLM variant ("Finding locations featuring a lovely garden setting." — docs-only), the browse zero state is the live's white spanning card ("No {restaurants|hotels|experiences} found" + "Try widening your search" — the clone's icon/serif/Reset-filters card was an invention), and the live RETIRED the v2.26 fan — the vibe showcase is now a STICKY-HEADING + PASS-THROUGH architecture (the h2 pins at viewport y 88 while the STATIC grid scrolls up and paints over it; the section 2632 = 800 sticky + 112 + 1576 + 144; the sights section gained its own pt-144/pt-48). TDD: 7 RED pins → GREEN + the footer's snap-to-grown at the document end + the parallax amplitude fix (offsetHeight — ±35.9, was ±45); 122/122 E2E (the fan pins retired); 22 screenshots re-captured (the 04/20 captures now the pin + pass-through states).
 - `[v2.31]` The search-input model remediation (session 72 — the repo's own numbering; the plan is `docs/remediation-plan-session-71.md`; the operator's `docs/session_71.md` is the session-70 transcript archive). The dual-site audit on the operator's REDEPLOYED v2.30 mirror found the mobile navigation + every prior surface EXACT (the 14th consecutive verification; the footer growth 646×118 identical at true max scroll — probe with `documentElement.scrollHeight`, not `body.scrollHeight`) and TWO gaps: the live's pending pill text evolved a THIRD variant ("related items" after "options"/"listings" — docs-only) and the search INPUTS' computed model — the typed text at font-weight 400 in #141413 (the ::placeholder overriding to 500 + black/40) with the input 44px below md but CONTENT-DRIVEN ~20px at md+. TDD: 2 RED pins → GREEN (both inputs `h-11 md:h-auto` under their height-carrying rows — the B11-safe corollary); 120/120 E2E; 22 screenshots re-captured.
 - `[v2.30]` The browse-pill + zero-state + card-order remediation (session 70 — the repo's own numbering; the plan is `docs/remediation-plan-session-69.md`; the operator's `docs/session_69.md` is the session-68 transcript archive). The dual-site audit on the operator's REDEPLOYED v2.29 mirror found five gaps: the live's PENDING pill text is LLM-generated too (varies per query — docs-only), the live's search-RESOLVED zero state is a WHITE "No places found" card (rounded-28 + py-14 + 20px Libre Baskerville ink), the browse planner's search pill had a REAL desktop bug (`h-[54px] md:h-auto` collapsed it to the 20px input floor — the session-68 F5 trap family; the live is min-h-54 with a 44px input) plus chrome drift + the combined [date, people] block (the pill 807 → the live's 720px), the live's place URLs became ObjectIds (documented divergence), and the browse card ORDER drifted within rating ties (the seed re-ordered). TDD: 5 RED pins → GREEN; 119/119 E2E; 22 screenshots.
 - `[v2.28]` The /map basemap + view-model + search-semantics remediation (session 66 — the repo's own numbering; the plan is `docs/remediation-plan-session-65.md`; the operator's `docs/session_65.md` is the session-64 transcript archive). The dual-site audit on the operator's REDEPLOYED v2.27 mirror (fresh build + re-seeded db + `NEXT_PUBLIC_CARTO_KEY` in `.env`, `docs/start_server_log.txt`) verified the MOBILE NAVIGATION MENU (the task's focus) EXACT at 390 on BOTH sites (the tab-bar fixed at the viewport TOP (0, 0, 390, 52) — the probe's first pass searched the viewport's BOTTOM half and found nothing; the bar was always there — with the glass `rgba(248,247,244,0.62)` + `blur(24px) saturate(1.5)`, the links x=16/121/192/222/259/304/330/356 at y=4, every anchor 44px tall, the Map/Favourites/Profile taps green — NO Tailwind v4 regression; the identity's TENTH measurement held "sepnetflix2023") and every v2.27 surface (the mirror's route tiles 50/50 keyed + the /map tiles 24/24 keyed AND loaded with the real imagery pixel-verified (1942 distinct colors, the (238,243,238) land tone); the fan settled middle −315.237 live / −315.34 mirror with the outer ±6.000°/±38px/w418; the mid-ramp no-inset model delta 0.00 at TWO parked points (gridTop ≈ −400 AND +400 — the old inset model reads −49.65 where both the live and the fixed mirror sit at ≈ −53.1); the category 3D-fan ±18° (0.951057/0.309017) perspective 800 x=231/786; the responsive hearts 44; the h1 y=203 35.88px; the booking label "Preferred Check-In Time*"; zero mirror console errors; the live still keyless upstream — its route SVG hrefs AND /map tile srcs both `hasKey: false`). TWO findings, BOTH on the /map surface (`docs/remediation-plan-session-65.md`) — the live's /map canvas was probed at the TILE level for the first time (prior sessions pinned the chrome, never the tile URL or the zoom model): (F1) the basemap + view model — the live serves `light_nolabels` z15 tiles (`basemaps.cartocdn.com/light_nolabels/15/17375/11340.png` — the SAME minimal family as its route map; the clone's `rastertiles/voyager` was an unverified original choice), its initial view is **fitBounds(9 places, {padding: [40, 40], maxZoom: 15})** — the zoom VIEWPORT-DEPENDENT (z13 @390 canvas 356×310, z14 @640 canvas 396×310, z15 @768+ canvas 702-1278×620, measured across 11 viewports; the padding pinned by DISCRIMINATORS: canvas 362 → z13 (padding > 38.25) while 366 → z14 (padding ≤ 40.25); the 1278-canvas case capped at z15 by the maxZoom), the 9-pin BOUNDS centered (the live's mobile west/east pins at 106.65/249.35 = exactly (w−span)/2 — NOT the centroid: the asymmetric 9-pin distribution sits ~19px east of center at 390 on BOTH sites, the probe's own mid-range math error initially disguised as a live-side difference), the view RE-FITTING on every actual filter change (the pane translated −141px after the Restaurants pill; the 390 zoom climbing z13 → z14 after the Hotels pill), maxZoom 18 (22 clean zoom-ins from the z0 floor), and the mobile canvas a FIXED 356×310 (measured at 390×{700, 844, 1000} — the height never moves; the clone had 62vh ≈ 521); (F2) the search + list semantics — the live's query submits on ENTER (typing NEVER filters: "brass" typed + 2s left 9 markers unchanged), a pill click filters WITHIN the visible set with the EMPTY-intersection FALLBACK to the pill-only set (the query resets, the input text stays stale: "brass"+Restaurants → 3 while "garden"+Restaurants → 1), a query submitted while a pill is active is pure AND ("brass"+Restaurants active+Enter → 0 "No places"), the list-header COUNT CHIP (the bare count in a white rounded-full px-3 py-1.5 12px font-semibold pill), and the 28px (w-7 h-7) clear button (the clone's was 24px). Remediated TDD-first: R0 — 8 RED pins (the tile style light_nolabels + key, the fitBounds zooms 15/13/14 at fresh loads, the maxZoom 18 cap, the Enter-submission, the pill empty-fallback, the re-fit centering + the 390 zoom climb, the count chip + "No places", the 28px clear — all verified failing on the untouched tree; two pins RE-CALIBRATED during GREEN: the centroid centering corrected to the BOUNDS-range midpoint (the live's own centroid is off-center too), and the maxZoom pin re-designed around Leaflet's DISABLED control state — a 5th click on the capped control times out) → R1 GREEN (`LeafletCanvas.tsx`: the tile URL → `light_nolabels/{z}/{x}/{y}{r}.png` keyed; maxZoom 19→18; the map created with NO fixed center/zoom, the view set by the mount fit `fitBounds(bounds, {padding: [40, 40], maxZoom: 15, animate: false})` with later points-changes re-fitting ANIMATED via a didInitialFit ref — replacing the guard-gated `.pad(0.18)` fit that NEVER FIRED (the fixed z14 view already contained the bounds center, so the guard failed) and the fixed center/zoom; the `?place=` deep-link flyTo untouched) → R2 GREEN (`MapExplorer.tsx`: the `inputText`/`submittedQuery` state split with Enter submitting; `selectFilter`'s within-visible + empty-fallback model; the clear button resetting both + the 28px chrome; the list-header count chip; the "No places" empty state; the canvas `h-[62vh] min-h-[420px]` → `h-[310px]`) → R4 verified (20/20 probe checks: the tile style + 18/18 keyed + loaded, the zoom table 15/13/14, the bounds-midpoint centering 0.5px/0px, the re-fit centering 0/0 + the 390 z13→z14 climb, the full search-semantics matrix, the count chip, the 28px clear, the maxZoom 18 with the disabled control) → R5 20 screenshots re-captured (`scripts/capture-screens-session65.mjs`; the map captures document the light_nolabels palette — the (237,237,237) land tone + the white roads) + 9 docs aligned. §7.1/§7.3: **117 unit / 102→109 E2E (+7 new tests: the fitBounds zoom model, the maxZoom cap, the Enter submission, the pill fallback, the re-fit, the count chip, the clear button; the session-63 tile-key pin re-targeted to light_nolabels in place) / 31 smoke**.
@@ -833,6 +834,70 @@ the white frame, the chip, the status pill, the F5 wrapper fix, the
 spacing retarget, the pills-row left-align) → the mobile frame verified
 EXACT ([16,497,358,312] both sites) → 21 screenshots + docs → the full
 gate: lint 0 · typecheck · 117 unit · 31 smoke · 114/114 E2E (109 → 114).
+
+## Revision v2.32 — session 74: the sticky-vibe restructure + the zero state + the placeholder
+
+The dual-site audit on the redeployed v2.31 mirror (the mobile nav —
+the task's focus — EXACT at 390 on both sites for the 15th consecutive
+verification, the identity's 14th measurement held "sepnetflix2023";
+every prior surface — the map default state, the browse orders, the
+route's 25 SVG light_nolabels z14 tiles at 268×268 on both sites, the
+detail/login/favourites/profile/chips, the footer 646×118 — exact)
+found FOUR gaps (`docs/remediation-plan-session-73.md`):
+
+1. **The search-input ::placeholder (F1)**: the live's browse + map
+   search-input placeholders now compute font-weight 400 + #9CA3AF
+   (Tailwind gray-400) at both breakpoints on both surfaces — the SAME
+   weight as the typed text (the v2.31 500/black-40 pin captured a
+   since-evolved state; re-measured 4× consistently: /eat + /map ×
+   desktop + mobile × pre/post-typing × fresh-reload; the login fields'
+   placeholders remain 400 + slate-600 — per-surface styling). Fix:
+   drop `placeholder:font-medium` + `placeholder:text-black/40` →
+   `placeholder:text-[#9CA3AF]` on both inputs.
+2. **The LLM text family (F2, docs-only)**: the pending pill's FOURTH
+   variant — "garden" → "Finding locations featuring a lovely garden
+   setting." (a full LLM sentence; the family moved from template
+   variants to free-form) — plus the /map nonsense-query message "I
+   could not identify your search criteria." The clone's pinned
+   deterministic template stays.
+3. **The browse ZERO state (F3)**: the live renders a white
+   `rounded-[28px] bg-white py-16 text-center md:col-span-2
+   lg:col-span-3` card INSIDE the results grid (NO shadow, NO icon, NO
+   button) with "No {restaurants|hotels|experiences} found" (Inter
+   20px/400 #0E0E0E lh 28) + "Try widening your search" (Inter 14px/400
+   #888580, 4px below). The clone's icon-disc + serif "No matches" +
+   "Reset filters" card was an invention — re-rendered to the live's
+   design (the ZERO_CATEGORY_NAME seam maps eat/stay/do →
+   restaurants/hotels/experiences).
+4. **The vibe showcase restructure (F4, HIGH)**: the live RETIRED the
+   v2.26 fan and rebuilt the section as a STICKY-HEADING + PASS-THROUGH
+   architecture — [an absolute 18px graph-paper texture at 0.36] + [a
+   `md:sticky md:top-0 md:h-screen` heading block (pt-88/px-18; mobile
+   relative with pt-48/pb-18 — no pin) whose h2 PINS at viewport y 88
+   from scroll sectionTop to sectionTop+1832 while the grid scrolls up
+   and PAINTS OVER it (the nested grid section follows in DOM order and
+   wins the paint)] + [the nested grid section: pt-112 / the 1178
+   centered ul / pb-144 (mobile: pt-20/pb-56)] with the grid STATIC
+   (the 3 li column wrappers stay; the fan driver + card transforms
+   deleted — identity at every scroll). The stay-img parallax REMAINS
+   (±8% of the LAYOUT height via offsetHeight — the rect-based ±45
+   corrected to the live's ±35.9) and the sights section beneath
+   carries its own pt-144 (md) / pt-48 (mobile). The section totals
+   2632 at 1280 — the live's own numbers.
+
+En-route fixes: the footer's grown state now SNAPS p to 1 at the
+document end (the body/documentElement scrollHeight delta — present on
+both sites — left p at 0.9992, the radius computing 33.9952px instead
+of 34); the footer E2E park re-targeted to the true max scroll
+(`documentElement.scrollHeight − innerHeight`); the capture-script walk
+now uses INSTANT steps (a smooth walk leaves an in-flight Chrome
+animation that resumes AFTER a later instant scroll, landing the page
+~1500px past the commanded position — the 04 pin-state capture
+initially rendered the deep-grid state).
+
+§7.1/§7.3: **117 unit / 120→122 E2E (+5 new tests: the zero-state card,
+the vibe pin, the static grid, the mobile contract, the sights pt; the
+3 fan pins retired) / 31 smoke**.
 
 ## Revision v2.31 — session 72: the search-input model
 
